@@ -12,6 +12,8 @@ export async function POST(req) {
   const file = formData.get("file");
   const title = formData.get("title") || "";
   const description = formData.get("description") || "";
+  const tagsString = formData.get("tags") || "";
+  const tags = tagsString.split(",").map(t => t.trim()).filter(Boolean);
   const selectedAccountIds = JSON.parse(formData.get("accountIds") || "[]");
 
   if (!file) {
@@ -47,7 +49,8 @@ export async function POST(req) {
             name: account.name,
             videoBuffer: buffer,
             title,
-            description
+            description,
+            tags
           });
           break;
 

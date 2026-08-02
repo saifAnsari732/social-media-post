@@ -17,6 +17,7 @@ export default function DashboardPage() {
   const [file, setFile] = useState(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [tags, setTags] = useState("");
   const [topic, setTopic] = useState("");
   const [generating, setGenerating] = useState(false);
   const [posting, setPosting] = useState(false);
@@ -70,6 +71,7 @@ export default function DashboardPage() {
       form.append("file", file);
       form.append("title", title);
       form.append("description", description);
+      form.append("tags", tags);
       form.append("accountIds", JSON.stringify(selectedIds));
       const res = await fetch("/api/post", { method: "POST", body: form });
       const data = await res.json();
@@ -178,6 +180,16 @@ export default function DashboardPage() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Post description / caption"
+              />
+            </div>
+
+            <div className="field-group">
+              <label>Tags (Optional)</label>
+              <input 
+                type="text" 
+                value={tags} 
+                onChange={(e) => setTags(e.target.value)} 
+                placeholder="gaming, tutorial, funny (comma separated)" 
               />
             </div>
 
