@@ -15,7 +15,7 @@ const AUTH_URLS = {
       "instagram_content_publish,pages_show_list"
     )}`,
   twitter: () =>
-    `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${process.env.TWITTER_CLIENT_ID}&redirect_uri=${process.env.TWITTER_REDIRECT_URI}&scope=${encodeURIComponent(
+    `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${process.env.TWITTER_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.TWITTER_REDIRECT_URI)}&scope=${encodeURIComponent(
       "tweet.read tweet.write users.read"
     )}&state=state&code_challenge=yDiyogOBAhICYCLz2kezunB7Mo0MdVRIQMs7tRbJmLE&code_challenge_method=S256`,
   linkedin: () =>
