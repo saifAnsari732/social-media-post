@@ -80,7 +80,22 @@ export default function DashboardPage() {
       setPosting(false);
     }
   }
-
+  async function handleDeleteAccount(id) {
+    if (!confirm("Are you sure you want to delete this account?")) return;
+    try {
+      const res = await fetch("/api/accounts", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id })
+      });
+      if (res.ok) {
+        fetchAccounts();
+        setSelectedIds((s) => s.filter((x) => x !== id));
+      }
+    } catch (e) {
+      console.error("Failed to delete account", e);
+    }
+  }
   return (
     <main className="wrap">
       <header>
@@ -108,6 +123,7 @@ export default function DashboardPage() {
                       key={acc._id || index}
                       className={`account-card ${isSelected ? "selected" : ""}`}
                       onClick={() => toggleSelect(acc._id)}
+                      style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
                     >
                       <div className="account-info">
                         <div className="checkbox" />
@@ -116,6 +132,24 @@ export default function DashboardPage() {
                           <div className="account-platform">{acc.platform}</div>
                         </div>
                       </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteAccount(acc._id);
+                        }}
+                        style={{
+                          background: "rgba(255, 75, 75, 0.15)",
+                          border: "1px solid rgba(255, 75, 75, 0.3)",
+                          color: "#ff4b4b",
+                          padding: "3px 6px",
+                          borderRadius: "4px",
+                          cursor: "pointer",
+                          fontSize: "11px",
+                          transition: "all 0.2s"
+                        }}
+                      >
+                        🗑️ Delete
+                      </button>
                     </div>
                   );
                 })}
