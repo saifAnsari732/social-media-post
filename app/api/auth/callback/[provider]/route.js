@@ -179,12 +179,30 @@ export async function GET(req, { params }) {
       }
     } else {
       // For twitter, linkedin, tiktok, etc.
+      let name = null;
+      let providerAccountId = null;
+      
+      if (provider === "twitter" && tokenData.access_token) {
+        try {
+          const userRes = await fetch("https://api.twitter.com/2/users/me", {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` }
+          });
+          const userData = await userRes.json();
+          if (userData.data) {
+            name = userData.data.name || userData.data.username;
+            providerAccountId = userData.data.id;
+          }
+        } catch (err) {
+          console.error("Failed to fetch Twitter user name", err);
+        }
+      }
+
       await upsertAccount({
         platform: provider,
-        providerAccountId: null,
+        providerAccountId,
         accessToken: tokenData.access_token,
         refreshToken: tokenData.refresh_token || null,
-        name: null,
+        name,
         connectedAt: new Date().toISOString(),
         raw: tokenData
       });
