@@ -116,6 +116,12 @@ export async function GET(req, { params }) {
         const pagesRes = await fetch(`https://graph.facebook.com/v20.0/me/accounts?access_token=${tokenData.access_token}`);
         const pagesData = await pagesRes.json();
         
+        console.log("Facebook accounts query result:", JSON.stringify(pagesData));
+        
+        if (pagesData.error) {
+          throw new Error(`Meta API Error: ${pagesData.error.message} (Code: ${pagesData.error.code})`);
+        }
+        
         if (pagesData.data && pagesData.data.length > 0) {
           for (const page of pagesData.data) {
             // Upsert Facebook Page if logging in via Facebook
