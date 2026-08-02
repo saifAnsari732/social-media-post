@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+// OAuth connection router for social platforms
 
 const AUTH_URLS = {
   youtube: () =>
