@@ -82,11 +82,10 @@ export default function DashboardPage() {
   return (
     <main className="wrap">
       <header>
-        <div className="eyebrow"><span className="dot" /> Broadcast Console</div>
-        <h1>One video. Every channel.</h1>
+        <div className="eyebrow"><span className="dot" /> yt-post Console</div>
+        <h1>yt-post: One video. Every channel.</h1>
         <p className="subhead">
-          Connect all your social accounts, drop in a media file, and publish everywhere at once. 
-          Support for unlimited accounts per platform.
+          <strong>Purpose of this application:</strong> yt-post is a tool designed to help creators publish their videos across multiple platforms simultaneously. By connecting your social accounts, you can upload a single media file and our app will securely post it to your connected YouTube channels and other social profiles on your behalf.
         </p>
       </header>
 
