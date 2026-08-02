@@ -199,6 +199,19 @@ export async function GET(req, { params }) {
         } catch (err) {
           console.error("Failed to fetch Twitter user name", err);
         }
+      } else if (provider === "linkedin" && tokenData.access_token) {
+        try {
+          const userRes = await fetch("https://api.linkedin.com/v2/userinfo", {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` }
+          });
+          const userData = await userRes.json();
+          if (userData.name) {
+            name = userData.name;
+            providerAccountId = userData.sub;
+          }
+        } catch (err) {
+          console.error("Failed to fetch LinkedIn user name", err);
+        }
       }
 
       await upsertAccount({

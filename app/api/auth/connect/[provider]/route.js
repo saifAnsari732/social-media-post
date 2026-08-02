@@ -22,7 +22,7 @@ const AUTH_URLS = {
   },
   linkedin: () =>
     `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${process.env.LINKEDIN_CLIENT_ID}&redirect_uri=${process.env.LINKEDIN_REDIRECT_URI}&scope=${encodeURIComponent(
-      "w_member_social"
+      "openid profile w_member_social"
     )}`,
   tiktok: () =>
     `https://www.tiktok.com/v2/auth/authorize?client_key=${process.env.TIKTOK_CLIENT_KEY}&redirect_uri=${process.env.TIKTOK_REDIRECT_URI}&response_type=code&scope=video.publish`
