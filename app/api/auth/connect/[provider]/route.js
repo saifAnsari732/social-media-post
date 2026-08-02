@@ -17,7 +17,7 @@ const AUTH_URLS = {
   twitter: () =>
     `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${process.env.TWITTER_CLIENT_ID}&redirect_uri=${process.env.TWITTER_REDIRECT_URI}&scope=${encodeURIComponent(
       "tweet.read tweet.write users.read offline.access"
-    )}&state=state&code_challenge=challenge&code_challenge_method=plain`,
+    )}&state=state&code_challenge=challenge_challenge_challenge_challenge_challenge&code_challenge_method=plain`,
   linkedin: () =>
     `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${process.env.LINKEDIN_CLIENT_ID}&redirect_uri=${process.env.LINKEDIN_REDIRECT_URI}&scope=${encodeURIComponent(
       "w_member_social"

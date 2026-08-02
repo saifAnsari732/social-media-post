@@ -33,7 +33,7 @@ async function exchangeToken(provider, code) {
           grant_type: "authorization_code",
           client_id: process.env.TWITTER_CLIENT_ID,
           redirect_uri: process.env.TWITTER_REDIRECT_URI,
-          code_verifier: "challenge"
+          code_verifier: "challenge_challenge_challenge_challenge_challenge"
         })
       });
       return res.json();
