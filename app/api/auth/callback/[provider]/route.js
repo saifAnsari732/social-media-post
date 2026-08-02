@@ -101,7 +101,7 @@ export async function GET(req, { params }) {
       }
     }
 
-    upsertAccount({
+    await upsertAccount({
       platform: provider,
       accessToken: tokenData.access_token,
       refreshToken: tokenData.refresh_token || null,

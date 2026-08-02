@@ -22,7 +22,7 @@ export async function POST(req) {
   const buffer = Buffer.from(arrayBuffer);
   const isVideo = file.type.startsWith("video");
 
-  const accounts = getAccounts();
+  const accounts = await getAccounts();
   const results = {};
 
   for (const platform of selectedPlatforms) {
@@ -99,7 +99,7 @@ export async function POST(req) {
     }
   }
 
-  addPost({
+  await addPost({
     id: Date.now().toString(),
     title,
     description,
