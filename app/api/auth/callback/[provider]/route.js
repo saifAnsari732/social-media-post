@@ -83,7 +83,9 @@ export async function GET(req, { params }) {
     const tokenData = await exchangeToken(provider, code);
 
     if (tokenData.error) {
-      throw new Error(`Token exchange failed: ${tokenData.error_description || tokenData.error}`);
+      const secret = process.env.YOUTUBE_CLIENT_SECRET || "";
+      const debugInfo = `Secret in Vercel: len=${secret.length}, start='${secret.substring(0, 3)}', end='${secret.slice(-3)}'`;
+      throw new Error(`Token exchange failed: ${tokenData.error_description || tokenData.error}. [Debug: ${debugInfo}]`);
     }
 
     let accountName = null;
