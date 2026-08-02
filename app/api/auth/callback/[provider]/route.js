@@ -25,9 +25,13 @@ async function exchangeToken(provider, code) {
       return res.json();
     }
     case "twitter": {
+      const basicAuth = Buffer.from(`${process.env.TWITTER_CLIENT_ID}:${process.env.TWITTER_CLIENT_SECRET}`).toString("base64");
       const res = await fetch("https://api.twitter.com/2/oauth2/token", {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        headers: { 
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Authorization": `Basic ${basicAuth}`
+        },
         body: new URLSearchParams({
           code,
           grant_type: "authorization_code",
