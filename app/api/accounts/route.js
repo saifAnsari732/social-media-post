@@ -4,6 +4,7 @@ import { getAccounts, removeAccount } from "@/lib/db";
 export async function GET() {
   const dbAccounts = await getAccounts();
   const accounts = dbAccounts.map((a) => ({
+    _id: a._id,
     platform: a.platform,
     name: a.name || null,
     connectedAt: a.connectedAt
@@ -12,7 +13,7 @@ export async function GET() {
 }
 
 export async function DELETE(req) {
-  const { platform } = await req.json();
-  await removeAccount(platform);
+  const { id } = await req.json();
+  await removeAccount(id);
   return NextResponse.json({ success: true });
 }

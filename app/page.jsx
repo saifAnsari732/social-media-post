@@ -13,7 +13,7 @@ const PLATFORMS = [
 
 export default function DashboardPage() {
   const [accounts, setAccounts] = useState([]);
-  const [selected, setSelected] = useState([]);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [file, setFile] = useState(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -24,17 +24,21 @@ export default function DashboardPage() {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    fetch("/api/accounts")
-      .then((r) => r.json())
-      .then((d) => setAccounts(d.accounts || []));
+    fetchAccounts();
   }, []);
 
+  async function fetchAccounts() {
+    const res = await fetch("/api/accounts");
+    const data = await res.json();
+    setAccounts(data.accounts || []);
+  }
+
   function toggleSelect(id) {
-    if (!accounts.some(a => a.platform === id)) {
-      window.location.href = `/api/auth/connect/${id}`;
-      return;
-    }
-    setSelected((s) => (s.includes(id) ? s.filter((p) => p !== id) : [...s, id]));
+    setSelectedIds((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  }
+
+  function handleConnect(platformId) {
+    window.location.href = `/api/auth/connect/${platformId}`;
   }
 
   async function handleGenerate() {
@@ -58,7 +62,7 @@ export default function DashboardPage() {
   }
 
   async function handlePost() {
-    if (!file || selected.length === 0) return;
+    if (!file || selectedIds.length === 0) return;
     setPosting(true);
     setResults(null);
     try {
@@ -66,7 +70,7 @@ export default function DashboardPage() {
       form.append("file", file);
       form.append("title", title);
       form.append("description", description);
-      form.append("platforms", JSON.stringify(selected));
+      form.append("accountIds", JSON.stringify(selectedIds));
       const res = await fetch("/api/post", { method: "POST", body: form });
       const data = await res.json();
       setResults(data.results);
@@ -77,101 +81,133 @@ export default function DashboardPage() {
 
   return (
     <main className="wrap">
-      <div className="eyebrow"><span className="dot" /> Broadcast Console</div>
-      <h1>One video. Every channel.</h1>
-      <p className="subhead">
-        Connect your social accounts once, drop in a video or image, and publish
-        to all of them in a single pass — no more re-uploading the same clip six times.
-      </p>
+      <header>
+        <div className="eyebrow"><span className="dot" /> Broadcast Console</div>
+        <h1>One video. Every channel.</h1>
+        <p className="subhead">
+          Connect all your social accounts, drop in a media file, and publish everywhere at once. 
+          Support for unlimited accounts per platform.
+        </p>
+      </header>
 
-      <p className="section-label">01 — Select channels</p>
-      <div className="channel-grid">
-        {PLATFORMS.map((p) => {
-          const acc = accounts.find(a => a.platform === p.id);
-          const isConnected = !!acc;
-          const isSelected = selected.includes(p.id);
-          return (
-            <div
-              key={p.id}
-              className={`channel-card ${isSelected ? "selected" : ""} ${!isConnected ? "disconnected" : ""}`}
-              onClick={() => toggleSelect(p.id)}
-            >
-              <div className="channel-name">{p.label}</div>
-              <div className={`channel-status ${isConnected ? "connected" : "off"}`}>
-                {isConnected ? `● connected${acc?.name ? ` as ${acc.name}` : ""}` : "○ offline"}
+      <div className="layout-grid">
+        {/* Left Column: Channels */}
+        <aside>
+          <div className="panel">
+            <h2 className="section-label">01 — Connected Accounts</h2>
+            
+            {accounts.length === 0 ? (
+              <div className="empty-state">No accounts connected yet.</div>
+            ) : (
+              <div className="accounts-list">
+                {accounts.map((acc, index) => {
+                  const isSelected = selectedIds.includes(acc._id);
+                  return (
+                    <div
+                      key={acc._id || index}
+                      className={`account-card ${isSelected ? "selected" : ""}`}
+                      onClick={() => toggleSelect(acc._id)}
+                    >
+                      <div className="account-info">
+                        <div className="checkbox" />
+                        <div>
+                          <div className="account-name">{acc.name || "Unnamed Account"}</div>
+                          <div className="account-platform">{acc.platform}</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              {!isConnected && <button className="connect-btn">Connect</button>}
+            )}
+
+            <h2 className="section-label">Add Account</h2>
+            <div className="add-account-section">
+              {PLATFORMS.map(p => (
+                <div key={p.id} className="btn-connect" onClick={() => handleConnect(p.id)}>
+                  + {p.label}
+                </div>
+              ))}
             </div>
-          );
-        })}
-      </div>
-
-      <p className="section-label">02 — Add your media</p>
-      <div className="panel">
-        <div
-          className={`dropzone ${file ? "has-file" : ""}`}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          {file ? `Selected: ${file.name}` : "Click to choose a video or image file"}
-        </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="video/*,image/*"
-          hidden
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
-        />
-
-        <label className="field-label">Generate with Gemini (optional)</label>
-        <div className="gen-row">
-          <input
-            type="text"
-            placeholder="Describe your video in a few words…"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-          />
-          <button className="btn btn-ghost" onClick={handleGenerate} disabled={generating || !topic}>
-            {generating ? "Writing…" : "Generate"}
-          </button>
-        </div>
-
-        <label className="field-label">Title</label>
-        <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Post title" />
-
-        <label className="field-label">Description</label>
-        <textarea
-          rows={4}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Post description / caption"
-        />
-
-        <button
-          className="btn btn-primary"
-          onClick={handlePost}
-          disabled={posting || !file || selected.length === 0}
-        >
-          {posting ? "Publishing…" : `Publish to ${selected.length || 0} channel${selected.length === 1 ? "" : "s"}`}
-        </button>
-
-        {results && (
-          <div className="results">
-            {Object.entries(results).map(([platform, r]) => (
-              <div className="result-row" key={platform}>
-                <span>{platform}</span>
-                <span className={r.success ? "result-ok" : "result-fail"}>
-                  {r.success ? "✓ published" : `✕ ${r.error}`}
-                </span>
-              </div>
-            ))}
           </div>
-        )}
-      </div>
+        </aside>
 
-      <p className="footer-note">
-        Connect a channel above with the "Connect" button — you'll need API credentials
-        for each platform set in your .env file first.
-      </p>
+        {/* Right Column: Editor */}
+        <section>
+          <div className="panel">
+            <h2 className="section-label">02 — Create Post</h2>
+            
+            <div
+              className={`dropzone ${file ? "has-file" : ""}`}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <div className="dropzone-icon">{file ? "✅" : "📁"}</div>
+              <div className="dropzone-text">
+                {file ? file.name : "Click to choose a video or image"}
+              </div>
+              {!file && <div className="dropzone-subtext">MP4, MOV, JPG, PNG</div>}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="video/*,image/*"
+              hidden
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+            />
+
+            <div className="ai-generate">
+              <input
+                type="text"
+                placeholder="Describe your video for AI generation..."
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+              />
+              <button className="btn btn-secondary" onClick={handleGenerate} disabled={generating || !topic}>
+                {generating ? "..." : "Generate AI"}
+              </button>
+            </div>
+
+            <div className="field-group">
+              <label>Title</label>
+              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Post title" />
+            </div>
+
+            <div className="field-group">
+              <label>Description</label>
+              <textarea
+                rows={5}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Post description / caption"
+              />
+            </div>
+
+            <button
+              className="btn btn-primary"
+              onClick={handlePost}
+              disabled={posting || !file || selectedIds.length === 0}
+            >
+              {posting ? "Publishing..." : `Publish to ${selectedIds.length || 0} Account${selectedIds.length === 1 ? "" : "s"}`}
+            </button>
+
+            {results && (
+              <div className="results">
+                {Object.entries(results).map(([accountId, r]) => {
+                  const acc = accounts.find(a => a._id === accountId) || {};
+                  return (
+                    <div className="result-row" key={accountId}>
+                      <span>{acc.name || accountId} ({acc.platform})</span>
+                      <span className={`status-badge ${r.success ? "status-ok" : "status-fail"}`}>
+                        {r.success ? "Published" : "Failed"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
     </main>
   );
 }

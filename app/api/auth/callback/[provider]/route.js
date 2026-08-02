@@ -87,6 +87,7 @@ export async function GET(req, { params }) {
     }
 
     let accountName = null;
+    let providerAccountId = null;
     if (provider === "youtube" && tokenData.access_token) {
       try {
         const channelRes = await fetch("https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true", {
@@ -95,6 +96,7 @@ export async function GET(req, { params }) {
         const channelData = await channelRes.json();
         if (channelData.items && channelData.items.length > 0) {
           accountName = channelData.items[0].snippet.title;
+          providerAccountId = channelData.items[0].id;
         }
       } catch (err) {
         console.error("Failed to fetch YouTube channel name", err);
@@ -103,6 +105,7 @@ export async function GET(req, { params }) {
 
     await upsertAccount({
       platform: provider,
+      providerAccountId,
       accessToken: tokenData.access_token,
       refreshToken: tokenData.refresh_token || null,
       name: accountName,

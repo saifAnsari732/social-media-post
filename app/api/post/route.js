@@ -12,7 +12,7 @@ export async function POST(req) {
   const file = formData.get("file");
   const title = formData.get("title") || "";
   const description = formData.get("description") || "";
-  const selectedPlatforms = JSON.parse(formData.get("platforms") || "[]");
+  const selectedAccountIds = JSON.parse(formData.get("accountIds") || "[]");
 
   if (!file) {
     return NextResponse.json({ error: "File is required" }, { status: 400 });
@@ -25,12 +25,14 @@ export async function POST(req) {
   const accounts = await getAccounts();
   const results = {};
 
-  for (const platform of selectedPlatforms) {
-    const account = accounts.find((a) => a.platform === platform);
+  for (const accountId of selectedAccountIds) {
+    const account = accounts.find((a) => a._id.toString() === accountId);
     if (!account) {
-      results[platform] = { success: false, error: "Not connected" };
+      results[accountId] = { success: false, error: "Account not found" };
       continue;
     }
+
+    const platform = account.platform;
 
     try {
       switch (platform) {
@@ -38,6 +40,11 @@ export async function POST(req) {
           if (!isVideo) throw new Error("YouTube requires a video file");
           results.youtube = await postToYouTube({
             accessToken: account.accessToken,
+            refreshToken: account.refreshToken,
+            accountId: account._id,
+            platform: account.platform,
+            providerAccountId: account.providerAccountId,
+            name: account.name,
             videoBuffer: buffer,
             title,
             description
@@ -103,7 +110,7 @@ export async function POST(req) {
     id: Date.now().toString(),
     title,
     description,
-    platforms: selectedPlatforms,
+    accountIds: selectedAccountIds,
     results,
     createdAt: new Date().toISOString()
   });
