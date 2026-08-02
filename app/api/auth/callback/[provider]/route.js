@@ -86,9 +86,9 @@ export async function GET(req, { params }) {
       throw new Error(`Token exchange failed: ${tokenData.error_description || tokenData.error}`);
     }
 
-    let accountName = null;
-    let providerAccountId = null;
     if (provider === "youtube" && tokenData.access_token) {
+      let accountName = null;
+      let providerAccountId = null;
       try {
         const channelRes = await fetch("https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true", {
           headers: { Authorization: `Bearer ${tokenData.access_token}` }
@@ -101,17 +101,62 @@ export async function GET(req, { params }) {
       } catch (err) {
         console.error("Failed to fetch YouTube channel name", err);
       }
-    }
 
-    await upsertAccount({
-      platform: provider,
-      providerAccountId,
-      accessToken: tokenData.access_token,
-      refreshToken: tokenData.refresh_token || null,
-      name: accountName,
-      connectedAt: new Date().toISOString(),
-      raw: tokenData
-    });
+      await upsertAccount({
+        platform: provider,
+        providerAccountId,
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token || null,
+        name: accountName,
+        connectedAt: new Date().toISOString(),
+        raw: tokenData
+      });
+    } else if (provider === "facebook" && tokenData.access_token) {
+      try {
+        const pagesRes = await fetch(`https://graph.facebook.com/v20.0/me/accounts?access_token=${tokenData.access_token}`);
+        const pagesData = await pagesRes.json();
+        
+        if (pagesData.data && pagesData.data.length > 0) {
+          for (const page of pagesData.data) {
+            await upsertAccount({
+              platform: provider,
+              providerAccountId: page.id,
+              pageId: page.id,
+              accessToken: page.access_token, // Save the Page Access Token, not the user token!
+              refreshToken: null,
+              name: page.name,
+              connectedAt: new Date().toISOString(),
+              raw: { ...tokenData, page }
+            });
+          }
+        } else {
+          // Fallback if no pages found
+          await upsertAccount({
+            platform: provider,
+            providerAccountId: `no_page_${Date.now()}`,
+            accessToken: tokenData.access_token,
+            refreshToken: null,
+            name: "Facebook User (No Pages)",
+            connectedAt: new Date().toISOString(),
+            raw: tokenData
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch Facebook pages", err);
+        throw new Error("Failed to fetch Facebook pages");
+      }
+    } else {
+      // For twitter, linkedin, tiktok, etc.
+      await upsertAccount({
+        platform: provider,
+        providerAccountId: null,
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token || null,
+        name: null,
+        connectedAt: new Date().toISOString(),
+        raw: tokenData
+      });
+    }
 
     return NextResponse.redirect(new URL("/?connected=" + provider, req.url));
   } catch (err) {
