@@ -64,16 +64,34 @@ export async function POST(req) {
           });
           break;
 
-        case "instagram":
-          // Note: Instagram ko ek publicly hosted video_url chahiye,
-          // production me pehle apne CDN/S3 par upload karke woh URL yahan pass karo.
+        case "instagram": {
+          if (!isVideo) throw new Error("Instagram Reels require a video file");
+          
+          // Upload to tmpfiles.org to get a public URL for Instagram to download the video
+          const uploadForm = new FormData();
+          uploadForm.append("file", new Blob([buffer]), file.name || "video.mp4");
+          
+          const uploadRes = await fetch("https://tmpfiles.org/api/v1/upload", {
+            method: "POST",
+            body: uploadForm
+          });
+          
+          const uploadData = await uploadRes.json();
+          if (!uploadRes.ok || !uploadData.data || !uploadData.data.url) {
+            throw new Error(`Temporary video hosting failed: ${JSON.stringify(uploadData)}`);
+          }
+          
+          // Convert viewer URL to direct download URL (required by Instagram)
+          const directUrl = uploadData.data.url.replace("https://tmpfiles.org/", "https://tmpfiles.org/dl/");
+          
           results[accountId] = await postToInstagram({
             igUserId: account.igUserId,
             accessToken: account.accessToken,
-            videoUrl: account.tempVideoUrl,
+            videoUrl: directUrl,
             caption: `${title}\n\n${description}`
           });
           break;
+        }
 
         case "twitter":
           results[accountId] = await postToTwitter({

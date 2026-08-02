@@ -111,23 +111,49 @@ export async function GET(req, { params }) {
         connectedAt: new Date().toISOString(),
         raw: tokenData
       });
-    } else if (provider === "facebook" && tokenData.access_token) {
+    } else if ((provider === "facebook" || provider === "instagram") && tokenData.access_token) {
       try {
         const pagesRes = await fetch(`https://graph.facebook.com/v20.0/me/accounts?access_token=${tokenData.access_token}`);
         const pagesData = await pagesRes.json();
         
         if (pagesData.data && pagesData.data.length > 0) {
           for (const page of pagesData.data) {
-            await upsertAccount({
-              platform: provider,
-              providerAccountId: page.id,
-              pageId: page.id,
-              accessToken: page.access_token, // Save the Page Access Token, not the user token!
-              refreshToken: null,
-              name: page.name,
-              connectedAt: new Date().toISOString(),
-              raw: { ...tokenData, page }
-            });
+            // Upsert Facebook Page if logging in via Facebook
+            if (provider === "facebook") {
+              await upsertAccount({
+                platform: "facebook",
+                providerAccountId: page.id,
+                pageId: page.id,
+                accessToken: page.access_token, // Save the Page Access Token
+                refreshToken: null,
+                name: page.name,
+                connectedAt: new Date().toISOString(),
+                raw: { ...tokenData, page }
+              });
+            }
+
+            // Always attempt to discover linked Instagram Business Accounts
+            try {
+              const igRes = await fetch(
+                `https://graph.facebook.com/v20.0/${page.id}?fields=instagram_business_account{id,username,name}&access_token=${page.access_token}`
+              );
+              const igData = await igRes.json();
+              if (igData.instagram_business_account) {
+                const igAcc = igData.instagram_business_account;
+                await upsertAccount({
+                  platform: "instagram",
+                  providerAccountId: igAcc.id,
+                  igUserId: igAcc.id,
+                  accessToken: page.access_token, // Instagram uses the Page Access Token to publish
+                  refreshToken: null,
+                  name: igAcc.name || igAcc.username,
+                  connectedAt: new Date().toISOString(),
+                  raw: { ...tokenData, page, instagram: igAcc }
+                });
+              }
+            } catch (igErr) {
+              console.error("Failed to discover Instagram account for page:", page.id, igErr);
+            }
           }
         } else {
           // Fallback if no pages found
@@ -136,14 +162,14 @@ export async function GET(req, { params }) {
             providerAccountId: `no_page_${Date.now()}`,
             accessToken: tokenData.access_token,
             refreshToken: null,
-            name: "Facebook User (No Pages)",
+            name: `${provider === "facebook" ? "Facebook" : "Instagram"} User (No Pages)`,
             connectedAt: new Date().toISOString(),
             raw: tokenData
           });
         }
       } catch (err) {
-        console.error("Failed to fetch Facebook pages", err);
-        throw new Error("Failed to fetch Facebook pages");
+        console.error("Failed to fetch Meta accounts", err);
+        throw new Error("Failed to fetch Meta accounts");
       }
     } else {
       // For twitter, linkedin, tiktok, etc.
