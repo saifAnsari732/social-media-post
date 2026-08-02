@@ -38,7 +38,7 @@ export async function POST(req) {
       switch (platform) {
         case "youtube":
           if (!isVideo) throw new Error("YouTube requires a video file");
-          results.youtube = await postToYouTube({
+          results[accountId] = await postToYouTube({
             accessToken: account.accessToken,
             refreshToken: account.refreshToken,
             accountId: account._id,
@@ -52,7 +52,7 @@ export async function POST(req) {
           break;
 
         case "facebook":
-          results.facebook = await postToFacebook({
+          results[accountId] = await postToFacebook({
             pageId: account.pageId,
             pageAccessToken: account.accessToken,
             videoBuffer: buffer,
@@ -64,7 +64,7 @@ export async function POST(req) {
         case "instagram":
           // Note: Instagram ko ek publicly hosted video_url chahiye,
           // production me pehle apne CDN/S3 par upload karke woh URL yahan pass karo.
-          results.instagram = await postToInstagram({
+          results[accountId] = await postToInstagram({
             igUserId: account.igUserId,
             accessToken: account.accessToken,
             videoUrl: account.tempVideoUrl,
@@ -73,7 +73,7 @@ export async function POST(req) {
           break;
 
         case "twitter":
-          results.twitter = await postToTwitter({
+          results[accountId] = await postToTwitter({
             accessToken: account.accessToken,
             videoBuffer: buffer,
             text: `${title}\n\n${description}`
@@ -81,7 +81,7 @@ export async function POST(req) {
           break;
 
         case "linkedin":
-          results.linkedin = await postToLinkedIn({
+          results[accountId] = await postToLinkedIn({
             accessToken: account.accessToken,
             personUrn: account.personUrn,
             videoBuffer: buffer,
@@ -91,7 +91,7 @@ export async function POST(req) {
           break;
 
         case "tiktok":
-          results.tiktok = await postToTikTok({
+          results[accountId] = await postToTikTok({
             accessToken: account.accessToken,
             videoBuffer: buffer,
             title
@@ -99,10 +99,10 @@ export async function POST(req) {
           break;
 
         default:
-          results[platform] = { success: false, error: "Unsupported platform" };
+          results[accountId] = { success: false, error: "Unsupported platform" };
       }
     } catch (err) {
-      results[platform] = { success: false, error: err.message };
+      results[accountId] = { success: false, error: err.message };
     }
   }
 
