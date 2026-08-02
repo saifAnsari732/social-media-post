@@ -6,11 +6,11 @@ const AUTH_URLS = {
       "https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly"
     )}`,
   facebook: () =>
-    `https://www.facebook.com/v20.0/dialog/oauth?client_id=${process.env.META_APP_ID}&redirect_uri=${process.env.META_REDIRECT_URI}&scope=${encodeURIComponent(
+    `https://www.facebook.com/v20.0/dialog/oauth?client_id=${process.env.META_APP_ID}&redirect_uri=${process.env.META_REDIRECT_URI}&auth_type=rerequest&scope=${encodeURIComponent(
       "pages_manage_posts,pages_read_engagement,instagram_content_publish,pages_show_list"
     )}`,
   instagram: () =>
-    `https://www.facebook.com/v20.0/dialog/oauth?client_id=${process.env.META_APP_ID}&redirect_uri=${process.env.META_REDIRECT_URI}&scope=${encodeURIComponent(
+    `https://www.facebook.com/v20.0/dialog/oauth?client_id=${process.env.META_APP_ID}&redirect_uri=${process.env.META_REDIRECT_URI}&auth_type=rerequest&scope=${encodeURIComponent(
       "instagram_content_publish,pages_show_list"
     )}`,
   twitter: () =>
