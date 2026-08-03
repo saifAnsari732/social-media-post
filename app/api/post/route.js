@@ -67,21 +67,20 @@ export async function POST(req) {
 
         case "instagram": {
           // Instagram Graph API allows Images and Videos
-          // Upload to tmpfiles.org to get a public URL
+          // Upload to catbox.moe to get a public direct URL
           const uploadForm = new FormData();
-          uploadForm.append("file", new Blob([buffer]), file.name || (isVideo ? "video.mp4" : "image.png"));
+          uploadForm.append("reqtype", "fileupload");
+          uploadForm.append("fileToUpload", new Blob([buffer]), file.name || (isVideo ? "video.mp4" : "image.png"));
           
-          const uploadRes = await fetch("https://tmpfiles.org/api/v1/upload", {
+          const uploadRes = await fetch("https://catbox.moe/user/api.php", {
             method: "POST",
             body: uploadForm
           });
           
-          const uploadData = await uploadRes.json();
-          if (!uploadRes.ok || !uploadData.data || !uploadData.data.url) {
-            throw new Error(`Temporary media hosting failed: ${JSON.stringify(uploadData)}`);
+          const directUrl = await uploadRes.text();
+          if (!uploadRes.ok || !directUrl.startsWith("http")) {
+            throw new Error(`Temporary media hosting failed: ${directUrl}`);
           }
-          
-          const directUrl = uploadData.data.url.replace("https://tmpfiles.org/", "https://tmpfiles.org/dl/");
           
           results[accountId] = await postToInstagram({
             igUserId: account.igUserId,
