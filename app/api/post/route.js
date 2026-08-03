@@ -60,16 +60,16 @@ export async function POST(req) {
             pageAccessToken: account.accessToken,
             videoBuffer: buffer,
             title,
-            description
+            description,
+            isVideo
           });
           break;
 
         case "instagram": {
-          if (!isVideo) throw new Error("Instagram Reels require a video file");
-          
-          // Upload to tmpfiles.org to get a public URL for Instagram to download the video
+          // Instagram Graph API allows Images and Videos
+          // Upload to tmpfiles.org to get a public URL
           const uploadForm = new FormData();
-          uploadForm.append("file", new Blob([buffer]), file.name || "video.mp4");
+          uploadForm.append("file", new Blob([buffer]), file.name || (isVideo ? "video.mp4" : "image.png"));
           
           const uploadRes = await fetch("https://tmpfiles.org/api/v1/upload", {
             method: "POST",
@@ -78,17 +78,17 @@ export async function POST(req) {
           
           const uploadData = await uploadRes.json();
           if (!uploadRes.ok || !uploadData.data || !uploadData.data.url) {
-            throw new Error(`Temporary video hosting failed: ${JSON.stringify(uploadData)}`);
+            throw new Error(`Temporary media hosting failed: ${JSON.stringify(uploadData)}`);
           }
           
-          // Convert viewer URL to direct download URL (required by Instagram)
           const directUrl = uploadData.data.url.replace("https://tmpfiles.org/", "https://tmpfiles.org/dl/");
           
           results[accountId] = await postToInstagram({
             igUserId: account.igUserId,
             accessToken: account.accessToken,
-            videoUrl: directUrl,
-            caption: `${title}\n\n${description}`
+            mediaUrl: directUrl,
+            caption: `${title}\n\n${description}`,
+            isVideo
           });
           break;
         }
@@ -97,7 +97,9 @@ export async function POST(req) {
           results[accountId] = await postToTwitter({
             accessToken: account.accessToken,
             videoBuffer: buffer,
-            text: `${title}\n\n${description}`
+            text: `${title}\n\n${description}`,
+            isVideo,
+            mimeType: file.type
           });
           break;
 
@@ -107,11 +109,13 @@ export async function POST(req) {
             personUrn: account.personUrn,
             videoBuffer: buffer,
             title,
-            description
+            description,
+            isVideo
           });
           break;
 
         case "tiktok":
+          if (!isVideo) throw new Error("TikTok requires a video file");
           results[accountId] = await postToTikTok({
             accessToken: account.accessToken,
             videoBuffer: buffer,
