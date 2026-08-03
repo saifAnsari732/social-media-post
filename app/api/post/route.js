@@ -67,20 +67,20 @@ export async function POST(req) {
 
         case "instagram": {
           // Instagram Graph API allows Images and Videos
-          // Upload to catbox.moe to get a public direct URL
+          // Upload to uguu.se to get a public direct URL
           const uploadForm = new FormData();
-          uploadForm.append("reqtype", "fileupload");
-          uploadForm.append("fileToUpload", new Blob([buffer]), file.name || (isVideo ? "video.mp4" : "image.png"));
+          uploadForm.append("files[]", new Blob([buffer], { type: file.type }), file.name || (isVideo ? "video.mp4" : "image.png"));
           
-          const uploadRes = await fetch("https://catbox.moe/user/api.php", {
+          const uploadRes = await fetch("https://uguu.se/upload", {
             method: "POST",
             body: uploadForm
           });
           
-          const directUrl = await uploadRes.text();
-          if (!uploadRes.ok || !directUrl.startsWith("http")) {
-            throw new Error(`Temporary media hosting failed: ${directUrl}`);
+          const uploadData = await uploadRes.json();
+          if (!uploadRes.ok || !uploadData.success) {
+            throw new Error(`Temporary media hosting failed: ${JSON.stringify(uploadData)}`);
           }
+          const directUrl = uploadData.files[0].url;
           
           results[accountId] = await postToInstagram({
             igUserId: account.igUserId,
