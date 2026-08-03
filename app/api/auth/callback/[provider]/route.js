@@ -117,17 +117,38 @@ export async function GET(req, { params }) {
       });
     } else if ((provider === "facebook" || provider === "instagram") && tokenData.access_token) {
       try {
-        const pagesRes = await fetch(`https://graph.facebook.com/v20.0/me/accounts?access_token=${tokenData.access_token}`);
-        const pagesData = await pagesRes.json();
+        let pagesRes = await fetch(`https://graph.facebook.com/v20.0/me/accounts?access_token=${tokenData.access_token}`);
+        let pagesData = await pagesRes.json();
         
         console.log("Facebook accounts query result:", JSON.stringify(pagesData));
         
         if (pagesData.error) {
           throw new Error(`Meta API Error: ${pagesData.error.message} (Code: ${pagesData.error.code})`);
         }
+
+        let pages = pagesData.data || [];
+
+        // Fallback for Meta Granular Scopes (if user selects specific pages, /me/accounts might be empty)
+        if (pages.length === 0) {
+          const debugRes = await fetch(`https://graph.facebook.com/debug_token?input_token=${tokenData.access_token}&access_token=${tokenData.access_token}`);
+          const debugData = await debugRes.json();
+          if (debugData.data && debugData.data.granular_scopes) {
+            const pageScopes = debugData.data.granular_scopes.find(s => s.scope === "pages_manage_posts");
+            if (pageScopes && pageScopes.target_ids && pageScopes.target_ids.length > 0) {
+              // Fetch each page directly
+              for (const pageId of pageScopes.target_ids) {
+                const pRes = await fetch(`https://graph.facebook.com/v20.0/${pageId}?fields=access_token,name,instagram_business_account&access_token=${tokenData.access_token}`);
+                const pData = await pRes.json();
+                if (pData.access_token) {
+                  pages.push(pData);
+                }
+              }
+            }
+          }
+        }
         
-        if (pagesData.data && pagesData.data.length > 0) {
-          for (const page of pagesData.data) {
+        if (pages.length > 0) {
+          for (const page of pages) {
             // Upsert Facebook Page if logging in via Facebook
             if (provider === "facebook") {
               await upsertAccount({
@@ -144,19 +165,28 @@ export async function GET(req, { params }) {
 
             // Always attempt to discover linked Instagram Business Accounts
             try {
-              const igRes = await fetch(
-                `https://graph.facebook.com/v20.0/${page.id}?fields=instagram_business_account{id,username,name}&access_token=${page.access_token}`
-              );
-              const igData = await igRes.json();
-              if (igData.instagram_business_account) {
-                const igAcc = igData.instagram_business_account;
+              let igAcc = null;
+              // If we already fetched it via granular fallback
+              if (page.instagram_business_account) {
+                const igDetailsRes = await fetch(`https://graph.facebook.com/v20.0/${page.instagram_business_account.id}?fields=id,username,name&access_token=${page.access_token}`);
+                igAcc = await igDetailsRes.json();
+              } else {
+                // Original method
+                const igRes = await fetch(
+                  `https://graph.facebook.com/v20.0/${page.id}?fields=instagram_business_account{id,username,name}&access_token=${page.access_token}`
+                );
+                const igData = await igRes.json();
+                igAcc = igData.instagram_business_account;
+              }
+
+              if (igAcc) {
                 await upsertAccount({
                   platform: "instagram",
                   providerAccountId: igAcc.id,
                   igUserId: igAcc.id,
                   accessToken: page.access_token, // Instagram uses the Page Access Token to publish
                   refreshToken: null,
-                  name: igAcc.name || igAcc.username,
+                  name: igAcc.name || igAcc.username || "Instagram Account",
                   connectedAt: new Date().toISOString(),
                   raw: { ...tokenData, page, instagram: igAcc }
                 });
