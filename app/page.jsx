@@ -43,7 +43,10 @@ export default function DashboardPage() {
   }
 
   async function handleGenerate() {
-    if (!topic) return;
+    if (!topic) {
+      alert("Please enter a topic or description for the AI first!");
+      return;
+    }
     setGenerating(true);
     try {
       const res = await fetch("/api/generate-content", {
@@ -53,10 +56,15 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       if (data.title) setTitle(data.title);
-      if (data.description) {
-        const hashtags = data.hashtags?.length ? "\n\n" + data.hashtags.join(" ") : "";
-        setDescription(data.description + hashtags);
+      if (data.description) setDescription(data.description);
+      if (data.hashtags) {
+        // Clean hashtags: remove '#' and join with comma
+        const cleanedTags = data.hashtags.map(t => t.replace(/^#/, '')).join(", ");
+        setTags(cleanedTags);
       }
+    } catch(err) {
+      console.error(err);
+      alert("Failed to generate content.");
     } finally {
       setGenerating(false);
     }
