@@ -106,7 +106,7 @@ export async function POST(req) {
         case "linkedin":
           results[accountId] = await postToLinkedIn({
             accessToken: account.accessToken,
-            personUrn: account.personUrn,
+            personUrn: account.personUrn || `urn:li:person:${account.providerAccountId}`,
             videoBuffer: buffer,
             title,
             description,
