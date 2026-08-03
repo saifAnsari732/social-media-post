@@ -3,13 +3,22 @@
 import { useEffect, useRef, useState } from "react";
 
 const PLATFORMS = [
-  { id: "youtube", label: "YouTube" },
-  { id: "facebook", label: "Facebook" },
-  { id: "instagram", label: "Instagram" },
-  { id: "twitter", label: "X / Twitter" },
-  { id: "linkedin", label: "LinkedIn" },
-  { id: "tiktok", label: "TikTok" }
+  { id: "youtube",   label: "YouTube",   icon: "▶" },
+  { id: "facebook",  label: "Facebook",  icon: "f" },
+  { id: "instagram", label: "Instagram", icon: "◈" },
+  { id: "twitter",   label: "X / Twitter", icon: "𝕏" },
+  { id: "linkedin",  label: "LinkedIn",  icon: "in" },
+  { id: "tiktok",    label: "TikTok",    icon: "♪" },
 ];
+
+const PLATFORM_COLORS = {
+  youtube:   { bg: "#fff1f2", color: "#dc2626" },
+  facebook:  { bg: "#eff6ff", color: "#1d4ed8" },
+  instagram: { bg: "#fdf4ff", color: "#a21caf" },
+  twitter:   { bg: "#f0f9ff", color: "#0369a1" },
+  linkedin:  { bg: "#eff6ff", color: "#1e40af" },
+  tiktok:    { bg: "#f0fdf4", color: "#166534" },
+};
 
 export default function DashboardPage() {
   const [accounts, setAccounts] = useState([]);
@@ -58,7 +67,6 @@ export default function DashboardPage() {
       if (data.title) setTitle(data.title);
       if (data.description) setDescription(data.description);
       if (data.hashtags) {
-        // Clean hashtags: remove '#' and join with comma
         const cleanedTags = data.hashtags.map(t => t.replace(/^#/, '')).join(", ");
         setTags(cleanedTags);
       }
@@ -88,8 +96,9 @@ export default function DashboardPage() {
       setPosting(false);
     }
   }
+
   async function handleDeleteAccount(id) {
-    if (!confirm("Are you sure you want to delete this account?")) return;
+    if (!confirm("Are you sure you want to remove this account?")) return;
     try {
       const res = await fetch("/api/accounts", {
         method: "DELETE",
@@ -104,59 +113,61 @@ export default function DashboardPage() {
       console.error("Failed to delete account", e);
     }
   }
+
   return (
     <main className="wrap">
       <header>
         <div className="eyebrow"><span className="dot" /> yt-post Console</div>
-        <h1>yt-post: One video. Every channel.</h1>
+        <h1>One video. Every channel.</h1>
         <p className="subhead">
-          <strong>Purpose of this application:</strong> yt-post is a tool designed to help creators publish their videos across multiple platforms simultaneously. By connecting your social accounts, you can upload a single media file and our app will securely post it to your connected YouTube channels and other social profiles on your behalf.
+          <strong>yt-post</strong> helps creators publish content across multiple platforms simultaneously. Connect your accounts, upload once, and let us handle the rest.
         </p>
       </header>
 
       <div className="layout-grid">
-        {/* Left Column: Channels */}
+        {/* ── Left: Accounts ── */}
         <aside>
           <div className="panel">
-            <h2 className="section-label">01 — Connected Accounts</h2>
-            
+            <h2 className="section-label">Connected Accounts</h2>
+
             {accounts.length === 0 ? (
-              <div className="empty-state">No accounts connected yet.</div>
+              <div className="empty-state">
+                <div style={{ fontSize: 28, marginBottom: 8 }}>🔗</div>
+                No accounts connected yet.<br />
+                <span style={{ fontSize: 12, color: "#94a3b8" }}>Add an account below to get started.</span>
+              </div>
             ) : (
               <div className="accounts-list">
                 {accounts.map((acc, index) => {
                   const isSelected = selectedIds.includes(acc._id);
+                  const colors = PLATFORM_COLORS[acc.platform] || { bg: "#f1f5f9", color: "#475569" };
                   return (
                     <div
                       key={acc._id || index}
                       className={`account-card ${isSelected ? "selected" : ""}`}
                       onClick={() => toggleSelect(acc._id)}
-                      style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
                     >
                       <div className="account-info">
                         <div className="checkbox" />
+                        <div
+                          className="platform-icon"
+                          style={{ background: colors.bg, color: colors.color }}
+                        >
+                          {PLATFORMS.find(p => p.id === acc.platform)?.icon || "●"}
+                        </div>
                         <div>
                           <div className="account-name">{acc.name || "Unnamed Account"}</div>
                           <div className="account-platform">{acc.platform}</div>
                         </div>
                       </div>
                       <button
+                        className="btn-delete"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteAccount(acc._id);
                         }}
-                        style={{
-                          background: "rgba(255, 75, 75, 0.15)",
-                          border: "1px solid rgba(255, 75, 75, 0.3)",
-                          color: "#ff4b4b",
-                          padding: "3px 6px",
-                          borderRadius: "4px",
-                          cursor: "pointer",
-                          fontSize: "11px",
-                          transition: "all 0.2s"
-                        }}
                       >
-                        🗑️ Delete
+                        🗑️
                       </button>
                     </div>
                   );
@@ -168,27 +179,28 @@ export default function DashboardPage() {
             <div className="add-account-section">
               {PLATFORMS.map(p => (
                 <div key={p.id} className="btn-connect" onClick={() => handleConnect(p.id)}>
-                  + {p.label}
+                  <span style={{ fontSize: 13 }}>{p.icon}</span> {p.label}
                 </div>
               ))}
             </div>
           </div>
         </aside>
 
-        {/* Right Column: Editor */}
+        {/* ── Right: Post Editor ── */}
         <section>
           <div className="panel">
-            <h2 className="section-label">02 — Create Post</h2>
-            
+            <h2 className="section-label">Create Post</h2>
+
+            {/* Dropzone */}
             <div
               className={`dropzone ${file ? "has-file" : ""}`}
               onClick={() => fileInputRef.current?.click()}
             >
-              <div className="dropzone-icon">{file ? "✅" : "📁"}</div>
+              <div className="dropzone-icon">{file ? "✅" : "☁️"}</div>
               <div className="dropzone-text">
-                {file ? file.name : "Click to choose a video or image"}
+                {file ? file.name : "Click to upload a video or image"}
               </div>
-              {!file && <div className="dropzone-subtext">MP4, MOV, JPG, PNG</div>}
+              {!file && <div className="dropzone-subtext">MP4, MOV, JPG, PNG supported</div>}
             </div>
             <input
               ref={fileInputRef}
@@ -198,60 +210,74 @@ export default function DashboardPage() {
               onChange={(e) => setFile(e.target.files?.[0] || null)}
             />
 
+            {/* AI Generate */}
             <div className="ai-generate">
               <input
                 type="text"
-                placeholder="Describe your video for AI generation..."
+                placeholder="Describe your post for AI content generation..."
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
               />
               <button className="btn btn-secondary" onClick={handleGenerate} disabled={generating || !topic}>
-                {generating ? "..." : "Generate AI"}
+                {generating ? "⏳ Generating..." : "✨ Generate AI"}
               </button>
             </div>
 
+            {/* Fields */}
             <div className="field-group">
               <label>Title</label>
-              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Post title" />
+              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Enter your post title..." />
             </div>
 
             <div className="field-group">
-              <label>Description</label>
+              <label>Description / Caption</label>
               <textarea
                 rows={5}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Post description / caption"
+                placeholder="Write a caption or description..."
               />
             </div>
 
             <div className="field-group">
               <label>Tags (Optional)</label>
-              <input 
-                type="text" 
-                value={tags} 
-                onChange={(e) => setTags(e.target.value)} 
-                placeholder="gaming, tutorial, funny (comma separated)" 
+              <input
+                type="text"
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+                placeholder="gaming, tutorial, funny (comma separated)"
               />
             </div>
 
+            {/* Publish Button */}
             <button
               className="btn btn-primary"
               onClick={handlePost}
               disabled={posting || !file || selectedIds.length === 0}
             >
-              {posting ? "Publishing..." : `Publish to ${selectedIds.length || 0} Account${selectedIds.length === 1 ? "" : "s"}`}
+              {posting
+                ? "⏳ Publishing..."
+                : selectedIds.length === 0
+                ? "Select accounts to publish"
+                : `🚀 Publish to ${selectedIds.length} Account${selectedIds.length === 1 ? "" : "s"}`}
             </button>
 
+            {/* Results */}
             {results && (
               <div className="results">
                 {Object.entries(results).map(([accountId, r]) => {
                   const acc = accounts.find(a => a._id === accountId) || {};
                   return (
                     <div className="result-row" key={accountId}>
-                      <span>{acc.name || accountId} ({acc.platform})</span>
+                      <span>
+                        {acc.name || accountId}
+                        <span style={{ color: "#94a3b8", fontWeight: 400, marginLeft: 6, fontSize: 12 }}>
+                          ({acc.platform})
+                        </span>
+                      </span>
                       <span className={`status-badge ${r.success ? "status-ok" : "status-fail"}`}>
-                        {r.success ? "Published" : "Failed"}
+                        {r.success ? "✓ Published" : "✕ Failed"}
                       </span>
                     </div>
                   );
