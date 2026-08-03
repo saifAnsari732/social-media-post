@@ -3,21 +3,21 @@
 import { useEffect, useRef, useState } from "react";
 
 const PLATFORMS = [
-  { id: "youtube",   label: "YouTube",   icon: "▶" },
-  { id: "facebook",  label: "Facebook",  icon: "f" },
-  { id: "instagram", label: "Instagram", icon: "◈" },
-  { id: "twitter",   label: "X / Twitter", icon: "𝕏" },
-  { id: "linkedin",  label: "LinkedIn",  icon: "in" },
-  { id: "tiktok",    label: "TikTok",    icon: "♪" },
+  { id: "youtube",   label: "YouTube",      icon: "▶" },
+  { id: "facebook",  label: "Facebook",     icon: "f" },
+  { id: "instagram", label: "Instagram",    icon: "◈" },
+  { id: "twitter",   label: "X / Twitter",  icon: "𝕏" },
+  { id: "linkedin",  label: "LinkedIn",     icon: "in" },
+  { id: "tiktok",    label: "TikTok",       icon: "♪" },
 ];
 
 const PLATFORM_COLORS = {
-  youtube:   { bg: "#fff1f2", color: "#dc2626" },
-  facebook:  { bg: "#eff6ff", color: "#1d4ed8" },
-  instagram: { bg: "#fdf4ff", color: "#a21caf" },
-  twitter:   { bg: "#f0f9ff", color: "#0369a1" },
-  linkedin:  { bg: "#eff6ff", color: "#1e40af" },
-  tiktok:    { bg: "#f0fdf4", color: "#166534" },
+  youtube:   { bg: "linear-gradient(135deg,#fee2e2,#fecaca)", color: "#dc2626",  shadow: "rgba(220,38,38,.3)" },
+  facebook:  { bg: "linear-gradient(135deg,#dbeafe,#bfdbfe)", color: "#1d4ed8",  shadow: "rgba(29,78,216,.3)" },
+  instagram: { bg: "linear-gradient(135deg,#fae8ff,#f3e8ff)", color: "#9333ea",  shadow: "rgba(147,51,234,.3)" },
+  twitter:   { bg: "linear-gradient(135deg,#e0f2fe,#bae6fd)", color: "#0369a1",  shadow: "rgba(3,105,161,.3)" },
+  linkedin:  { bg: "linear-gradient(135deg,#dbeafe,#bfdbfe)", color: "#1e40af",  shadow: "rgba(30,64,175,.3)" },
+  tiktok:    { bg: "linear-gradient(135deg,#d1fae5,#a7f3d0)", color: "#065f46",  shadow: "rgba(6,95,70,.3)" },
 };
 
 export default function DashboardPage() {
@@ -120,7 +120,14 @@ export default function DashboardPage() {
         <div className="eyebrow"><span className="dot" /> yt-post Console</div>
         <h1>One video. Every channel.</h1>
         <p className="subhead">
-          <strong>yt-post</strong> helps creators publish content across multiple platforms simultaneously. Connect your accounts, upload once, and let us handle the rest.
+          <strong>yt-post</strong> helps creators publish content across multiple platforms simultaneously.
+          Connect your accounts, upload once, and let us handle the rest.
+          <br />
+          <span style={{ display: 'inline-flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+            {['🎬 YouTube', '📘 Facebook', '📸 Instagram', '🐦 Twitter', '💼 LinkedIn', '🎵 TikTok'].map(p => (
+              <span key={p} style={{ background: '#fff', border: '1.5px solid #e8e4f3', borderRadius: 999, padding: '3px 12px', fontSize: 12, fontWeight: 600, color: '#4a4568', boxShadow: '0 2px 8px rgba(124,58,237,.06)' }}>{p}</span>
+            ))}
+          </span>
         </p>
       </header>
 
@@ -151,7 +158,7 @@ export default function DashboardPage() {
                         <div className="checkbox" />
                         <div
                           className="platform-icon"
-                          style={{ background: colors.bg, color: colors.color }}
+                          style={{ background: colors.bg, color: colors.color, boxShadow: `0 4px 12px ${colors.shadow}` }}
                         >
                           {PLATFORMS.find(p => p.id === acc.platform)?.icon || "●"}
                         </div>
