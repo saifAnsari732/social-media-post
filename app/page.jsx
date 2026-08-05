@@ -243,69 +243,70 @@ export default function DashboardPage() {
           {/* ── Left: Accounts ── */}
           <aside>
             <div className="panel">
-              <h2 className="section-label">Connected Accounts</h2>
+              {/* Dark header */}
+              <div className="panel-left-header">
+                <h2 className="section-label">Connected Accounts</h2>
+              </div>
 
-              {accounts.length === 0 ? (
-                <div className="empty-state">
-                  <div style={{ fontSize: 28, marginBottom: 8 }}>🔗</div>
-                  <strong style={{ color: "#374151", display: "block", marginBottom: 4 }}>No accounts connected</strong>
-                  Add a platform below to get started
-                </div>
-              ) : (
-                <div className="accounts-list">
-                  {accounts.map((acc, idx) => {
-                    const isSelected = selectedIds.includes(acc._id);
-                    const style = PLATFORM_STYLES[acc.platform] || { bg: "#f3f4f6", color: "#374151" };
-                    const platform = PLATFORMS.find(p => p.id === acc.platform);
-                    const IconComp = platform?.icon;
-                    return (
-                      <div
-                        key={acc._id || idx}
-                        className={`account-card ${isSelected ? "selected" : ""}`}
-                        onClick={() => toggleSelect(acc._id)}
-                      >
-                        <div className="account-info">
-                          <div className="checkbox" />
-                          <div className="platform-icon" style={{ background: style.bg }}>
-                            {IconComp ? <IconComp size={16} color={style.color} /> : <span style={{ color: style.color, fontWeight: 700, fontSize: 12 }}>●</span>}
-                          </div>
-                          <div>
-                            <div className="account-name">{acc.name || "Unnamed"}</div>
-                            <div className="account-platform">{acc.platform}</div>
-                          </div>
-                        </div>
-                        <button
-                          className="btn-delete"
-                          onClick={e => { e.stopPropagation(); handleDeleteAccount(acc._id); }}
-                          title="Remove account"
+              <div className="panel-left-body">
+                {accounts.length === 0 ? (
+                  <div className="empty-state">
+                    <div style={{ fontSize: 32, marginBottom: 10 }}>🔗</div>
+                    <strong>No accounts connected</strong>
+                    <span>Add a platform below to get started</span>
+                  </div>
+                ) : (
+                  <div className="accounts-list">
+                    {accounts.map((acc, idx) => {
+                      const isSelected = selectedIds.includes(acc._id);
+                      const style = PLATFORM_STYLES[acc.platform] || { bg: "#f3f4f6", color: "#374151" };
+                      const platform = PLATFORMS.find(p => p.id === acc.platform);
+                      const IconComp = platform?.icon;
+                      return (
+                        <div
+                          key={acc._id || idx}
+                          className={`account-card ${isSelected ? "selected" : ""}`}
+                          onClick={() => toggleSelect(acc._id)}
                         >
-                          <TrashIcon />
-                        </button>
+                          <div className="account-info">
+                            <div className="checkbox" />
+                            <div className="platform-icon" style={{ background: style.bg }}>
+                              {IconComp ? <IconComp size={16} color={style.color} /> : <span style={{ color: style.color, fontWeight: 700 }}>●</span>}
+                            </div>
+                            <div>
+                              <div className="account-name">{acc.name || "Unnamed"}</div>
+                              <div className="account-platform">{acc.platform}</div>
+                            </div>
+                          </div>
+                          <button className="btn-delete" onClick={e => { e.stopPropagation(); handleDeleteAccount(acc._id); }} title="Remove">
+                            <TrashIcon />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <h2 className="section-label" style={{ marginTop: 4 }}>Add Platform</h2>
+                <div className="add-account-section">
+                  {PLATFORMS.map(p => {
+                    const IconComp = p.icon;
+                    const style = PLATFORM_STYLES[p.id];
+                    return (
+                      <div key={p.id} className="btn-connect" onClick={() => handleConnect(p.id)}>
+                        <IconComp size={13} color={style.color} />
+                        {p.label}
                       </div>
                     );
                   })}
                 </div>
-              )}
-
-              <h2 className="section-label">Add Platform</h2>
-              <div className="add-account-section">
-                {PLATFORMS.map(p => {
-                  const IconComp = p.icon;
-                  const style = PLATFORM_STYLES[p.id];
-                  return (
-                    <div key={p.id} className="btn-connect" onClick={() => handleConnect(p.id)}>
-                      <IconComp size={13} color={style.color} />
-                      {p.label}
-                    </div>
-                  );
-                })}
               </div>
             </div>
           </aside>
 
           {/* ── Right: Post Editor ── */}
           <section>
-            <div className="panel">
+            <div className="panel panel-right">
               <h2 className="section-label">Create Post</h2>
 
               {/* Dropzone */}
@@ -314,8 +315,10 @@ export default function DashboardPage() {
                 onClick={() => fileInputRef.current?.click()}
               >
                 <div className="dropzone-icon">
-                  {file ? "✅" : (
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  {file ? (
+                    <span style={{ fontSize: 40 }}>✅</span>
+                  ) : (
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="16 16 12 12 8 16"/>
                       <line x1="12" y1="12" x2="12" y2="21"/>
                       <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
@@ -323,60 +326,88 @@ export default function DashboardPage() {
                   )}
                 </div>
                 <div className="dropzone-text">
-                  {file ? file.name : "Click to upload media"}
+                  {file ? file.name : "Click or drag to upload media"}
                 </div>
                 {!file && <div className="dropzone-subtext">MP4, MOV, JPG, PNG · Max 500 MB</div>}
               </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="video/*,image/*"
-                hidden
-                onChange={e => setFile(e.target.files?.[0] || null)}
-              />
+              <input ref={fileInputRef} type="file" accept="video/*,image/*" hidden onChange={e => setFile(e.target.files?.[0] || null)} />
 
               {/* AI Generate */}
               <div className="ai-generate">
                 <input
                   type="text"
-                  placeholder="Describe your content for AI generation..."
+                  placeholder="🤖  Describe your content for AI title, caption & tags..."
                   value={topic}
                   onChange={e => setTopic(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && handleGenerate()}
                 />
                 <button className="btn btn-secondary" onClick={handleGenerate} disabled={generating || !topic}>
-                  {generating ? "..." : "✨ Generate AI"}
+                  {generating ? "⏳ Generating..." : "✨ Generate"}
                 </button>
               </div>
 
               {/* Fields */}
               <div className="field-group">
-                <label>Title</label>
-                <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Post title..." />
+                <label>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                  Title
+                </label>
+                <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Enter your post title..." />
               </div>
 
               <div className="field-group">
-                <label>Description / Caption</label>
-                <textarea rows={4} value={description} onChange={e => setDescription(e.target.value)} placeholder="Write your caption or description..." />
+                <label>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2.5" strokeLinecap="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  Description / Caption
+                </label>
+                <textarea rows={4} value={description} onChange={e => setDescription(e.target.value)} placeholder="Write a caption or description for your post..." />
               </div>
 
               <div className="field-group">
-                <label>Tags (Optional)</label>
-                <input type="text" value={tags} onChange={e => setTags(e.target.value)} placeholder="gaming, tutorial, funny (comma separated)" />
+                <label>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                    <line x1="7" y1="7" x2="7.01" y2="7"/>
+                  </svg>
+                  Tags <span style={{ fontWeight: 400, textTransform: 'none', fontSize: 11, color: '#94a3b8', letterSpacing: 0 }}>(comma separated)</span>
+                </label>
+                <input type="text" value={tags} onChange={e => setTags(e.target.value)} placeholder="e.g. gaming, tutorial, funny, trending" />
               </div>
 
-              {/* Publish */}
-              <button
-                className="btn btn-primary"
-                onClick={handlePost}
-                disabled={posting || !file || selectedIds.length === 0}
-              >
-                {posting
-                  ? "Publishing..."
-                  : selectedIds.length === 0
-                  ? "Select accounts to publish"
-                  : `Publish to ${selectedIds.length} Account${selectedIds.length === 1 ? "" : "s"}`}
-              </button>
+              {/* Publish CTA */}
+              <div className="publish-box">
+                {selectedIds.length > 0 && (
+                  <div className="publish-meta">
+                    <span style={{ fontSize: 12, color: '#6366f1', fontWeight: 600 }}>Publishing to:</span>
+                    {selectedIds.map(id => {
+                      const acc = accounts.find(a => a._id === id);
+                      const style = PLATFORM_STYLES[acc?.platform] || { bg: '#f3f4f6', color: '#374151' };
+                      return acc ? (
+                        <span key={id} className="publish-tag" style={{ background: style.bg, color: style.color, border: `1px solid ${style.color}22` }}>
+                          {acc.name}
+                        </span>
+                      ) : null;
+                    })}
+                  </div>
+                )}
+                <button
+                  className="btn btn-primary"
+                  onClick={handlePost}
+                  disabled={posting || !file || selectedIds.length === 0}
+                  style={{ margin: 0 }}
+                >
+                  {posting
+                    ? "⏳ Publishing..."
+                    : selectedIds.length === 0
+                    ? "← Select accounts from the left panel"
+                    : `🚀 Publish to ${selectedIds.length} Account${selectedIds.length === 1 ? "" : "s"}`}
+                </button>
+              </div>
 
               {/* Results */}
               {results && (
@@ -387,9 +418,7 @@ export default function DashboardPage() {
                       <div className="result-row" key={accountId}>
                         <span>
                           <strong>{acc.name || accountId}</strong>
-                          <span style={{ color: "#9ca3af", fontWeight: 400, marginLeft: 6, fontSize: 12 }}>
-                            ({acc.platform})
-                          </span>
+                          <span style={{ color: "#94a3b8", fontWeight: 400, marginLeft: 6, fontSize: 12 }}>({acc.platform})</span>
                         </span>
                         <span className={`status-badge ${r.success ? "status-ok" : "status-fail"}`}>
                           {r.success ? "✓ Published" : "✕ Failed"}
