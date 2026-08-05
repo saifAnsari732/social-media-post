@@ -78,6 +78,18 @@ async function exchangeToken(provider, code) {
 export async function GET(req, { params }) {
   const { provider } = params;
   const code = req.nextUrl.searchParams.get("code");
+  const stateParam = req.nextUrl.searchParams.get("state");
+
+  // Decode userId from state parameter
+  let userId = "anonymous";
+  if (stateParam) {
+    try {
+      const decoded = JSON.parse(Buffer.from(stateParam, "base64url").toString());
+      userId = decoded.userId || "anonymous";
+    } catch (e) {
+      // state might be a plain string from older flow, ignore
+    }
+  }
 
   if (!code) {
     return NextResponse.redirect(new URL("/?error=missing_code", req.url));
@@ -109,6 +121,7 @@ export async function GET(req, { params }) {
       await upsertAccount({
         platform: provider,
         providerAccountId,
+        userId,
         accessToken: tokenData.access_token,
         refreshToken: tokenData.refresh_token || null,
         name: accountName,
@@ -155,7 +168,8 @@ export async function GET(req, { params }) {
                 platform: "facebook",
                 providerAccountId: page.id,
                 pageId: page.id,
-                accessToken: page.access_token, // Save the Page Access Token
+                userId,
+                accessToken: page.access_token,
                 refreshToken: null,
                 name: page.name,
                 connectedAt: new Date().toISOString(),
@@ -184,7 +198,8 @@ export async function GET(req, { params }) {
                   platform: "instagram",
                   providerAccountId: igAcc.id,
                   igUserId: igAcc.id,
-                  accessToken: page.access_token, // Instagram uses the Page Access Token to publish
+                  userId,
+                  accessToken: page.access_token,
                   refreshToken: null,
                   name: igAcc.name || igAcc.username || "Instagram Account",
                   connectedAt: new Date().toISOString(),
@@ -200,6 +215,7 @@ export async function GET(req, { params }) {
           await upsertAccount({
             platform: provider,
             providerAccountId: `no_page_${Date.now()}`,
+            userId,
             accessToken: tokenData.access_token,
             refreshToken: null,
             name: `${provider === "facebook" ? "Facebook" : "Instagram"} User (No Pages)`,
@@ -247,6 +263,7 @@ export async function GET(req, { params }) {
       await upsertAccount({
         platform: provider,
         providerAccountId,
+        userId,
         accessToken: tokenData.access_token,
         refreshToken: tokenData.refresh_token || null,
         name,
