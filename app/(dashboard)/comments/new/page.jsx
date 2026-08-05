@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Save, Plus, X, Zap } from "lucide-react";
 import toast, { Toaster } from 'react-hot-toast';
 
-export default function NewRulePage() {
+export default function NewCommentRulePage() {
   const router = useRouter();
   const [accounts, setAccounts] = useState([]);
   
@@ -14,7 +14,7 @@ export default function NewRulePage() {
     name: "",
     account: "",
     platform: "instagram",
-    type: "dm",
+    type: "comment", // THIS IS THE KEY DIFFERENCE
     trigger: {
       type: "keyword",
       keywords: [],
@@ -101,8 +101,8 @@ export default function NewRulePage() {
       });
       
       if (res.ok) {
-        toast.success("Rule saved successfully!");
-        router.push("/rules");
+        toast.success("Comment Rule saved successfully!");
+        router.push("/comments");
       } else {
         toast.error("Failed to save rule");
       }
@@ -119,10 +119,10 @@ export default function NewRulePage() {
       
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <Link href="/rules" className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-[#E2E8F0] text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC] transition-colors">
+          <Link href="/comments" className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-[#E2E8F0] text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC] transition-colors">
             <ArrowLeft className="w-4 h-4" />
           </Link>
-          <h1 className="text-xl font-bold text-[#0F172A]">Create New Rule</h1>
+          <h1 className="text-xl font-bold text-[#0F172A]">Create New Comment Rule</h1>
         </div>
         <button 
           onClick={handleSave}
@@ -174,7 +174,7 @@ export default function NewRulePage() {
         <div className="bg-white rounded-xl border border-[#E2E8F0] p-6 shadow-sm">
           <h2 className="text-lg font-bold text-[#0F172A] mb-4 flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-[#F1F5F9] text-[#64748B] flex items-center justify-center text-xs">2</span> 
-            When should this trigger?
+            What comment should trigger this?
           </h2>
           
           <div className="mb-5">
@@ -207,7 +207,7 @@ export default function NewRulePage() {
         <div className="bg-white rounded-xl border border-[#E2E8F0] p-6 shadow-sm">
           <h2 className="text-lg font-bold text-[#0F172A] mb-4 flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-[#F1F5F9] text-[#64748B] flex items-center justify-center text-xs">3</span> 
-            What should the bot reply?
+            What should the bot reply to the comment?
           </h2>
           
           <div className="flex items-center gap-4 mb-5 p-4 bg-[#F8FAFC] rounded-lg border border-[#E2E8F0]">
@@ -233,16 +233,15 @@ export default function NewRulePage() {
                 rows={5}
                 value={formData.dmReply.systemPrompt || ""}
                 onChange={e => setFormData({...formData, dmReply: { ...formData.dmReply, systemPrompt: e.target.value }})}
-                placeholder="Example: You are a helpful sales assistant. If the user asks for the price, politely tell them it is ₹500. Keep it short and friendly."
+                placeholder="Example: You are a helpful sales assistant. If the user asks for the price in the comment, politely tell them it is ₹500 and ask them to check their DM. Keep it short and friendly."
                 className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#7C3AED]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C3AED] resize-none"
               />
-              <p className="text-xs text-[#64748B] mt-2">The AI will read the user's incoming message and use these instructions to write a custom reply.</p>
+              <p className="text-xs text-[#64748B] mt-2">The AI will read the user's incoming comment and use these instructions to write a custom reply.</p>
             </div>
           ) : (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="block text-sm font-medium text-[#0F172A]">Static Reply Message</label>
-                <span className="text-xs text-[#64748B]">Use {"{{first_name}}"} to personalize</span>
               </div>
               <textarea 
                 rows={4}
@@ -252,7 +251,7 @@ export default function NewRulePage() {
                   newMessages[0].text = e.target.value;
                   setFormData({...formData, dmReply: { ...formData.dmReply, messages: newMessages }});
                 }}
-                placeholder="Hi {{first_name}}, thanks for reaching out! Our price is..."
+                placeholder="Thanks for reaching out! Our price is..."
                 className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C3AED] resize-none"
               />
             </div>

@@ -15,6 +15,7 @@ import {
 
 const navItems = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Publisher', href: '/publisher', icon: Link2 },
   { name: 'Connected Accounts', href: '/accounts', icon: Link2 },
   { name: 'Automation Rules', href: '/rules', icon: Zap },
   { name: 'Inbox (DMs)', href: '/inbox', icon: MessageCircle },

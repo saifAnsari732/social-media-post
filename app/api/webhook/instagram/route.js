@@ -99,7 +99,15 @@ async function processEventAsync(data) {
                receivedAt: new Date().toISOString()
             });
             
-            // TODO: Call rule matcher and reply sender
+            const commentText = change.value.text;
+            const commentId = change.value.id;
+            
+            // Call rule matcher and reply sender
+            const rule = await matchRule(accountId, 'instagram', 'comment', commentText);
+            if (rule) {
+              console.log(`[AutoReply] Matched rule ${rule.name} for IG Comment`);
+              await sendReply(rule, commentId, commentText, 'instagram', 'comment');
+            }
          }
        }
     }
