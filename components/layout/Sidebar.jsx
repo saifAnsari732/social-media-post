@@ -42,47 +42,49 @@ export default function Sidebar() {
   }, []);
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-72 border-r border-slate-200/80 bg-slate-950 text-slate-100 shadow-2xl shadow-slate-900/20">
-      <div className="flex items-center gap-3 border-b border-white/10 px-6 py-6">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-orange-400 shadow-lg shadow-violet-500/30">
-            <Sparkles className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <div className="text-lg font-black tracking-tight">SocialFlow</div>
-            <div className="text-[10px] uppercase tracking-[0.22em] text-slate-400">Pro Suite</div>
-          </div>
-        </Link>
+    <aside className="fixed left-0 top-0 h-screen w-72 border-r border-[#E2E8F0] bg-white text-[#0F172A] shadow-sm flex flex-col justify-between">
+      <div>
+        <div className="flex items-center gap-3 px-6 py-6 border-b border-[#E2E8F0]">
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#7C3AED] to-[#DB2777] shadow-md group-hover:shadow-lg transition-all">
+              <Sparkles className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <div className="text-xl font-bold tracking-tight text-[#0F172A]">SocialFlow</div>
+              <div className="text-[10px] font-semibold uppercase tracking-widest text-[#7C3AED]">Pro Suite</div>
+            </div>
+          </Link>
+        </div>
+
+        <nav className="space-y-1.5 px-4 py-6 flex-1 overflow-y-auto">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
+                  isActive
+                    ? 'bg-[#F3E8FF] text-[#7C3AED]'
+                    : 'text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#0F172A]'
+                }`}
+              >
+                <item.icon className={`h-4 w-4 ${isActive ? 'text-[#7C3AED]' : 'text-[#94A3B8]'}`} />
+                {item.name}
+              </Link>
+            );
+          })}
+        </nav>
       </div>
 
-      <nav className="space-y-2 px-4 py-5">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
-                isActive
-                  ? 'bg-gradient-to-r from-violet-500/15 to-fuchsia-500/10 text-white ring-1 ring-violet-400/30'
-                  : 'text-slate-300 hover:bg-white/5 hover:text-white'
-              }`}
-            >
-              <item.icon className={`h-4 w-4 ${isActive ? 'text-violet-300' : 'text-slate-400'}`} />
-              {item.name}
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="absolute bottom-0 left-0 right-0 border-t border-white/10 p-4">
-        <Link href="/profile" className="flex items-center gap-3 rounded-2xl bg-white/5 p-3 transition hover:bg-white/10">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 font-bold text-sm text-white shadow-md">
+      <div className="border-t border-[#E2E8F0] p-4 bg-[#F8FAFC]">
+        <Link href="/profile" className="flex items-center gap-3 rounded-xl bg-white p-3 border border-[#E2E8F0] shadow-sm transition hover:shadow-md hover:border-[#CBD5E1]">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#DB2777] font-bold text-sm text-white shadow-sm">
             {user.initials}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-white">{user.name}</p>
-            <p className="truncate text-xs text-slate-400">{user.email}</p>
+            <p className="truncate text-sm font-bold text-[#0F172A]">{user.name}</p>
+            <p className="truncate text-[11px] font-medium text-[#64748B]">{user.email}</p>
           </div>
         </Link>
       </div>

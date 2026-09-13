@@ -58,15 +58,19 @@ export default function DashboardRoot() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 py-2">
-      <section className="overflow-hidden rounded-[28px] bg-gradient-to-br from-slate-950 via-violet-950 to-fuchsia-900 p-8 text-white shadow-2xl shadow-violet-500/20">
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+      <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-r from-[#0F172A] via-[#1E1B4B] to-[#3B0764] p-10 text-white shadow-xl">
+        {/* Subtle background decoration */}
+        <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-[#7C3AED] opacity-20 blur-3xl"></div>
+        <div className="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-[#DB2777] opacity-20 blur-3xl"></div>
+        
+        <div className="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-violet-100">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#7C3AED]/30 bg-[#7C3AED]/10 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-[#D8B4FE]">
               <Zap className="h-3.5 w-3.5" />
               Social performance command center
             </div>
-            <h1 className="text-3xl font-black tracking-tight md:text-5xl">Your channels, content, and replies — all in one place.</h1>
-            <p className="mt-4 max-w-xl text-base text-slate-200 md:text-lg">
+            <h1 className="text-3xl font-black tracking-tight md:text-5xl leading-[1.1]">Your channels, content, and replies — all in one place.</h1>
+            <p className="mt-5 max-w-xl text-base text-[#CBD5E1] md:text-lg">
               Connect every platform, publish in one click, and automate engagement with AI-powered workflows that feel personal at scale.
             </p>
 
