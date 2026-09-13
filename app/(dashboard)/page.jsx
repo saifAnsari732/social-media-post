@@ -1,54 +1,89 @@
 "use client";
 
 import Link from "next/link";
-import { Zap, MessageCircle, ArrowRight } from "lucide-react";
+import { ArrowRight, BarChart3, CalendarRange, MessageSquareText, Sparkles, Zap } from "lucide-react";
+
+const overviewCards = [
+  { label: 'Connected Channels', value: '12', change: '+3 this week', icon: Sparkles, color: 'from-violet-500 to-fuchsia-500' },
+  { label: 'Scheduled Posts', value: '48', change: '+18 today', icon: CalendarRange, color: 'from-cyan-500 to-sky-500' },
+  { label: 'AI Replies', value: '1.2k', change: '+64%', icon: MessageSquareText, color: 'from-emerald-500 to-teal-500' },
+  { label: 'Engagement Lift', value: '29.4%', change: '+8.2% vs last week', icon: BarChart3, color: 'from-orange-500 to-amber-500' },
+];
+
+const shortcuts = [
+  { title: 'Create automation rule', text: 'Set up keyword-based replies for DM and comments.', href: '/rules/new', label: 'Create Rule' },
+  { title: 'Multi-channel publisher', text: 'Prepare one content package and publish to many channels.', href: '/publisher', label: 'Open Publisher' },
+  { title: 'Inbox assistant', text: 'Reply quickly and keep every conversation organized.', href: '/inbox', label: 'View Inbox' },
+];
 
 export default function DashboardRoot() {
   return (
-    <div className="max-w-4xl mx-auto py-10">
-      <div className="bg-gradient-to-br from-[#833AB4] via-[#FD1D1D] to-[#F77737] rounded-2xl p-10 text-white shadow-xl relative overflow-hidden">
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-              <Zap className="w-7 h-7 text-white" />
+    <div className="mx-auto max-w-7xl space-y-8 py-2">
+      <section className="overflow-hidden rounded-[28px] bg-gradient-to-br from-slate-950 via-violet-950 to-fuchsia-900 p-8 text-white shadow-2xl shadow-violet-500/20">
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-violet-100">
+              <Zap className="h-3.5 w-3.5" />
+              Social performance command center
             </div>
-            <h1 className="text-3xl font-bold tracking-tight">Welcome to AutoReply Pro</h1>
-          </div>
-          
-          <p className="text-white/90 text-lg max-w-xl mb-8 leading-relaxed">
-            Your social media automation suite is ready. Set up AI-powered keyword rules, manage incoming messages, and reply to comments automatically 24/7.
-          </p>
+            <h1 className="text-3xl font-black tracking-tight md:text-5xl">Your channels, content, and replies — all in one place.</h1>
+            <p className="mt-4 max-w-xl text-base text-slate-200 md:text-lg">
+              Connect every platform, publish in one click, and automate engagement with AI-powered workflows that feel personal at scale.
+            </p>
 
-          <div className="flex gap-4">
-            <Link href="/rules/new" className="bg-white text-[#FD1D1D] px-6 py-3 rounded-lg font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center gap-2">
-              <Zap className="w-5 h-5" /> Create New Rule
-            </Link>
-            <Link href="/inbox" className="bg-black/20 backdrop-blur-sm text-white px-6 py-3 rounded-lg font-bold hover:bg-black/30 transition-all border border-white/20 flex items-center gap-2">
-              <MessageCircle className="w-5 h-5" /> Open Unified Inbox
-            </Link>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href="/publisher" className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-violet-700 shadow-lg transition hover:-translate-y-0.5">
+                Launch Publisher
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link href="/rules/new" className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
+                Create Auto Reply
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid min-w-[260px] gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md">
+            {['Instagram', 'Facebook', 'LinkedIn', 'YouTube', 'TikTok'].map((channel, index) => (
+              <div key={channel} className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-950/20 px-3 py-2">
+                <span className="text-sm text-slate-200">{channel}</span>
+                <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.8)]" />
+                <span className="text-xs text-emerald-300">Live</span>
+              </div>
+            ))}
           </div>
         </div>
-        
-        {/* Decorative background circle */}
-        <div className="absolute -right-20 -bottom-40 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
-      </div>
+      </section>
 
-      <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl border border-[#E2E8F0] hover:border-[#7C3AED]/30 hover:shadow-md transition-all group">
-           <h3 className="text-lg font-bold text-[#0F172A] mb-2">Automation Rules</h3>
-           <p className="text-[#64748B] text-sm mb-4">View and manage your keyword triggers and AI prompts.</p>
-           <Link href="/rules" className="text-[#7C3AED] font-bold text-sm flex items-center gap-1 group-hover:gap-2 transition-all">
-             Manage Rules <ArrowRight className="w-4 h-4" />
-           </Link>
-        </div>
-        <div className="bg-white p-6 rounded-xl border border-[#E2E8F0] hover:border-[#7C3AED]/30 hover:shadow-md transition-all group">
-           <h3 className="text-lg font-bold text-[#0F172A] mb-2">Social Media Publisher</h3>
-           <p className="text-[#64748B] text-sm mb-4">Post videos and content to multiple social media accounts at once.</p>
-           <Link href="/publisher" className="text-[#7C3AED] font-bold text-sm flex items-center gap-1 group-hover:gap-2 transition-all">
-             Open Publisher <ArrowRight className="w-4 h-4" />
-           </Link>
-        </div>
-      </div>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {overviewCards.map(({ label, value, change, icon: Icon, color }) => (
+          <div key={label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/60">
+            <div className="mb-4 flex items-center justify-between">
+              <p className="text-sm font-medium text-slate-500">{label}</p>
+              <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${color} text-white shadow-lg`}>
+                <Icon className="h-5 w-5" />
+              </div>
+            </div>
+            <div className="text-3xl font-black tracking-tight text-slate-900">{value}</div>
+            <p className="mt-2 text-xs font-medium text-emerald-600">{change}</p>
+          </div>
+        ))}
+      </section>
+
+      <section className="grid gap-5 lg:grid-cols-3">
+        {shortcuts.map((item) => (
+          <div key={item.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+            <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
+              <Zap className="h-5 w-5" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900">{item.title}</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{item.text}</p>
+            <Link href={item.href} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-violet-600">
+              {item.label}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        ))}
+      </section>
     </div>
   );
 }

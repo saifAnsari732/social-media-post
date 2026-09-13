@@ -2,15 +2,16 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  LayoutDashboard, 
-  Link2, 
-  Zap, 
-  MessageCircle, 
-  MessageSquareQuote, 
-  BarChart3, 
-  FileTerminal, 
-  Settings 
+import {
+  LayoutDashboard,
+  Link2,
+  Zap,
+  MessageCircle,
+  MessageSquareQuote,
+  BarChart3,
+  FileTerminal,
+  Settings,
+  Sparkles,
 } from 'lucide-react';
 
 const navItems = [
@@ -29,47 +30,50 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="w-64 bg-white border-r border-[#E2E8F0] h-screen flex flex-col fixed left-0 top-0">
-      <div className="p-6">
+    <aside className="fixed left-0 top-0 h-screen w-72 border-r border-slate-200/80 bg-slate-950 text-slate-100 shadow-2xl shadow-slate-900/20">
+      <div className="flex items-center gap-3 border-b border-white/10 px-6 py-6">
         <Link href="/" className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#833AB4] via-[#FD1D1D] to-[#F77737] flex items-center justify-center shadow-md">
-             <Zap className="text-white w-6 h-6" />
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-orange-400 shadow-lg shadow-violet-500/30">
+            <Sparkles className="h-5 w-5 text-white" />
           </div>
-          <span className="font-bold text-xl text-[#0F172A] tracking-tight">AutoReply Pro</span>
+          <div>
+            <div className="text-lg font-black tracking-tight">SocialFlow</div>
+            <div className="text-[10px] uppercase tracking-[0.22em] text-slate-400">Pro Suite</div>
+          </div>
         </Link>
       </div>
 
-      <nav className="flex-1 px-4 space-y-1 overflow-y-auto mt-4">
+      <nav className="space-y-2 px-4 py-5">
         {navItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
           return (
             <Link
               key={item.name}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive 
-                  ? 'bg-[#7C3AED]/10 text-[#7C3AED]' 
-                  : 'text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#0F172A]'
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
+                isActive
+                  ? 'bg-gradient-to-r from-violet-500/15 to-fuchsia-500/10 text-white ring-1 ring-violet-400/30'
+                  : 'text-slate-300 hover:bg-white/5 hover:text-white'
               }`}
             >
-              <item.icon className={`w-5 h-5 ${isActive ? 'text-[#7C3AED]' : 'text-[#64748B]'}`} />
+              <item.icon className={`h-4 w-4 ${isActive ? 'text-violet-300' : 'text-slate-400'}`} />
               {item.name}
             </Link>
           );
         })}
       </nav>
 
-      <div className="p-4 border-t border-[#E2E8F0]">
-        <div className="flex items-center gap-3 p-2">
-          <div className="w-8 h-8 rounded-full bg-[#7C3AED] text-white flex items-center justify-center font-bold text-xs">
+      <div className="absolute bottom-0 left-0 right-0 border-t border-white/10 p-4">
+        <div className="flex items-center gap-3 rounded-2xl bg-white/5 p-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 font-bold text-sm text-white">
             SA
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-[#0F172A] truncate">Saif Ansari</p>
-            <p className="text-xs text-[#64748B] truncate">saif@example.com</p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-white">Saif Ansari</p>
+            <p className="truncate text-xs text-slate-400">saif@example.com</p>
           </div>
         </div>
       </div>
-    </div>
+    </aside>
   );
 }
