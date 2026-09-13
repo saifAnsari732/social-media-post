@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -28,6 +29,17 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+
+  const [user, setUser] = useState({ name: 'User', email: 'user@example.com', initials: 'U' });
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("yt_user");
+    if (userStr) {
+      const u = JSON.parse(userStr);
+      const initials = u.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
+      setUser({ ...u, initials });
+    }
+  }, []);
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-72 border-r border-slate-200/80 bg-slate-950 text-slate-100 shadow-2xl shadow-slate-900/20">
@@ -64,15 +76,15 @@ export default function Sidebar() {
       </nav>
 
       <div className="absolute bottom-0 left-0 right-0 border-t border-white/10 p-4">
-        <div className="flex items-center gap-3 rounded-2xl bg-white/5 p-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 font-bold text-sm text-white">
-            SA
+        <Link href="/profile" className="flex items-center gap-3 rounded-2xl bg-white/5 p-3 transition hover:bg-white/10">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 font-bold text-sm text-white shadow-md">
+            {user.initials}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-white">Saif Ansari</p>
-            <p className="truncate text-xs text-slate-400">saif@example.com</p>
+            <p className="truncate text-sm font-semibold text-white">{user.name}</p>
+            <p className="truncate text-xs text-slate-400">{user.email}</p>
           </div>
-        </div>
+        </Link>
       </div>
     </aside>
   );

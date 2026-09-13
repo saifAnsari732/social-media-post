@@ -24,6 +24,15 @@ export default function LoginPage() {
     setLoading(true); setError("");
     try {
       const userId = await generateUserId(em);
+      
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, name: n, email: em })
+      });
+      
+      if (!res.ok) throw new Error("Login failed on server");
+      
       localStorage.setItem("yt_user", JSON.stringify({ userId, name: n, email: em }));
       router.push("/");
     } catch {

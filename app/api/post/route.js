@@ -15,6 +15,7 @@ export async function POST(req) {
   const tagsString = formData.get("tags") || "";
   const tags = tagsString.split(",").map(t => t.trim()).filter(Boolean);
   const selectedAccountIds = JSON.parse(formData.get("accountIds") || "[]");
+  const userId = req.headers.get("x-user-id");
 
   if (!file) {
     return NextResponse.json({ error: "File is required" }, { status: 400 });
@@ -24,7 +25,7 @@ export async function POST(req) {
   const buffer = Buffer.from(arrayBuffer);
   const isVideo = file.type.startsWith("video");
 
-  const accounts = await getAccounts();
+  const accounts = await getAccounts(userId);
   const results = {};
 
   for (const accountId of selectedAccountIds) {
@@ -132,6 +133,7 @@ export async function POST(req) {
 
   await addPost({
     id: Date.now().toString(),
+    userId,
     title,
     description,
     accountIds: selectedAccountIds,

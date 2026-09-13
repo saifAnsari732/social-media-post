@@ -1,16 +1,30 @@
 "use client";
 import { Link2, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
 export default function AccountsPage() {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const router = useRouter();
 
-  const fetchAccounts = async () => {
+  useEffect(() => {
+    const userStr = localStorage.getItem("yt_user");
+    if (!userStr) {
+      router.push("/login");
+      return;
+    }
+    const u = JSON.parse(userStr);
+    setUser(u);
+    fetchAccounts(u.userId);
+  }, []);
+
+  const fetchAccounts = async (userId) => {
     try {
       const res = await fetch("/api/accounts", {
-        headers: { "x-user-id": "saif@example.com" } // Temporary mock user ID for testing
+        headers: { "x-user-id": userId }
       });
       const data = await res.json();
       if (data.accounts) setAccounts(data.accounts);
@@ -21,16 +35,12 @@ export default function AccountsPage() {
     }
   };
 
-  useEffect(() => {
-    fetchAccounts();
-  }, []);
-
   const handleDelete = async (id) => {
     if (!confirm("Are you sure you want to remove this account? Automation rules linked to it may stop working.")) return;
     try {
       const res = await fetch("/api/accounts", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json", "x-user-id": "saif@example.com" },
+        headers: { "Content-Type": "application/json", "x-user-id": user.userId },
         body: JSON.stringify({ id })
       });
       if (res.ok) {
@@ -42,16 +52,28 @@ export default function AccountsPage() {
     }
   };
 
+  const handleConnect = (platformId) => {
+    if (!user) return;
+    window.location.href = `/api/auth/connect/${platformId}?userId=${encodeURIComponent(user.userId)}`;
+  };
+
+  if (!user) return null;
+
   return (
     <div className="max-w-5xl mx-auto py-8">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight">Connected Accounts</h1>
-          <p className="text-[#64748B] text-sm mt-1">Manage your connected Meta (Instagram & Facebook) accounts.</p>
+          <p className="text-[#64748B] text-sm mt-1">Manage your connected social media channels across all platforms.</p>
         </div>
-        <button className="bg-[#7C3AED] text-white px-5 py-2.5 rounded-lg font-medium shadow-sm hover:bg-[#6D28D9] transition-colors flex items-center gap-2">
-          <Link2 className="w-4 h-4" /> Connect Meta Account
-        </button>
+        <div className="flex gap-2">
+           <button onClick={() => handleConnect('facebook')} className="bg-[#1877F2] text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:opacity-90 transition-colors flex items-center gap-2 text-sm">
+             <Link2 className="w-4 h-4" /> Connect Facebook
+           </button>
+           <button onClick={() => handleConnect('instagram')} className="bg-gradient-to-tr from-[#FD1D1D] to-[#833AB4] text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:opacity-90 transition-colors flex items-center gap-2 text-sm">
+             <Link2 className="w-4 h-4" /> Connect Instagram
+           </button>
+        </div>
       </div>
 
       {loading ? (
@@ -62,9 +84,9 @@ export default function AccountsPage() {
             <Link2 className="w-8 h-8 text-[#94A3B8]" />
           </div>
           <h3 className="text-lg font-bold text-[#0F172A] mb-2">No accounts connected</h3>
-          <p className="text-[#64748B] max-w-sm mx-auto mb-6">Connect your Instagram Professional account and Facebook Page to start automating replies.</p>
-          <button className="bg-[#7C3AED] text-white px-5 py-2.5 rounded-lg font-medium shadow-sm hover:bg-[#6D28D9] transition-colors">
-            Connect Account Now
+          <p className="text-[#64748B] max-w-sm mx-auto mb-6">Connect your social accounts to start publishing content and automating replies.</p>
+          <button onClick={() => handleConnect('facebook')} className="bg-[#7C3AED] text-white px-5 py-2.5 rounded-lg font-medium shadow-sm hover:bg-[#6D28D9] transition-colors">
+            Connect an Account Now
           </button>
         </div>
       ) : (
@@ -74,15 +96,18 @@ export default function AccountsPage() {
               <button 
                 onClick={() => handleDelete(acc._id)}
                 className="absolute top-4 right-4 p-2 text-[#94A3B8] hover:text-[#EF4444] hover:bg-[#FEF2F2] rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                title="Remove Account"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
               
               <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-white mb-4 shadow-sm ${
                 acc.platform === 'instagram' ? 'bg-gradient-to-br from-[#833AB4] via-[#FD1D1D] to-[#F77737]' :
-                acc.platform === 'facebook' ? 'bg-[#1877F2]' : 'bg-[#0F172A]'
+                acc.platform === 'facebook' ? 'bg-[#1877F2]' : 
+                acc.platform === 'youtube' ? 'bg-[#FF0000]' : 
+                acc.platform === 'tiktok' ? 'bg-black' : 
+                acc.platform === 'linkedin' ? 'bg-[#0077B5]' : 'bg-[#0F172A]'
               }`}>
-                {/* Basic initial if no specific icon */}
                 <span className="font-bold text-2xl uppercase">{acc.platform[0]}</span>
               </div>
               <h3 className="font-bold text-[#0F172A] capitalize text-lg">{acc.name || acc.platform}</h3>
