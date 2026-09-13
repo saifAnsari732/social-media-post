@@ -3,7 +3,8 @@ import clientPromise from "@/lib/mongodb";
 
 export async function GET(req) {
   try {
-    const userId = req.headers.get("x-user-id") || "saif@example.com";
+    const userId = req.headers.get("x-user-id");
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const client = await clientPromise;
     const db = client.db();
 
@@ -16,7 +17,8 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
-    const userId = req.headers.get("x-user-id") || "saif@example.com";
+    const userId = req.headers.get("x-user-id");
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const updates = await req.json();
     const client = await clientPromise;
     const db = client.db();
