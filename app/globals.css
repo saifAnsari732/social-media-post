@@ -862,3 +862,5 @@ textarea { resize: vertical; min-height: 110px; }
 }
 
 @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+
+a { text-decoration: none !important; }

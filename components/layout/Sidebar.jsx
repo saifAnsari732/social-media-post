@@ -45,7 +45,7 @@ export default function Sidebar() {
     <aside className="fixed left-0 top-0 h-screen w-72 border-r border-[#E2E8F0] bg-white text-[#0F172A] shadow-sm flex flex-col justify-between">
       <div>
         <div className="flex items-center gap-3 px-6 py-6 border-b border-[#E2E8F0]">
-          <Link href="/" className="flex items-center gap-3 group">
+          <Link href="/" className="flex items-center gap-3 group no-underline">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#7C3AED] to-[#DB2777] shadow-md group-hover:shadow-lg transition-all">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
@@ -63,7 +63,7 @@ export default function Sidebar() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
+                className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all no-underline ${
                   isActive
                     ? 'bg-[#F3E8FF] text-[#7C3AED]'
                     : 'text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#0F172A]'
@@ -78,7 +78,7 @@ export default function Sidebar() {
       </div>
 
       <div className="border-t border-[#E2E8F0] p-4 bg-[#F8FAFC]">
-        <Link href="/profile" className="flex items-center gap-3 rounded-xl bg-white p-3 border border-[#E2E8F0] shadow-sm transition hover:shadow-md hover:border-[#CBD5E1]">
+        <Link href="/profile" className="flex items-center gap-3 rounded-xl bg-white p-3 border border-[#E2E8F0] shadow-sm transition hover:shadow-md hover:border-[#CBD5E1] no-underline">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#DB2777] font-bold text-sm text-white shadow-sm">
             {user.initials}
           </div>
