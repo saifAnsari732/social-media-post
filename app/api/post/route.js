@@ -1,11 +1,23 @@
 import { NextResponse } from "next/server";
-import { getAccounts, addPost } from "@/lib/db";
+import { getAccounts, addPost, getPosts } from "@/lib/db";
 import { postToYouTube } from "@/lib/platforms/youtube";
 import { postToFacebook } from "@/lib/platforms/facebook";
 import { postToInstagram } from "@/lib/platforms/instagram";
 import { postToTwitter } from "@/lib/platforms/twitter";
 import { postToLinkedIn } from "@/lib/platforms/linkedin";
 import { postToTikTok } from "@/lib/platforms/tiktok";
+
+export async function GET(req) {
+  try {
+    const userId = req.headers.get("x-user-id");
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const posts = await getPosts(userId);
+    return NextResponse.json({ posts });
+  } catch (error) {
+    console.error("Error fetching posts:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
 
 export async function POST(req) {
   const formData = await req.formData();
