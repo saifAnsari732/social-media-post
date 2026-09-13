@@ -149,15 +149,21 @@ export default function DashboardPage() {
     try {
       const res = await fetch("/api/generate-content", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-user-id": user.userId },
         body: JSON.stringify({ topic })
       });
       const data = await res.json();
+      
+      if (!res.ok) {
+        alert(data.error || "Failed to generate content.");
+        return;
+      }
+      
       if (data.title) setTitle(data.title);
       if (data.description) setDescription(data.description);
       if (data.hashtags) setTags(data.hashtags.map(t => t.replace(/^#/, '')).join(", "));
     } catch (err) {
-      alert("Failed to generate content.");
+      alert("Network error: Failed to generate content.");
     } finally {
       setGenerating(false);
     }
