@@ -12,11 +12,11 @@ export async function GET(req, { params }) {
       )}`,
     facebook: () =>
       `https://www.facebook.com/v20.0/dialog/oauth?client_id=${process.env.META_APP_ID}&redirect_uri=${process.env.META_REDIRECT_URI}&state=${state}&auth_type=rerequest&scope=${encodeURIComponent(
-        "pages_manage_posts,pages_read_engagement,instagram_basic,instagram_content_publish,pages_show_list"
+        "pages_show_list,pages_read_engagement,pages_manage_posts"
       )}`,
     instagram: () =>
       `https://www.facebook.com/v20.0/dialog/oauth?client_id=${process.env.META_APP_ID}&redirect_uri=${process.env.META_REDIRECT_URI}&state=${state}&auth_type=rerequest&scope=${encodeURIComponent(
-        "instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement"
+        "pages_show_list,pages_read_engagement,instagram_basic,instagram_content_publish,instagram_manage_messages,instagram_manage_comments"
       )}`,
     twitter: () => {
       return `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${process.env.TWITTER_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.TWITTER_REDIRECT_URI)}&scope=${encodeURIComponent(
