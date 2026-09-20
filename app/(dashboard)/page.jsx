@@ -2,148 +2,192 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, BarChart3, CalendarRange, MessageSquareText, Sparkles, Zap, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { 
+  Sparkles, 
+  Send, 
+  Zap, 
+  MessageCircle, 
+  BarChart3, 
+  CreditCard, 
+  ArrowUpRight, 
+  Link2, 
+  CheckCircle2,
+  Clock,
+  LayoutGrid
+} from "lucide-react";
 
-const shortcuts = [
-  { title: 'Create automation rule', text: 'Set up keyword-based replies for DM and comments.', href: '/rules/new', label: 'Create Rule' },
-  { title: 'Multi-channel publisher', text: 'Prepare one content package and publish to many channels.', href: '/publisher', label: 'Open Publisher' },
-  { title: 'Inbox assistant', text: 'Reply quickly and keep every conversation organized.', href: '/inbox', label: 'View Inbox' },
-];
-
-export default function DashboardRoot() {
-  const [data, setData] = useState(null);
-  const [accounts, setAccounts] = useState([]);
+export default function DashboardPage() {
+  const [user, setUser] = useState({ name: "User" });
+  const [stats, setStats] = useState({ accounts: 0, rules: 0, posts: 0 });
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     const userStr = localStorage.getItem("yt_user");
-    if (!userStr) {
-      router.push("/login");
-      return;
+    if (userStr) {
+      const u = JSON.parse(userStr);
+      setUser(u);
+      loadDashboardData(u.userId);
     }
-    const user = JSON.parse(userStr);
+  }, []);
 
-    async function fetchData() {
-      try {
-        const [analyticsRes, accountsRes] = await Promise.all([
-          fetch("/api/analytics", { headers: { "x-user-id": user.userId } }),
-          fetch("/api/accounts", { headers: { "x-user-id": user.userId } })
-        ]);
-        
-        if (analyticsRes.ok) {
-          setData(await analyticsRes.json());
-        }
-        if (accountsRes.ok) {
-          const accData = await accountsRes.json();
-          setAccounts(accData.accounts || []);
-        }
-      } catch (e) {
-        console.error("Failed to fetch dashboard data", e);
-      } finally {
-        setLoading(false);
-      }
+  const loadDashboardData = async (userId) => {
+    try {
+      const [accRes, postRes, ruleRes] = await Promise.all([
+        fetch("/api/accounts", { headers: { "x-user-id": userId } }),
+        fetch("/api/post", { headers: { "x-user-id": userId } }),
+        fetch("/api/rules", { headers: { "x-user-id": userId } })
+      ]);
+
+      const accData = await accRes.json();
+      const postData = await postRes.json();
+      const ruleData = await ruleRes.json();
+
+      setStats({
+        accounts: accData.accounts?.length || 0,
+        posts: postData.posts?.length || 0,
+        rules: Array.isArray(ruleData) ? ruleData.length : 0
+      });
+    } catch (e) {
+      console.error("Failed to load stats", e);
+    } finally {
+      setLoading(false);
     }
-    
-    fetchData();
-  }, [router]);
-
-  const overviewCards = [
-    { label: 'Connected Channels', value: data?.connectedChannels ?? '-', change: 'Active Accounts', icon: Sparkles, color: 'from-violet-500 to-fuchsia-500' },
-    { label: 'Published Posts', value: data?.scheduledPosts ?? '-', change: 'Total Published', icon: CalendarRange, color: 'from-cyan-500 to-sky-500' },
-    { label: 'AI Replies', value: data?.totalRepliesSent ?? '-', change: 'Automated interactions', icon: MessageSquareText, color: 'from-emerald-500 to-teal-500' },
-    { label: 'Engagement Lift', value: data?.engagementLift ?? '-', change: 'Based on AI replies', icon: BarChart3, color: 'from-orange-500 to-amber-500' },
-  ];
+  };
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8 py-2">
-      <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-r from-[#0F172A] via-[#1E1B4B] to-[#3B0764] p-10 text-white shadow-xl">
-        {/* Subtle background decoration */}
-        <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-[#7C3AED] opacity-20 blur-3xl"></div>
-        <div className="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-[#DB2777] opacity-20 blur-3xl"></div>
-        
-        <div className="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#7C3AED]/30 bg-[#7C3AED]/10 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-[#D8B4FE]">
-              <Zap className="h-3.5 w-3.5" />
-              Social performance command center
-            </div>
-            <h1 className="text-3xl font-black tracking-tight md:text-5xl leading-[1.1]">Your channels, content, and replies — all in one place.</h1>
-            <p className="mt-5 max-w-xl text-base text-[#CBD5E1] md:text-lg">
-              Connect every platform, publish in one click, and automate engagement with AI-powered workflows that feel personal at scale.
-            </p>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/publisher" className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-violet-700 shadow-lg transition hover:-translate-y-0.5">
-                Launch Publisher
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link href="/rules/new" className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
-                Create Auto Reply
-              </Link>
-            </div>
+    <div className="max-w-6xl mx-auto py-6 px-4 space-y-8">
+      {/* Hero Welcome Banner */}
+      <div className="relative rounded-3xl bg-gradient-to-r from-[#0F172A] via-[#1E1B4B] to-[#7C3AED] p-8 md:p-10 text-white overflow-hidden shadow-2xl">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#DB2777]/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="relative z-10 max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[#A78BFA] text-xs font-bold mb-4">
+            <Sparkles className="w-3.5 h-3.5 text-[#DB2777]" /> AI-Powered SaaS Automation Suite
           </div>
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
+            Welcome back, {user.name} 👋
+          </h1>
+          <p className="text-[#C7D2FE] text-sm md:text-base leading-relaxed mb-8">
+            Manage your Meta, Instagram, Facebook, and YouTube channels. Auto-publish content with Gemini AI and trigger automated DMs.
+          </p>
 
-          <div className="grid min-w-[260px] gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md">
-            {loading ? (
-              <div className="flex items-center justify-center p-4">
-                <Loader2 className="h-6 w-6 animate-spin text-white/50" />
-              </div>
-            ) : accounts.length > 0 ? (
-              accounts.map((acc, index) => (
-                <div key={acc._id || index} className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-950/20 px-3 py-2">
-                  <span className="text-sm text-slate-200 capitalize">{acc.platform} {acc.name ? `(${acc.name})` : ''}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.8)]" />
-                    <span className="text-xs text-emerald-300">Live</span>
-                  </div>
-                </div>
-              ))
-            ) : (
-               <div className="text-center p-4">
-                 <p className="text-sm text-white/70">No accounts connected yet</p>
-                 <Link href="/publisher" className="text-xs text-violet-300 hover:underline mt-1 block">Connect Account</Link>
-               </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {overviewCards.map(({ label, value, change, icon: Icon, color }) => (
-          <div key={label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/60 transition hover:shadow-md">
-            <div className="mb-4 flex items-center justify-between">
-              <p className="text-sm font-medium text-slate-500">{label}</p>
-              <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${color} text-white shadow-lg`}>
-                <Icon className="h-5 w-5" />
-              </div>
-            </div>
-            <div className="text-3xl font-black tracking-tight text-slate-900">
-              {loading ? <Loader2 className="h-6 w-6 animate-spin text-slate-300" /> : value}
-            </div>
-            <p className="mt-2 text-xs font-medium text-slate-400">{change}</p>
-          </div>
-        ))}
-      </section>
-
-      <section className="grid gap-5 lg:grid-cols-3">
-        {shortcuts.map((item) => (
-          <div key={item.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg flex flex-col justify-between">
-            <div>
-              <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
-                <Zap className="h-5 w-5" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900">{item.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{item.text}</p>
-            </div>
-            <Link href={item.href} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-violet-600 hover:text-violet-700">
-              {item.label}
-              <ArrowRight className="h-4 w-4" />
+          <div className="flex flex-wrap gap-4">
+            <Link
+              href="/publisher"
+              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#DB2777] text-white font-bold text-sm shadow-lg hover:opacity-90 transition-all flex items-center gap-2 no-underline"
+            >
+              <Send className="w-4 h-4" /> Create New Post
+            </Link>
+            <Link
+              href="/accounts"
+              className="px-6 py-3 rounded-2xl bg-white/10 backdrop-blur-md text-white border border-white/20 font-bold text-sm hover:bg-white/20 transition-all flex items-center gap-2 no-underline"
+            >
+              <Link2 className="w-4 h-4" /> Connect Social Accounts
             </Link>
           </div>
-        ))}
-      </section>
+        </div>
+      </div>
+
+      {/* Quick Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-3xl p-6 border border-[#E2E8F0] shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold text-[#64748B] uppercase tracking-wider mb-1">Connected Channels</p>
+            <h3 className="text-3xl font-extrabold text-[#0F172A]">{loading ? "..." : stats.accounts}</h3>
+            <p className="text-[11px] text-[#10B981] font-medium mt-1 flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Meta & YouTube Sync
+            </p>
+          </div>
+          <div className="p-4 bg-[#F3E8FF] rounded-2xl border border-[#E9D5FF]">
+            <Link2 className="w-6 h-6 text-[#7C3AED]" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl p-6 border border-[#E2E8F0] shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold text-[#64748B] uppercase tracking-wider mb-1">Published Content</p>
+            <h3 className="text-3xl font-extrabold text-[#0F172A]">{loading ? "..." : stats.posts}</h3>
+            <p className="text-[11px] text-[#7C3AED] font-medium mt-1 flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5" /> AI Generated & Uploaded
+            </p>
+          </div>
+          <div className="p-4 bg-[#FCE7F3] rounded-2xl border border-[#FBCFE8]">
+            <LayoutGrid className="w-6 h-6 text-[#DB2777]" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl p-6 border border-[#E2E8F0] shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold text-[#64748B] uppercase tracking-wider mb-1">Automation Rules</p>
+            <h3 className="text-3xl font-extrabold text-[#0F172A]">{loading ? "..." : stats.rules}</h3>
+            <p className="text-[11px] text-[#6366F1] font-medium mt-1 flex items-center gap-1">
+              <Zap className="w-3.5 h-3.5" /> Active DM & Comment Bots
+            </p>
+          </div>
+          <div className="p-4 bg-[#E0E7FF] rounded-2xl border border-[#C7D2FE]">
+            <Zap className="w-6 h-6 text-[#4F46E5]" />
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Action Modules */}
+      <div>
+        <h3 className="text-lg font-bold text-[#0F172A] mb-4">SaaS Management & Copilot</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          
+          <Link href="/publisher" className="group bg-white p-6 rounded-3xl border border-[#E2E8F0] shadow-sm hover:shadow-md hover:border-[#7C3AED] transition-all no-underline flex flex-col justify-between">
+            <div>
+              <div className="w-10 h-10 rounded-2xl bg-[#F3E8FF] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Send className="w-5 h-5 text-[#7C3AED]" />
+              </div>
+              <h4 className="text-base font-bold text-[#0F172A] mb-1">AI Publisher</h4>
+              <p className="text-xs text-[#64748B] leading-relaxed">Generate captions with Gemini 3.5 & publish to multi-platforms instantly.</p>
+            </div>
+            <div className="mt-4 flex items-center text-xs font-bold text-[#7C3AED] group-hover:translate-x-1 transition-transform">
+              Open Publisher <ArrowUpRight className="w-4 h-4 ml-1" />
+            </div>
+          </Link>
+
+          <Link href="/rules" className="group bg-white p-6 rounded-3xl border border-[#E2E8F0] shadow-sm hover:shadow-md hover:border-[#DB2777] transition-all no-underline flex flex-col justify-between">
+            <div>
+              <div className="w-10 h-10 rounded-2xl bg-[#FCE7F3] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Zap className="w-5 h-5 text-[#DB2777]" />
+              </div>
+              <h4 className="text-base font-bold text-[#0F172A] mb-1">Automation Rules</h4>
+              <p className="text-xs text-[#64748B] leading-relaxed">Configure auto-replies for DMs & comments based on keyword triggers.</p>
+            </div>
+            <div className="mt-4 flex items-center text-xs font-bold text-[#DB2777] group-hover:translate-x-1 transition-transform">
+              Configure Rules <ArrowUpRight className="w-4 h-4 ml-1" />
+            </div>
+          </Link>
+
+          <Link href="/webhook-logs" className="group bg-white p-6 rounded-3xl border border-[#E2E8F0] shadow-sm hover:shadow-md hover:border-[#4F46E5] transition-all no-underline flex flex-col justify-between">
+            <div>
+              <div className="w-10 h-10 rounded-2xl bg-[#E0E7FF] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <MessageCircle className="w-5 h-5 text-[#4F46E5]" />
+              </div>
+              <h4 className="text-base font-bold text-[#0F172A] mb-1">Webhook Simulator</h4>
+              <p className="text-xs text-[#64748B] leading-relaxed">Simulate Meta webhook events locally to test your DM automation rules.</p>
+            </div>
+            <div className="mt-4 flex items-center text-xs font-bold text-[#4F46E5] group-hover:translate-x-1 transition-transform">
+              Test Webhooks <ArrowUpRight className="w-4 h-4 ml-1" />
+            </div>
+          </Link>
+
+          <Link href="/billing" className="group bg-white p-6 rounded-3xl border border-[#E2E8F0] shadow-sm hover:shadow-md hover:border-[#10B981] transition-all no-underline flex flex-col justify-between">
+            <div>
+              <div className="w-10 h-10 rounded-2xl bg-[#D1FAE5] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <CreditCard className="w-5 h-5 text-[#10B981]" />
+              </div>
+              <h4 className="text-base font-bold text-[#0F172A] mb-1">Razorpay Billing</h4>
+              <p className="text-xs text-[#64748B] leading-relaxed">Upgrade your plan & manage your SaaS subscription seamlessly.</p>
+            </div>
+            <div className="mt-4 flex items-center text-xs font-bold text-[#10B981] group-hover:translate-x-1 transition-transform">
+              Manage Subscription <ArrowUpRight className="w-4 h-4 ml-1" />
+            </div>
+          </Link>
+
+        </div>
+      </div>
     </div>
   );
 }
