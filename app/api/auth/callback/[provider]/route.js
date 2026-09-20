@@ -130,7 +130,10 @@ export async function GET(req, { params }) {
       });
     } else if ((provider === "facebook" || provider === "instagram") && tokenData.access_token) {
       try {
-        let pagesRes = await fetch(`https://graph.facebook.com/v20.0/me/accounts?access_token=${tokenData.access_token}`);
+        // Fast & Advanced: Fetch Pages AND linked Instagram Accounts in a SINGLE query!
+        let pagesRes = await fetch(
+          `https://graph.facebook.com/v20.0/me/accounts?fields=id,name,access_token,instagram_business_account{id,username,name}&access_token=${tokenData.access_token}`
+        );
         let pagesData = await pagesRes.json();
         
         console.log("Facebook accounts query result:", JSON.stringify(pagesData));
@@ -146,25 +149,29 @@ export async function GET(req, { params }) {
           const debugRes = await fetch(`https://graph.facebook.com/debug_token?input_token=${tokenData.access_token}&access_token=${tokenData.access_token}`);
           const debugData = await debugRes.json();
           if (debugData.data && debugData.data.granular_scopes) {
-            const pageScopes = debugData.data.granular_scopes.find(s => s.scope === "pages_manage_posts");
+             // Look for pages_manage_posts OR pages_show_list
+            const pageScopes = debugData.data.granular_scopes.find(s => s.scope === "pages_manage_posts" || s.scope === "pages_show_list");
             if (pageScopes && pageScopes.target_ids && pageScopes.target_ids.length > 0) {
-              // Fetch each page directly
-              for (const pageId of pageScopes.target_ids) {
-                const pRes = await fetch(`https://graph.facebook.com/v20.0/${pageId}?fields=access_token,name,instagram_business_account&access_token=${tokenData.access_token}`);
-                const pData = await pRes.json();
-                if (pData.access_token) {
-                  pages.push(pData);
-                }
-              }
+              
+              // Parallel fetch for all allowed page IDs to save time
+              const fetchPromises = pageScopes.target_ids.map(pageId => 
+                fetch(`https://graph.facebook.com/v20.0/${pageId}?fields=id,name,access_token,instagram_business_account{id,username,name}&access_token=${tokenData.access_token}`)
+                  .then(r => r.json())
+              );
+              
+              const fetchedPages = await Promise.all(fetchPromises);
+              pages = fetchedPages.filter(p => p.access_token);
             }
           }
         }
         
         if (pages.length > 0) {
+          const upsertPromises = [];
+
           for (const page of pages) {
-            // Upsert Facebook Page if logging in via Facebook
+            // 1. If provider is facebook, upsert the Facebook Page
             if (provider === "facebook") {
-              await upsertAccount({
+              upsertPromises.push(upsertAccount({
                 platform: "facebook",
                 providerAccountId: page.id,
                 pageId: page.id,
@@ -174,44 +181,37 @@ export async function GET(req, { params }) {
                 name: page.name,
                 connectedAt: new Date().toISOString(),
                 raw: { ...tokenData, page }
-              });
+              }));
             }
 
-            // Always attempt to discover linked Instagram Business Accounts
-            try {
-              let igAcc = null;
-              // If we already fetched it via granular fallback
-              if (page.instagram_business_account) {
-                const igDetailsRes = await fetch(`https://graph.facebook.com/v20.0/${page.instagram_business_account.id}?fields=id,username,name&access_token=${page.access_token}`);
-                igAcc = await igDetailsRes.json();
-              } else {
-                // Original method
-                const igRes = await fetch(
-                  `https://graph.facebook.com/v20.0/${page.id}?fields=instagram_business_account{id,username,name}&access_token=${page.access_token}`
-                );
-                const igData = await igRes.json();
-                igAcc = igData.instagram_business_account;
-              }
-
-              if (igAcc) {
-                await upsertAccount({
-                  platform: "instagram",
-                  providerAccountId: igAcc.id,
-                  igUserId: igAcc.id,
-                  userId,
-                  accessToken: page.access_token,
-                  refreshToken: null,
-                  name: igAcc.name || igAcc.username || "Instagram Account",
-                  connectedAt: new Date().toISOString(),
-                  raw: { ...tokenData, page, instagram: igAcc }
-                });
-              }
-            } catch (igErr) {
-              console.error("Failed to discover Instagram account for page:", page.id, igErr);
+            // 2. If provider is instagram OR facebook, ALWAYS upsert the linked Instagram account if present
+            if (page.instagram_business_account) {
+              const igAcc = page.instagram_business_account;
+              upsertPromises.push(upsertAccount({
+                platform: "instagram",
+                providerAccountId: igAcc.id,
+                igUserId: igAcc.id,
+                userId,
+                accessToken: page.access_token, // Instagram uses the parent Page's access token!
+                refreshToken: null,
+                name: igAcc.name || igAcc.username || "Instagram Account",
+                connectedAt: new Date().toISOString(),
+                raw: { ...tokenData, page, instagram: igAcc }
+              }));
             }
           }
+          
+          // Execute all database upserts concurrently for maximum speed
+          if (upsertPromises.length > 0) {
+            await Promise.all(upsertPromises);
+          } else {
+             // Edge case: They clicked Instagram but NO pages had an IG account linked
+             if (provider === "instagram") {
+               throw new Error("No linked Instagram Professional Accounts found on your Facebook Pages.");
+             }
+          }
         } else {
-          // Fallback if no pages found
+          // Absolute Fallback if no pages found
           await upsertAccount({
             platform: provider,
             providerAccountId: `no_page_${Date.now()}`,
@@ -225,7 +225,7 @@ export async function GET(req, { params }) {
         }
       } catch (err) {
         console.error("Failed to fetch Meta accounts", err);
-        throw new Error("Failed to fetch Meta accounts");
+        throw new Error(err.message || "Failed to fetch Meta accounts");
       }
     } else {
       // For twitter, linkedin, tiktok, etc.

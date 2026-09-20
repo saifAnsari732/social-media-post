@@ -13,7 +13,8 @@ import {
   FileTerminal,
   Settings,
   Sparkles,
-  LayoutGrid
+  LayoutGrid,
+  CreditCard
 } from 'lucide-react';
 
 const navItems = [
@@ -26,6 +27,7 @@ const navItems = [
   { name: 'Comments', href: '/comments', icon: MessageSquareQuote },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { name: 'Webhook Logs', href: '/webhook-logs', icon: FileTerminal },
+  { name: 'Billing & Plans', href: '/billing', icon: CreditCard },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
