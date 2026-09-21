@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import SaaSLandingPage from "./landing/page";
-import DashboardPage from "./(dashboard)/page";
-import DashboardLayout from "./(dashboard)/layout";
 
 export default function RootHomePage() {
+  const router = useRouter();
   const [user, setUser] = useState(null);
   const [mounted, setMounted] = useState(false);
 
@@ -14,24 +14,17 @@ export default function RootHomePage() {
     const userStr = localStorage.getItem("yt_user");
     if (userStr) {
       try {
-        setUser(JSON.parse(userStr));
+        const u = JSON.parse(userStr);
+        setUser(u);
+        // Clean client navigation to dashboard without cross-importing page files
+        window.location.href = "/publisher";
       } catch (e) {
         console.error("Failed to parse user string", e);
       }
     }
-  }, []);
+  }, [router]);
 
-  if (!mounted) return null;
+  if (!mounted || user) return null;
 
-  // If user is logged in, render Dashboard with Layout directly on /
-  if (user) {
-    return (
-      <DashboardLayout>
-        <DashboardPage />
-      </DashboardLayout>
-    );
-  }
-
-  // If visitor is guest, render Public SaaS Landing Page
   return <SaaSLandingPage />;
 }
