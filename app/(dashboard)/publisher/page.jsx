@@ -2,100 +2,36 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { 
+  Send, 
+  Sparkles, 
+  Image as ImageIcon, 
+  Video, 
+  Link as LinkIcon, 
+  Smile, 
+  Hash, 
+  Calendar, 
+  Clock, 
+  Globe, 
+  CheckCircle2, 
+  AlertCircle,
+  Plus,
+  Trash2,
+  Eye,
+  FileText
+} from "lucide-react";
+import toast from "react-hot-toast";
 
-/* ── Platform Config ── */
 const PLATFORMS = [
-  { id: "youtube",   label: "YouTube",    icon: YouTubeIcon  },
-  { id: "facebook",  label: "Facebook",   icon: FacebookIcon },
-  { id: "instagram", label: "Instagram",  icon: InstagramIcon},
-  { id: "twitter",   label: "X / Twitter",icon: TwitterIcon  },
-  { id: "linkedin",  label: "LinkedIn",   icon: LinkedInIcon },
-  { id: "tiktok",    label: "TikTok",     icon: TikTokIcon   },
+  { id: "youtube", label: "YouTube", color: "bg-red-600 text-white" },
+  { id: "facebook", label: "Facebook", color: "bg-blue-600 text-white" },
+  { id: "instagram", label: "Instagram", color: "bg-pink-600 text-white" },
+  { id: "twitter", label: "X / Twitter", color: "bg-slate-900 text-white" },
+  { id: "linkedin", label: "LinkedIn", color: "bg-blue-700 text-white" },
+  { id: "tiktok", label: "TikTok", color: "bg-[#000000] text-white" },
 ];
 
-const PLATFORM_STYLES = {
-  youtube:   { bg: "#fef2f2", color: "#dc2626" },
-  facebook:  { bg: "#eff6ff", color: "#2563eb" },
-  instagram: { bg: "#fdf4ff", color: "#9333ea" },
-  twitter:   { bg: "#f0f9ff", color: "#0284c7" },
-  linkedin:  { bg: "#eff6ff", color: "#1d4ed8" },
-  tiktok:    { bg: "#f0fdf4", color: "#166534" },
-};
-
-/* ── SVG Icons ── */
-function YouTubeIcon({ size = 16, color }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={color || "currentColor"}>
-      <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/>
-      <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="white"/>
-    </svg>
-  );
-}
-
-function FacebookIcon({ size = 16, color }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={color || "currentColor"}>
-      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
-    </svg>
-  );
-}
-
-function InstagramIcon({ size = 16, color }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
-      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
-      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
-    </svg>
-  );
-}
-
-function TwitterIcon({ size = 16, color }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={color || "currentColor"}>
-      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-    </svg>
-  );
-}
-
-function LinkedInIcon({ size = 16, color }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={color || "currentColor"}>
-      <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/>
-      <circle cx="4" cy="4" r="2"/>
-    </svg>
-  );
-}
-
-function TikTokIcon({ size = 16, color }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={color || "currentColor"}>
-      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V9.11a8.16 8.16 0 0 0 4.77 1.52V7.17a4.85 4.85 0 0 1-1-.48z"/>
-    </svg>
-  );
-}
-
-function TrashIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="3 6 5 6 21 6"/>
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-    </svg>
-  );
-}
-
-function LogoutIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-      <polyline points="16 17 21 12 16 7"/>
-      <line x1="21" y1="12" x2="9" y2="12"/>
-    </svg>
-  );
-}
-
-/* ── Dashboard ── */
-export default function DashboardPage() {
+export default function PublisherPage() {
   const [user, setUser] = useState(null);
   const [accounts, setAccounts] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -107,6 +43,10 @@ export default function DashboardPage() {
   const [generating, setGenerating] = useState(false);
   const [posting, setPosting] = useState(false);
   const [results, setResults] = useState(null);
+  const [publishMode, setPublishMode] = useState("now"); // 'now' | 'schedule' | 'draft'
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
+  const [previewTab, setPreviewTab] = useState("instagram");
   const fileInputRef = useRef(null);
   const router = useRouter();
 
@@ -122,29 +62,23 @@ export default function DashboardPage() {
   }, []);
 
   async function fetchAccounts(userId) {
-    const res = await fetch("/api/accounts", {
-      headers: { "x-user-id": userId }
-    });
-    const data = await res.json();
-    setAccounts(data.accounts || []);
+    try {
+      const res = await fetch("/api/accounts", {
+        headers: { "x-user-id": userId }
+      });
+      const data = await res.json();
+      setAccounts(data.accounts || []);
+    } catch (e) {
+      toast.error("Failed to load connected accounts");
+    }
   }
 
   function toggleSelect(id) {
     setSelectedIds(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
   }
 
-  function handleConnect(platformId) {
-    if (!user) return;
-    window.location.href = `/api/auth/connect/${platformId}?userId=${encodeURIComponent(user.userId)}`;
-  }
-
-  function handleLogout() {
-    localStorage.removeItem("yt_user");
-    router.push("/login");
-  }
-
   async function handleGenerate() {
-    if (!topic) { alert("Please enter a topic first!"); return; }
+    if (!topic) { toast.error("Please enter a topic first!"); return; }
     setGenerating(true);
     try {
       const res = await fetch("/api/generate-content", {
@@ -155,22 +89,26 @@ export default function DashboardPage() {
       const data = await res.json();
       
       if (!res.ok) {
-        alert(data.error || "Failed to generate content.");
+        toast.error(data.error || "Failed to generate content.");
         return;
       }
       
       if (data.title) setTitle(data.title);
       if (data.description) setDescription(data.description);
       if (data.hashtags) setTags(data.hashtags.map(t => t.replace(/^#/, '')).join(", "));
+      toast.success("AI Caption & Title generated!");
     } catch (err) {
-      alert("Network error: Failed to generate content.");
+      toast.error("Network error: Failed to generate content.");
     } finally {
       setGenerating(false);
     }
   }
 
   async function handlePost() {
-    if (!file || selectedIds.length === 0 || !user) return;
+    if (!file || selectedIds.length === 0 || !user) {
+      toast.error("Please select media and at least 1 social channel!");
+      return;
+    }
     setPosting(true);
     setResults(null);
     try {
@@ -187,235 +125,285 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       setResults(data.results);
+      toast.success("Post published successfully!");
+    } catch (err) {
+      toast.error("Failed to publish post.");
     } finally {
       setPosting(false);
     }
   }
 
-  async function handleDeleteAccount(id) {
-    if (!confirm("Remove this account?")) return;
-    try {
-      const res = await fetch("/api/accounts", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json", "x-user-id": user?.userId || "" },
-        body: JSON.stringify({ id })
-      });
-      if (res.ok) {
-        fetchAccounts(user.userId);
-        setSelectedIds(s => s.filter(x => x !== id));
-      }
-    } catch (e) {
-      console.error("Failed to delete account", e);
-    }
-  }
-
-  // Show nothing while checking session
   if (!user) return null;
 
-  const initials = user.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
-
   return (
-    <>
-
-      <main className="wrap">
-        <div className="page-header">
-          <h1>Social Media Publisher</h1>
-          <p>Connect your accounts and publish content to multiple platforms at once. Each account is private to your profile.</p>
+    <div className="space-y-8 font-sans">
+      
+      {/* Header */}
+      <div className="pb-6 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Social Post Composer</h1>
+          <p className="text-xs text-slate-500 mt-1 font-medium">
+            Compose, generate with Gemini AI, preview live, and publish across multiple channels.
+          </p>
         </div>
+      </div>
 
-        <div className="layout-grid">
-          {/* ── Left: Accounts ── */}
-          <aside>
-            <div className="panel">
-              {/* Dark header */}
-              <div className="panel-left-header">
-                <h2 className="section-label">Connected Accounts</h2>
-              </div>
+      {/* 3-Column Composer Layout (Matches Section 9 of Prompt) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* COLUMN 1: LEFT CONTENT EDITOR (5 cols) */}
+        <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-6">
+          <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-3">
+            1. Content & AI Copilot
+          </h3>
 
-              <div className="panel-left-body">
-                {accounts.length === 0 ? (
-                  <div className="empty-state">
-                    <div style={{ fontSize: 32, marginBottom: 10 }}>🔗</div>
-                    <strong>No accounts connected</strong>
-                    <span>Add a platform below to get started</span>
-                  </div>
-                ) : (
-                  <div className="accounts-list">
-                    {accounts.map((acc, idx) => {
-                      const isSelected = selectedIds.includes(acc._id);
-                      const style = PLATFORM_STYLES[acc.platform] || { bg: "#f3f4f6", color: "#374151" };
-                      const platform = PLATFORMS.find(p => p.id === acc.platform);
-                      const IconComp = platform?.icon;
-                      return (
-                        <div
-                          key={acc._id || idx}
-                          className={`account-card ${isSelected ? "selected" : ""}`}
-                          onClick={() => toggleSelect(acc._id)}
-                        >
-                          <div className="account-info">
-                            <div className="checkbox" />
-                            <div className="platform-icon" style={{ background: style.bg }}>
-                              {IconComp ? <IconComp size={16} color={style.color} /> : <span style={{ color: style.color, fontWeight: 700 }}>●</span>}
-                            </div>
-                            <div>
-                              <div className="account-name">{acc.name || "Unnamed"}</div>
-                              <div className="account-platform">{acc.platform}</div>
-                            </div>
-                          </div>
-                          <button className="btn-delete" onClick={e => { e.stopPropagation(); handleDeleteAccount(acc._id); }} title="Remove">
-                            <TrashIcon />
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                <h2 className="section-label" style={{ marginTop: 4 }}>Add Platform</h2>
-                <div className="add-account-section">
-                  {PLATFORMS.map(p => {
-                    const IconComp = p.icon;
-                    const style = PLATFORM_STYLES[p.id];
-                    return (
-                      <div key={p.id} className="btn-connect" onClick={() => handleConnect(p.id)}>
-                        <IconComp size={13} color={style.color} />
-                        {p.label}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+          {/* AI Generator Box */}
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-violet-50 to-indigo-50/60 border border-violet-100 space-y-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-violet-700">
+              <Sparkles className="w-4 h-4 text-violet-600" /> Gemini 3.5 AI Copilot Assistant
             </div>
-          </aside>
-
-          {/* ── Right: Post Editor ── */}
-          <section>
-            <div className="panel panel-right">
-              <h2 className="section-label">Create Post</h2>
-
-              {/* Dropzone */}
-              <div
-                className={`dropzone ${file ? "has-file" : ""}`}
-                onClick={() => fileInputRef.current?.click()}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Describe your post topic or offer..."
+                value={topic}
+                onChange={e => setTopic(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleGenerate()}
+                className="flex-1 px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-xs font-medium focus:outline-none focus:border-violet-600"
+              />
+              <button
+                onClick={handleGenerate}
+                disabled={generating || !topic}
+                className="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs shadow-sm transition-all whitespace-nowrap"
               >
-                <div className="dropzone-icon">
-                  {file ? (
-                    <span style={{ fontSize: 40 }}>✅</span>
-                  ) : (
-                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="16 16 12 12 8 16"/>
-                      <line x1="12" y1="12" x2="12" y2="21"/>
-                      <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
-                    </svg>
-                  )}
+                {generating ? "..." : "Generate"}
+              </button>
+            </div>
+          </div>
+
+          {/* Dropzone Upload */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Media File</label>
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className={`p-6 rounded-2xl border-2 border-dashed text-center cursor-pointer transition-all ${
+                file ? "border-emerald-500 bg-emerald-50/30" : "border-slate-200 hover:border-violet-500 bg-slate-50/50"
+              }`}
+            >
+              {file ? (
+                <div className="space-y-1">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
+                  <p className="text-xs font-bold text-slate-900 truncate">{file.name}</p>
+                  <span className="text-[10px] text-slate-400">Click to change file</span>
                 </div>
-                <div className="dropzone-text">
-                  {file ? file.name : "Click or drag to upload media"}
-                </div>
-                {!file && <div className="dropzone-subtext">MP4, MOV, JPG, PNG · Max 500 MB</div>}
-              </div>
-              <input ref={fileInputRef} type="file" accept="video/*,image/*" hidden onChange={e => setFile(e.target.files?.[0] || null)} />
-
-              {/* AI Generate */}
-              <div className="ai-generate">
-                <input
-                  type="text"
-                  placeholder="🤖  Describe your content for AI title, caption & tags..."
-                  value={topic}
-                  onChange={e => setTopic(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && handleGenerate()}
-                />
-                <button className="btn btn-secondary" onClick={handleGenerate} disabled={generating || !topic}>
-                  {generating ? "⏳ Generating..." : "✨ Generate"}
-                </button>
-              </div>
-
-              {/* Fields */}
-              <div className="field-group">
-                <label>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                  </svg>
-                  Title
-                </label>
-                <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Enter your post title..." />
-              </div>
-
-              <div className="field-group">
-                <label>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                  </svg>
-                  Description / Caption
-                </label>
-                <textarea rows={4} value={description} onChange={e => setDescription(e.target.value)} placeholder="Write a caption or description for your post..." />
-              </div>
-
-              <div className="field-group">
-                <label>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-                    <line x1="7" y1="7" x2="7.01" y2="7"/>
-                  </svg>
-                  Tags <span style={{ fontWeight: 400, textTransform: 'none', fontSize: 11, color: '#94a3b8', letterSpacing: 0 }}>(comma separated)</span>
-                </label>
-                <input type="text" value={tags} onChange={e => setTags(e.target.value)} placeholder="e.g. gaming, tutorial, funny, trending" />
-              </div>
-
-              {/* Publish CTA */}
-              <div className="publish-box">
-                {selectedIds.length > 0 && (
-                  <div className="publish-meta">
-                    <span style={{ fontSize: 12, color: '#6366f1', fontWeight: 600 }}>Publishing to:</span>
-                    {selectedIds.map(id => {
-                      const acc = accounts.find(a => a._id === id);
-                      const style = PLATFORM_STYLES[acc?.platform] || { bg: '#f3f4f6', color: '#374151' };
-                      return acc ? (
-                        <span key={id} className="publish-tag" style={{ background: style.bg, color: style.color, border: `1px solid ${style.color}22` }}>
-                          {acc.name}
-                        </span>
-                      ) : null;
-                    })}
-                  </div>
-                )}
-                <button
-                  className="btn btn-primary"
-                  onClick={handlePost}
-                  disabled={posting || !file || selectedIds.length === 0}
-                  style={{ margin: 0 }}
-                >
-                  {posting
-                    ? "⏳ Publishing..."
-                    : selectedIds.length === 0
-                    ? "← Select accounts from the left panel"
-                    : `🚀 Publish to ${selectedIds.length} Account${selectedIds.length === 1 ? "" : "s"}`}
-                </button>
-              </div>
-
-              {/* Results */}
-              {results && (
-                <div className="results">
-                  {Object.entries(results).map(([accountId, r]) => {
-                    const acc = accounts.find(a => a._id === accountId) || {};
-                    return (
-                      <div className="result-row" key={accountId}>
-                        <span>
-                          <strong>{acc.name || accountId}</strong>
-                          <span style={{ color: "#94a3b8", fontWeight: 400, marginLeft: 6, fontSize: 12 }}>({acc.platform})</span>
-                        </span>
-                        <span className={`status-badge ${r.success ? "status-ok" : "status-fail"}`}>
-                          {r.success ? "✓ Published" : "✕ Failed"}
-                        </span>
-                      </div>
-                    );
-                  })}
+              ) : (
+                <div className="space-y-1">
+                  <ImageIcon className="w-8 h-8 text-slate-400 mx-auto" />
+                  <p className="text-xs font-bold text-slate-800">Click or drag media here</p>
+                  <span className="text-[10px] text-slate-400">Supports MP4, MOV, JPG, PNG (Max 500MB)</span>
                 </div>
               )}
             </div>
-          </section>
+            <input ref={fileInputRef} type="file" accept="video/*,image/*" className="hidden" onChange={e => setFile(e.target.files?.[0] || null)} />
+          </div>
+
+          {/* Title Input */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Post Title</label>
+            <input
+              type="text"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="Enter headline or video title..."
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-violet-600"
+            />
+          </div>
+
+          {/* Description / Caption */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Caption / Description</label>
+            <textarea
+              rows={5}
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="Write your post caption..."
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-violet-600 resize-y"
+            />
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Hashtags / Tags</label>
+            <input
+              type="text"
+              value={tags}
+              onChange={e => setTags(e.target.value)}
+              placeholder="e.g. fashion, sale, trending"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-violet-600"
+            />
+          </div>
         </div>
-      </main>
-    </>
+
+        {/* COLUMN 2: CENTER LIVE PLATFORM PREVIEW (4 cols) */}
+        <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+              2. Live Preview
+            </h3>
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg text-[10px] font-bold">
+              {["instagram", "facebook", "youtube"].map(p => (
+                <button
+                  key={p}
+                  onClick={() => setPreviewTab(p)}
+                  className={`px-2 py-1 rounded-md capitalize transition-all ${
+                    previewTab === p ? "bg-white text-slate-900 shadow-xs" : "text-slate-500"
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Mock Social Feed Post */}
+          <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50 space-y-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-violet-600 text-white flex items-center justify-center font-bold text-xs">
+                {user.name.slice(0, 2).toUpperCase()}
+              </div>
+              <div>
+                <h5 className="text-xs font-bold text-slate-900">{user.name}</h5>
+                <span className="text-[10px] text-slate-400 capitalize">Preview on {previewTab}</span>
+              </div>
+            </div>
+
+            <div className="aspect-video bg-slate-200 rounded-xl overflow-hidden flex items-center justify-center">
+              {file ? (
+                <img src={URL.createObjectURL(file)} alt="Preview" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-xs text-slate-400 font-medium">Media Preview Placeholder</span>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              {title && <h6 className="text-xs font-bold text-slate-900">{title}</h6>}
+              <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+                {description || "Your caption preview will appear here in real-time."}
+              </p>
+              {tags && <p className="text-xs font-bold text-violet-600">{tags.split(',').map(t => `#${t.trim()}`).join(' ')}</p>}
+            </div>
+          </div>
+        </div>
+
+        {/* COLUMN 3: RIGHT PUBLISHING SETTINGS (3 cols) */}
+        <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-6">
+          <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-3">
+            3. Channels & Schedule
+          </h3>
+
+          {/* Connected Accounts Selection */}
+          <div className="space-y-3">
+            <label className="block text-xs font-bold text-slate-700 uppercase">Select Target Channels</label>
+            {accounts.length === 0 ? (
+              <p className="text-xs text-slate-400">No accounts connected yet. Go to Social Channels to connect.</p>
+            ) : (
+              <div className="space-y-2">
+                {accounts.map((acc) => {
+                  const isSelected = selectedIds.includes(acc._id);
+                  return (
+                    <div
+                      key={acc._id}
+                      onClick={() => toggleSelect(acc._id)}
+                      className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
+                        isSelected ? "border-violet-600 bg-violet-50/50 shadow-xs" : "border-slate-200 hover:border-slate-300"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 truncate">
+                        <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-violet-600' : 'bg-slate-300'}`}></span>
+                        <span className="text-xs font-bold text-slate-900 truncate">{acc.name}</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-400 capitalize">{acc.platform}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Schedule Options */}
+          <div className="space-y-3">
+            <label className="block text-xs font-bold text-slate-700 uppercase">Publishing Option</label>
+            <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+              {["now", "schedule", "draft"].map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setPublishMode(m)}
+                  className={`py-1.5 rounded-lg capitalize transition-all ${
+                    publishMode === m ? "bg-white text-slate-900 shadow-xs" : "text-slate-500"
+                  }`}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {publishMode === "schedule" && (
+            <div className="space-y-3 pt-2">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">Date</label>
+                <input
+                  type="date"
+                  value={scheduleDate}
+                  onChange={e => setScheduleDate(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">Time</label>
+                <input
+                  type="time"
+                  value={scheduleTime}
+                  onChange={e => setScheduleTime(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Primary CTA */}
+          <div className="pt-4 border-t border-slate-100 space-y-2">
+            <button
+              onClick={handlePost}
+              disabled={posting || !file || selectedIds.length === 0}
+              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-xs shadow-md shadow-violet-600/20 hover:opacity-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <Send className="w-4 h-4" />
+              {posting ? "Publishing..." : publishMode === "now" ? `Publish to ${selectedIds.length} Channel(s)` : `Schedule Post`}
+            </button>
+          </div>
+
+          {/* Results Notification */}
+          {results && (
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+              <h5 className="font-bold text-slate-900">Publish Results</h5>
+              {Object.entries(results).map(([accountId, r]) => {
+                const acc = accounts.find(a => a._id === accountId) || {};
+                return (
+                  <div key={accountId} className="flex items-center justify-between text-[11px]">
+                    <span className="font-medium text-slate-700">{acc.name || accountId}</span>
+                    <span className={r.success ? "text-emerald-600 font-bold" : "text-rose-600 font-bold"}>
+                      {r.success ? "✓ Success" : "✕ Failed"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+        </div>
+
+      </div>
+    </div>
   );
 }

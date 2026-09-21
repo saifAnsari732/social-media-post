@@ -8,6 +8,7 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState("Starter");
+  const [yearly, setYearly] = useState(false);
 
   useEffect(() => {
     const userStr = localStorage.getItem("yt_user");
@@ -25,68 +26,66 @@ export default function BillingPage() {
   const plans = [
     {
       name: "Starter",
-      priceINR: 0,
-      priceUSD: "$0",
-      period: "/month",
+      monthlyPrice: 0,
+      priceLabel: "₹0",
       description: "Perfect for small businesses & creators just starting out.",
       features: [
-        "Connect up to 2 Social Accounts",
+        "Connect up to 2 Social Channels",
         "100 AI Captions & Hashtags/mo",
-        "Basic Analytics & History",
+        "Basic Analytics & Post History",
         "Standard Webhook Automation"
       ],
       buttonText: "Current Active Plan",
       active: selectedPlan === "Starter",
-      icon: <Zap className="w-6 h-6 text-[#7C3AED]" />
+      icon: <Zap className="w-5 h-5 text-violet-600" />
     },
     {
       name: "Pro Business",
-      priceINR: 1999,
-      priceUSD: "₹1,999",
-      period: "/month",
+      monthlyPrice: 1999,
+      priceLabel: yearly ? "₹1,659" : "₹1,999",
       description: "For growing businesses, agencies & active marketers.",
       features: [
-        "Connect up to 10 Social Accounts",
+        "Connect up to 10 Social Channels",
         "Unlimited AI Post Generation (Gemini 3.5)",
         "Auto-Reply DMs & Comments Engine",
-        "Advanced Analytics & Post History",
+        "Advanced Analytics & CSV Export",
         "Priority 24/7 Fast Support"
       ],
       buttonText: "Upgrade with Razorpay",
       active: selectedPlan === "Pro Business",
       popular: true,
-      icon: <Sparkles className="w-6 h-6 text-[#DB2777]" />
+      icon: <Sparkles className="w-5 h-5 text-pink-600" />
     },
     {
       name: "Agency / Enterprise",
-      priceINR: 4999,
-      priceUSD: "₹4,999",
-      period: "/month",
+      monthlyPrice: 4999,
+      priceLabel: yearly ? "₹4,149" : "₹4,999",
       description: "For agencies requiring unlimited power and white-labeling.",
       features: [
         "Unlimited Social Accounts",
-        "Dedicated Multi-Tenant Support",
+        "Dedicated Multi-Tenant Workspaces",
         "Custom Branding & White-Label Dashboard",
         "Dedicated Account Manager",
         "Custom Webhook & API Integrations"
       ],
       buttonText: "Upgrade with Razorpay",
       active: selectedPlan === "Agency / Enterprise",
-      icon: <Building2 className="w-6 h-6 text-[#0F172A]" />
+      icon: <Building2 className="w-5 h-5 text-slate-900" />
     }
   ];
 
   const handleRazorpayPayment = async (plan) => {
-    if (plan.priceINR === 0) return;
+    if (plan.monthlyPrice === 0) return;
     setLoading(true);
 
     try {
-      // 1. Create order on backend
+      const finalPrice = yearly ? plan.monthlyPrice * 10 : plan.monthlyPrice;
+
       const res = await fetch("/api/razorpay/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: plan.priceINR,
+          amount: finalPrice,
           planName: plan.name,
           currency: "INR"
         })
@@ -95,7 +94,6 @@ export default function BillingPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Order creation failed");
 
-      // 2. Open Razorpay Checkout Modal
       const options = {
         key: data.keyId,
         amount: data.amount,
@@ -107,7 +105,6 @@ export default function BillingPage() {
         handler: async function (response) {
           toast.success("Payment Received! Verifying transaction...");
           
-          // Verify signature backend
           const verifyRes = await fetch("/api/razorpay/verify", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -129,7 +126,7 @@ export default function BillingPage() {
           }
         },
         prefill: {
-          name: user?.name || "Saif Ansari",
+          name: user?.name || "Saifuddin Ansari",
           email: user?.email || "user@example.com",
           contact: "9905234866"
         },
@@ -149,85 +146,92 @@ export default function BillingPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4">
+    <div className="space-y-8 font-sans">
+      
       {/* Header */}
-      <div className="text-center max-w-2xl mx-auto mb-12">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F3E8FF] border border-[#E9D5FF] text-[#7C3AED] text-xs font-semibold mb-4">
-          <ShieldCheck className="w-4 h-4" /> 100% Secure Razorpay Checkout
+      <div className="text-center max-w-2xl mx-auto pb-6 border-b border-slate-200/80">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-50 border border-violet-200 text-violet-700 text-xs font-bold mb-3">
+          <ShieldCheck className="w-4 h-4" /> 100% Secure Razorpay Payment Gateway
         </div>
-        <h1 className="text-3xl font-extrabold text-[#0F172A] tracking-tight mb-3">Choose Your SaaS Subscription Plan</h1>
-        <p className="text-[#64748B] text-base">Scale your social media automation across Meta, Instagram, Facebook & YouTube with powerful AI features.</p>
+        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Choose Your Subscription Plan</h1>
+        <p className="text-xs text-slate-500 mt-1 font-medium">
+          Scale your social media automation across Meta, Instagram, Facebook & YouTube with powerful AI tools.
+        </p>
+
+        {/* Monthly / Yearly Toggle (Matches Section 17 of Prompt) */}
+        <div className="mt-6 inline-flex items-center gap-3 p-1 rounded-xl bg-slate-100 border border-slate-200/80 text-xs font-bold">
+          <button
+            onClick={() => setYearly(false)}
+            className={`px-4 py-2 rounded-lg transition-all ${!yearly ? "bg-white text-slate-900 shadow-xs" : "text-slate-500"}`}
+          >
+            Monthly Billed
+          </button>
+          <button
+            onClick={() => setYearly(true)}
+            className={`px-4 py-2 rounded-lg transition-all ${yearly ? "bg-slate-900 text-white shadow-xs" : "text-slate-500"}`}
+          >
+            Yearly Billed <span className="text-emerald-500 ml-1">(2 Months Free)</span>
+          </button>
+        </div>
       </div>
 
-      {/* Pricing Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      {/* Pricing Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
         {plans.map((plan, i) => (
-          <div key={i} className={`relative flex flex-col bg-white rounded-3xl border ${plan.popular ? 'border-[#7C3AED] shadow-2xl ring-2 ring-[#7C3AED]/20' : 'border-[#E2E8F0] shadow-sm'} p-8 transition-all hover:shadow-xl`}>
+          <div key={i} className={`relative flex flex-col justify-between bg-white rounded-2xl border ${plan.popular ? 'border-violet-600 shadow-xl ring-2 ring-violet-600/20' : 'border-slate-200/80 shadow-sm'} p-8 transition-all hover:shadow-md`}>
             {plan.popular && (
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-[#7C3AED] to-[#DB2777] text-white text-[11px] font-extrabold uppercase tracking-widest py-1.5 px-4 rounded-full shadow-md">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-violet-600 to-pink-600 text-white text-[10px] font-black uppercase tracking-widest py-1 px-3.5 rounded-full shadow-sm">
                 MOST POPULAR
               </div>
             )}
             
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0]">
-                {plan.icon}
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                  {plan.icon}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">{plan.name}</h3>
+                  <span className="text-[11px] text-slate-400 font-medium">{yearly ? "Billed annually" : "Billed monthly"}</span>
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-[#0F172A]">{plan.name}</h3>
-                <span className="text-xs text-[#64748B] font-medium">Billed monthly</span>
+              
+              <div className="mb-3">
+                <span className="text-4xl font-black text-slate-900">{plan.priceLabel}</span>
+                <span className="text-slate-400 font-medium text-xs">/month</span>
               </div>
+              
+              <p className="text-xs text-slate-500 mb-6 leading-relaxed">{plan.description}</p>
+              
+              <button 
+                onClick={() => handleRazorpayPayment(plan)}
+                disabled={plan.active || loading}
+                className={`w-full py-3 px-4 rounded-xl font-bold text-xs transition-all mb-8 flex items-center justify-center gap-2 ${
+                  plan.active 
+                    ? 'bg-slate-100 text-slate-500 border border-slate-200 cursor-default' 
+                    : plan.popular 
+                      ? 'bg-violet-600 text-white hover:bg-violet-700 shadow-md shadow-violet-600/20'
+                      : 'bg-slate-900 text-white hover:bg-slate-800 shadow-sm'
+                }`}
+              >
+                {!plan.active && <CreditCard className="w-4 h-4" />}
+                {loading ? "Preparing Razorpay..." : plan.active ? "Current Active Plan ✓" : plan.buttonText}
+              </button>
             </div>
             
-            <div className="mb-2">
-              <span className="text-4xl font-extrabold text-[#0F172A]">{plan.priceUSD}</span>
-              <span className="text-[#64748B] font-medium text-sm">{plan.period}</span>
-            </div>
-            
-            <p className="text-[#64748B] text-xs mb-6 h-10 leading-relaxed">{plan.description}</p>
-            
-            <button 
-              onClick={() => handleRazorpayPayment(plan)}
-              disabled={plan.active || loading}
-              className={`w-full py-3.5 px-4 rounded-2xl font-bold text-sm transition-all mb-8 flex items-center justify-center gap-2 ${
-                plan.active 
-                  ? 'bg-[#F1F5F9] text-[#64748B] border border-[#CBD5E1] cursor-default' 
-                  : plan.popular 
-                    ? 'bg-gradient-to-r from-[#7C3AED] to-[#DB2777] text-white hover:opacity-95 shadow-md hover:shadow-lg transform active:scale-98'
-                    : 'bg-[#0F172A] text-white hover:bg-[#1E293B] shadow-md'
-              }`}
-            >
-              {!plan.active && <CreditCard className="w-4 h-4" />}
-              {loading ? "Preparing Checkout..." : plan.active ? "Current Active Plan ✓" : plan.buttonText}
-            </button>
-            
-            <div className="space-y-3.5 flex-1 border-t border-[#F1F5F9] pt-6">
-              <p className="text-[11px] font-bold text-[#0F172A] uppercase tracking-wider">Features included:</p>
+            <div className="space-y-3 border-t border-slate-100 pt-6">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Features included:</p>
               {plan.features.map((feature, j) => (
-                <div key={j} className="flex items-start gap-3">
-                  <CheckCircle2 className={`w-4 h-4 shrink-0 mt-0.5 ${plan.popular ? 'text-[#7C3AED]' : 'text-[#10B981]'}`} />
-                  <span className="text-xs font-medium text-[#475569] leading-snug">{feature}</span>
+                <div key={j} className="flex items-start gap-2.5">
+                  <CheckCircle2 className={`w-4 h-4 shrink-0 mt-0.5 ${plan.popular ? 'text-violet-600' : 'text-emerald-600'}`} />
+                  <span className="text-xs font-medium text-slate-700 leading-snug">{feature}</span>
                 </div>
               ))}
             </div>
           </div>
         ))}
       </div>
-      
-      {/* Footer Info */}
-      <div className="mt-14 bg-gradient-to-br from-[#0F172A] to-[#1E293B] text-white rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
-        <div>
-          <span className="inline-block text-[10px] font-extrabold uppercase tracking-widest text-[#7C3AED] bg-white/10 px-3 py-1 rounded-md mb-2">White-Label Enterprise</span>
-          <h4 className="text-xl font-bold mb-1">Want to launch your own Social Media SaaS?</h4>
-          <p className="text-[#94A3B8] text-sm">Deploy this full multi-tenant platform under your domain with Razorpay payments built-in.</p>
-        </div>
-        <button 
-          onClick={() => alert("Contact support at ansarisaifuddin732@gmail.com for Enterprise White-Labeling.")}
-          className="whitespace-nowrap px-6 py-3.5 bg-gradient-to-r from-[#7C3AED] to-[#DB2777] text-white rounded-2xl font-bold text-sm hover:opacity-90 transition-all shadow-lg"
-        >
-          Contact Developer
-        </button>
-      </div>
+
     </div>
   );
 }

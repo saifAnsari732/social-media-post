@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, ArrowRight, ShieldCheck, Zap, Layers, MessageSquare, CheckCircle2 } from "lucide-react";
+import { Sparkles, ArrowRight, ShieldCheck, CheckCircle2, User, Mail, Lock } from "lucide-react";
 
 export default function LoginPage() {
   const [name, setName] = useState("");
@@ -45,91 +45,91 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4 lg:p-8 font-sans">
-      <div className="w-full max-w-5xl bg-white rounded-3xl shadow-2xl border border-[#E2E8F0] overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[620px]">
+      <div className="w-full max-w-4xl bg-white rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[540px]">
         
-        {/* Left Hero Section (SaaS Branding) */}
-        <div className="lg:col-span-6 bg-gradient-to-br from-[#0F172A] via-[#1E1B4B] to-[#7C3AED] p-8 lg:p-12 text-white flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-[#DB2777]/20 rounded-full blur-3xl pointer-events-none"></div>
-          
+        {/* Left Hero Section */}
+        <div className="lg:col-span-6 bg-slate-50/80 p-8 lg:p-12 text-slate-900 flex flex-col justify-between border-r border-slate-200/80">
           <div>
             {/* Logo */}
-            <div className="flex items-center gap-3 mb-10">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#7C3AED] to-[#DB2777] shadow-lg">
-                <Sparkles className="h-6 w-6 text-white" />
+            <div className="flex items-center gap-3 mb-8">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md shadow-indigo-600/20">
+                <Sparkles className="h-5 w-5" />
               </div>
-              <div>
-                <span className="text-2xl font-black tracking-tight text-white">SocialFlow</span>
-                <span className="block text-[10px] font-bold text-[#A78BFA] uppercase tracking-widest">SaaS Pro Suite</span>
-              </div>
+              <span className="text-xl font-bold tracking-tight text-slate-900">SocialFlow</span>
             </div>
 
             {/* Headline */}
-            <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight text-white leading-tight mb-4">
-              Automate your Social Media & DMs with AI
+            <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-900 leading-snug mb-3">
+              Manage Every Social Channel From One Workspace
             </h1>
-            <p className="text-[#C7D2FE] text-sm leading-relaxed mb-8">
-              Connect your Meta, Instagram, Facebook & YouTube pages. Publish content and auto-reply to comments & DMs seamlessly.
+            <p className="text-slate-500 text-xs leading-relaxed mb-8 font-normal">
+              Connect Meta, Instagram, Facebook, YouTube, LinkedIn & X. Publish content and automate replies effortlessly.
             </p>
 
             {/* Feature List */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               {[
-                { title: "One-Click Multi-Publishing", desc: "Post to Facebook, Instagram, YouTube & Twitter at once" },
-                { title: "Gemini 3.5 AI Copilot", desc: "Instant title, caption & hashtag generation" },
-                { title: "Automated DMs & Comments", desc: "Set trigger rules to auto-reply to customers 24/7" }
-              ].map((f, i) => (
-                <div key={i} className="flex items-start gap-3 bg-white/10 backdrop-blur-md rounded-2xl p-3.5 border border-white/10">
-                  <CheckCircle2 className="w-5 h-5 text-[#A78BFA] shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-xs font-bold text-white">{f.title}</h4>
-                    <p className="text-[11px] text-[#C7D2FE]">{f.desc}</p>
+                "Multi-Platform Unified Publisher",
+                "Automated DM & Comment Reply Engine",
+                "Meta Graph API & YouTube Official Integration"
+              ].map((text, i) => (
+                <div key={i} className="flex items-center gap-2.5 text-xs font-semibold text-slate-800">
+                  <div className="p-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
                   </div>
+                  {text}
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="mt-8 pt-6 border-t border-white/10 flex items-center gap-2 text-xs text-[#94A3B8]">
-            <ShieldCheck className="w-4 h-4 text-[#A78BFA]" /> Meta Official Graph API Compliant
+          <div className="pt-6 border-t border-slate-200/80 flex items-center gap-2 text-xs text-slate-500 font-medium">
+            <ShieldCheck className="w-4 h-4 text-indigo-600" /> Official Graph API & OAuth Compliant
           </div>
         </div>
 
-        {/* Right Form Section (Super Clean & Easy) */}
+        {/* Right Form Section */}
         <div className="lg:col-span-6 p-8 lg:p-12 flex flex-col justify-center bg-white">
-          <div className="max-w-md mx-auto w-full">
+          <div className="max-w-sm mx-auto w-full">
             
-            <div className="mb-8">
-              <h2 className="text-2xl font-extrabold text-[#0F172A] tracking-tight mb-2">Get Started in Seconds 👋</h2>
-              <p className="text-sm text-[#64748B]">Enter your details below to access your SaaS dashboard instantly. No password required.</p>
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-1">Sign in to your account 👋</h2>
+              <p className="text-xs text-slate-500 font-normal">Enter your details to access your SaaS workspace.</p>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-5">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-2">Your Full Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Saifuddin Ansari"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3.5 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] text-sm text-[#0F172A] placeholder-[#94A3B8] font-medium focus:outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-all"
-                  required
-                />
+                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1.5 tracking-wider">Full Name</label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  <input
+                    type="text"
+                    placeholder="e.g. Saifuddin Ansari"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder-slate-400 font-medium focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 transition-all"
+                    required
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-2">Email Address</label>
-                <input
-                  type="email"
-                  placeholder="you@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3.5 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] text-sm text-[#0F172A] placeholder-[#94A3B8] font-medium focus:outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-all"
-                  required
-                />
+                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1.5 tracking-wider">Email Address</label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  <input
+                    type="email"
+                    placeholder="you@company.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder-slate-400 font-medium focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 transition-all"
+                    required
+                  />
+                </div>
               </div>
 
               {error && (
-                <div className="p-3.5 rounded-2xl bg-[#FEF2F2] border border-[#FCA5A5] text-xs font-medium text-[#DC2626]">
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-600">
                   {error}
                 </div>
               )}
@@ -137,21 +137,19 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#DB2777] text-white font-bold text-sm shadow-lg hover:shadow-xl hover:opacity-95 transition-all flex items-center justify-center gap-2 transform active:scale-98"
+                className="w-full py-3.5 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition-all flex items-center justify-center gap-2 transform active:scale-98"
               >
-                {loading ? "Accessing Dashboard..." : (
+                {loading ? "Signing in..." : (
                   <>
-                    Continue to SaaS Dashboard <ArrowRight className="w-4 h-4" />
+                    Continue to Dashboard <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
             </form>
 
-            <div className="mt-8 text-center border-t border-[#F1F5F9] pt-6">
-              <p className="text-xs text-[#94A3B8]">
-                🔒 100% Private & Encrypted. Your accounts remain isolated to your session.
-              </p>
-            </div>
+            <p className="text-[11px] text-center text-slate-400 mt-6 pt-4 border-t border-slate-100 font-normal">
+              🔒 100% Encrypted & Private per workspace.
+            </p>
 
           </div>
         </div>
