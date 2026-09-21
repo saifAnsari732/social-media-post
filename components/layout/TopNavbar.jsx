@@ -49,12 +49,12 @@ export default function TopNavbar() {
       </div>
 
       {/* Center Search Input */}
-      <div className="hidden md:flex max-w-md flex-1 items-center gap-2 rounded-xl border border-slate-200/80 bg-slate-50 px-3.5 py-2 shadow-inner focus-within:border-violet-500 focus-within:bg-white transition-all mx-6">
-        <Search className="h-4 w-4 text-slate-400" />
+      <div className="hidden md:flex max-w-md flex-1 items-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 shadow-inner focus-within:border-indigo-600 focus-within:bg-white transition-all mx-6">
+        <Search className="h-4 w-4 text-slate-400 shrink-0" />
         <input
           type="text"
           placeholder="Search channels, posts, or automation rules... (⌘K)"
-          className="w-full border-none bg-transparent text-xs text-slate-800 outline-none placeholder:text-slate-400 font-medium"
+          className="w-full border-none bg-transparent text-xs text-slate-900 outline-none placeholder:text-slate-400 font-semibold"
         />
       </div>
 
@@ -64,7 +64,7 @@ export default function TopNavbar() {
         {/* + Create Post Button */}
         <Link
           href="/publisher"
-          className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-3.5 py-2 text-xs font-bold text-white shadow-md shadow-violet-600/20 hover:bg-violet-700 transition-all no-underline"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-extrabold text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-700 transition-all no-underline cursor-pointer"
         >
           <Plus className="h-3.5 w-3.5" />
           <span>New Post</span>
@@ -72,7 +72,7 @@ export default function TopNavbar() {
 
         {/* Notifications */}
         <button 
-          className="relative rounded-xl border border-slate-200/80 bg-white p-2 text-slate-600 hover:border-violet-300 hover:text-violet-600 transition-all shadow-sm"
+          className="relative rounded-xl border border-slate-200 bg-white p-2 text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-all shadow-2xs cursor-pointer"
           title="Notifications"
         >
           <Bell className="h-4 w-4" />
@@ -82,16 +82,16 @@ export default function TopNavbar() {
         {/* User Profile Avatar */}
         <Link 
           href="/profile" 
-          className="flex items-center gap-2.5 pl-2 border-l border-slate-200/80 no-underline"
+          className="flex items-center gap-2.5 pl-2 border-l border-slate-200 no-underline"
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 text-xs font-bold text-white shadow-sm">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-600 text-xs font-extrabold text-white shadow-2xs">
             {user.name ? user.name.slice(0, 2).toUpperCase() : "SA"}
           </div>
           <div className="hidden lg:block text-left">
-            <span className="block text-xs font-bold text-slate-900 leading-tight truncate max-w-[100px]">
+            <span className="block text-xs font-extrabold text-slate-900 leading-tight truncate max-w-[110px]">
               {user.name || "Saifuddin"}
             </span>
-            <span className="block text-[10px] text-slate-400 font-medium">Pro Admin</span>
+            <span className="block text-[10px] text-slate-500 font-bold">Pro Admin</span>
           </div>
         </Link>
       </div>

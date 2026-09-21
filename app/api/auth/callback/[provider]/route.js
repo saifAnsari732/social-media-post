@@ -105,17 +105,19 @@ export async function GET(req, { params }) {
     if (provider === "youtube" && tokenData.access_token) {
       let accountName = null;
       let providerAccountId = null;
+      let followers = 0;
       try {
-        const channelRes = await fetch("https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true", {
+        const channelRes = await fetch("https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&mine=true", {
           headers: { Authorization: `Bearer ${tokenData.access_token}` }
         });
         const channelData = await channelRes.json();
         if (channelData.items && channelData.items.length > 0) {
           accountName = channelData.items[0].snippet.title;
           providerAccountId = channelData.items[0].id;
+          followers = parseInt(channelData.items[0].statistics?.subscriberCount || 0, 10);
         }
       } catch (err) {
-        console.error("Failed to fetch YouTube channel name", err);
+        console.error("Failed to fetch YouTube channel name/stats", err);
       }
 
       await upsertAccount({
@@ -125,6 +127,8 @@ export async function GET(req, { params }) {
         accessToken: tokenData.access_token,
         refreshToken: tokenData.refresh_token || null,
         name: accountName,
+        followers: followers,
+        followersFormatted: followers > 1000 ? `${(followers / 1000).toFixed(1)}K` : `${followers}`,
         connectedAt: new Date().toISOString(),
         raw: tokenData
       });
@@ -132,7 +136,7 @@ export async function GET(req, { params }) {
       try {
         // Fast & Advanced: Fetch Pages AND linked Instagram Accounts in a SINGLE query!
         let pagesRes = await fetch(
-          `https://graph.facebook.com/v20.0/me/accounts?fields=id,name,access_token,instagram_business_account{id,username,name}&access_token=${tokenData.access_token}`
+          `https://graph.facebook.com/v20.0/me/accounts?fields=id,name,fan_count,access_token,instagram_business_account{id,username,name,followers_count}&access_token=${tokenData.access_token}`
         );
         let pagesData = await pagesRes.json();
         
@@ -144,18 +148,15 @@ export async function GET(req, { params }) {
 
         let pages = pagesData.data || [];
 
-        // Fallback for Meta Granular Scopes (if user selects specific pages, /me/accounts might be empty)
+        // Fallback for Meta Granular Scopes
         if (pages.length === 0) {
           const debugRes = await fetch(`https://graph.facebook.com/debug_token?input_token=${tokenData.access_token}&access_token=${tokenData.access_token}`);
           const debugData = await debugRes.json();
           if (debugData.data && debugData.data.granular_scopes) {
-             // Look for pages_manage_posts OR pages_show_list
             const pageScopes = debugData.data.granular_scopes.find(s => s.scope === "pages_manage_posts" || s.scope === "pages_show_list");
             if (pageScopes && pageScopes.target_ids && pageScopes.target_ids.length > 0) {
-              
-              // Parallel fetch for all allowed page IDs to save time
               const fetchPromises = pageScopes.target_ids.map(pageId => 
-                fetch(`https://graph.facebook.com/v20.0/${pageId}?fields=id,name,access_token,instagram_business_account{id,username,name}&access_token=${tokenData.access_token}`)
+                fetch(`https://graph.facebook.com/v20.0/${pageId}?fields=id,name,fan_count,access_token,instagram_business_account{id,username,name,followers_count}&access_token=${tokenData.access_token}`)
                   .then(r => r.json())
               );
               
@@ -169,8 +170,8 @@ export async function GET(req, { params }) {
           const upsertPromises = [];
 
           for (const page of pages) {
-            // 1. If provider is facebook, upsert the Facebook Page
             if (provider === "facebook") {
+              const fanCount = page.fan_count || 0;
               upsertPromises.push(upsertAccount({
                 platform: "facebook",
                 providerAccountId: page.id,
@@ -179,22 +180,25 @@ export async function GET(req, { params }) {
                 accessToken: page.access_token,
                 refreshToken: null,
                 name: page.name,
+                followers: fanCount,
+                followersFormatted: fanCount > 1000 ? `${(fanCount / 1000).toFixed(1)}K` : `${fanCount}`,
                 connectedAt: new Date().toISOString(),
                 raw: { ...tokenData, page }
               }));
             }
 
-            // 2. If provider is instagram OR facebook, ALWAYS upsert the linked Instagram account if present
             if (page.instagram_business_account) {
               const igAcc = page.instagram_business_account;
+              const igFollowers = igAcc.followers_count || 0;
               upsertPromises.push(upsertAccount({
                 platform: "instagram",
                 providerAccountId: igAcc.id,
                 igUserId: igAcc.id,
                 userId,
-                accessToken: page.access_token, // Instagram uses the parent Page's access token!
-                refreshToken: null,
+                accessToken: page.access_token,
                 name: igAcc.name || igAcc.username || "Instagram Account",
+                followers: igFollowers,
+                followersFormatted: igFollowers > 1000 ? `${(igFollowers / 1000).toFixed(1)}K` : `${igFollowers}`,
                 connectedAt: new Date().toISOString(),
                 raw: { ...tokenData, page, instagram: igAcc }
               }));

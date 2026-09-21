@@ -1,37 +1,37 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import SaaSLandingPage from "./landing/page";
-import { LayoutDashboard, ArrowRight } from "lucide-react";
+import DashboardPage from "./(dashboard)/page";
+import DashboardLayout from "./(dashboard)/layout";
 
 export default function RootHomePage() {
   const [user, setUser] = useState(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const userStr = localStorage.getItem("yt_user");
     if (userStr) {
-      setUser(JSON.parse(userStr));
+      try {
+        setUser(JSON.parse(userStr));
+      } catch (e) {
+        console.error("Failed to parse user string", e);
+      }
     }
   }, []);
 
-  return (
-    <div className="relative">
-      {/* Top Session Bar if logged in */}
-      {user && (
-        <div className="bg-gradient-to-r from-[#7C3AED] to-[#DB2777] text-white py-2.5 px-4 text-center text-xs font-bold flex items-center justify-center gap-3 shadow-md relative z-50">
-          <span>Welcome back, <strong>{user.name}</strong>! You are currently logged in.</span>
-          <Link
-            href="/publisher"
-            className="px-3 py-1 rounded-lg bg-white text-[#0F172A] hover:bg-white/90 font-extrabold flex items-center gap-1 no-underline transition-all shadow-sm"
-          >
-            <LayoutDashboard className="w-3.5 h-3.5" /> Go to Dashboard <ArrowRight className="w-3 h-3" />
-          </Link>
-        </div>
-      )}
+  if (!mounted) return null;
 
-      {/* Render Public SaaS Landing Page */}
-      <SaaSLandingPage />
-    </div>
-  );
+  // If user is logged in, render Dashboard with Layout directly on /
+  if (user) {
+    return (
+      <DashboardLayout>
+        <DashboardPage />
+      </DashboardLayout>
+    );
+  }
+
+  // If visitor is guest, render Public SaaS Landing Page
+  return <SaaSLandingPage />;
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   Sparkles, 
@@ -36,6 +37,14 @@ import {
 export default function LightSaaSLandingPage() {
   const [yearly, setYearly] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("yt_user");
+    if (userStr) {
+      router.replace("/");
+    }
+  }, [router]);
 
   const socialPlatforms = [
     { name: "Instagram", desc: "Share photos, reels, and stories with automated scheduling.", color: "bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF]" },

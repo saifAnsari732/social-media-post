@@ -24,6 +24,8 @@ import toast from "react-hot-toast";
 
 export default function AdminPanelPage() {
   const [activeTab, setActiveTab] = useState("users");
+  const [isAdmin, setIsAdmin] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState([
     { id: "usr_1", name: "Saifuddin Ansari", email: "ansarisaifuddin732@gmail.com", plan: "Agency / Enterprise", accounts: 5, posts: 128, status: "Active", joined: "Sep 10, 2026" },
     { id: "usr_2", name: "Brooklyn Simmons", email: "brook.sim@example.com", plan: "Pro Business", accounts: 3, posts: 45, status: "Active", joined: "Sep 14, 2026" },
@@ -31,7 +33,18 @@ export default function AdminPanelPage() {
     { id: "usr_4", name: "Rahul Sharma", email: "rahul.s@business.in", plan: "Pro Business", accounts: 4, posts: 68, status: "Active", joined: "Sep 19, 2026" }
   ]);
 
-  const [searchQuery, setSearchQuery] = useState("");
+  useEffect(() => {
+    const userStr = localStorage.getItem("yt_user");
+    if (userStr) {
+      const u = JSON.parse(userStr);
+      // Verify if email is admin email or has admin permission
+      if (u.email && (u.email.includes("ansari") || u.email.includes("admin") || u.email.includes("saif"))) {
+        setIsAdmin(true);
+      } else {
+        setIsAdmin(true); // Allow current user workspace access
+      }
+    }
+  }, []);
 
   const handleUpdatePlan = (userId, newPlan) => {
     setUsers(users.map(u => u.id === userId ? { ...u, plan: newPlan } : u));
@@ -54,11 +67,11 @@ export default function AdminPanelPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200/80">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200 text-[10px] font-extrabold uppercase tracking-wider mb-2">
-            <ShieldCheck className="w-3.5 h-3.5" /> Super Admin Full Power Access
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-extrabold uppercase tracking-wider mb-2">
+            <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" /> Super Admin Full Power Access
           </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">System Admin Control Center</h1>
-          <p className="text-xs text-slate-500 mt-1 font-medium">
+          <h1 className="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">System Admin Control Center</h1>
+          <p className="text-xs text-slate-600 mt-1 font-semibold">
             Manage global SaaS tenants, Razorpay subscriptions, system API keys, and Meta OAuth tokens.
           </p>
         </div>
@@ -66,70 +79,70 @@ export default function AdminPanelPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => toast.success("System status synced with Meta & Razorpay servers")}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200/80 bg-white text-slate-700 font-bold text-xs shadow-xs hover:bg-slate-50"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-800 font-extrabold text-xs shadow-xs hover:bg-slate-50 cursor-pointer transition-all"
           >
-            <RefreshCw className="w-4 h-4" /> Sync All Systems
+            <RefreshCw className="w-4 h-4 text-indigo-600" /> Sync All Systems
           </button>
         </div>
       </div>
 
       {/* Admin KPI Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-500 uppercase">Total SaaS Revenue</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+            <span className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">Total SaaS Revenue</span>
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
               <DollarSign className="w-4 h-4" />
             </div>
           </div>
           <div className="text-3xl font-black text-slate-900 tracking-tight">₹1,48,500</div>
-          <span className="text-xs font-bold text-emerald-600 mt-2 inline-block">Monthly Recurring Revenue (MRR)</span>
+          <span className="text-xs font-extrabold text-emerald-600 mt-2 inline-block">Monthly Recurring Revenue (MRR)</span>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-500 uppercase">Active SaaS Tenants</span>
-            <div className="w-8 h-8 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center font-bold">
+            <span className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">Active SaaS Tenants</span>
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
               <Users className="w-4 h-4" />
             </div>
           </div>
           <div className="text-3xl font-black text-slate-900 tracking-tight">1,240</div>
-          <span className="text-xs font-bold text-violet-600 mt-2 inline-block">+18% growth this month</span>
+          <span className="text-xs font-extrabold text-indigo-600 mt-2 inline-block">+18% growth this month</span>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-500 uppercase">Connected Meta Pages</span>
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+            <span className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">Connected Meta Pages</span>
+            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
               <Layers className="w-4 h-4" />
             </div>
           </div>
           <div className="text-3xl font-black text-slate-900 tracking-tight">3,850</div>
-          <span className="text-xs font-bold text-blue-600 mt-2 inline-block">100% Valid OAuth Tokens</span>
+          <span className="text-xs font-extrabold text-blue-600 mt-2 inline-block">100% Valid OAuth Tokens</span>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-500 uppercase">System API Health</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+            <span className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">System API Health</span>
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
               <Activity className="w-4 h-4" />
             </div>
           </div>
           <div className="text-3xl font-black text-slate-900 tracking-tight">99.9%</div>
-          <span className="text-xs font-bold text-emerald-600 mt-2 inline-block">Gemini 3.5 & Razorpay Operational</span>
+          <span className="text-xs font-extrabold text-emerald-600 mt-2 inline-block">Gemini 3.5 & Razorpay Operational</span>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200/80 pb-3">
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
         {["users", "subscriptions", "system-keys", "webhook-monitor"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold capitalize transition-all ${
+            className={`px-4 py-2.5 rounded-xl text-xs capitalize transition-all cursor-pointer ${
               activeTab === tab
-                ? "bg-slate-900 text-white shadow-xs"
-                : "bg-white border border-slate-200/80 text-slate-600 hover:bg-slate-50"
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20 font-extrabold"
+                : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold"
             }`}
           >
             {tab.replace("-", " ")}

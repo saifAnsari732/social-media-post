@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, ArrowRight, ShieldCheck, CheckCircle2, User, Mail, Lock } from "lucide-react";
 
@@ -10,6 +10,13 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("yt_user");
+    if (userStr) {
+      router.replace("/");
+    }
+  }, [router]);
 
   async function generateUserId(email) {
     const data = new TextEncoder().encode(email.toLowerCase().trim());
