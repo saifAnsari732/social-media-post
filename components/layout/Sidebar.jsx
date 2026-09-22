@@ -51,7 +51,7 @@ export default function Sidebar() {
     {
       title: "Main",
       items: [
-        { name: 'Dashboard', href: '/', icon: LayoutDashboard }
+        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }
       ]
     },
     {
@@ -95,8 +95,9 @@ export default function Sidebar() {
       <div className="flex flex-col h-full min-h-0">
         
         {/* Header & Logo */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
-          <Link href="/" className="flex items-center gap-3 no-underline overflow-hidden">
+        {/* Workspace Brand Switcher */}
+        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+          <Link href="/dashboard" className="flex items-center gap-3 no-underline overflow-hidden">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-600/20">
               <Sparkles className="h-5 w-5" />
             </div>

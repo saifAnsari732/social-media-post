@@ -42,7 +42,7 @@ export default function LoginPage() {
       if (!res.ok) throw new Error("Login failed on server");
       
       localStorage.setItem("yt_user", JSON.stringify({ userId, name: n, email: em }));
-      router.push("/");
+      router.push("/dashboard");
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {

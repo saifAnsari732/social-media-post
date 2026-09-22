@@ -16,8 +16,8 @@ export default function RootHomePage() {
       try {
         const u = JSON.parse(userStr);
         setUser(u);
-        // Clean client navigation to dashboard without cross-importing page files
-        window.location.href = "/publisher";
+        // Clean client navigation to dashboard
+        window.location.href = "/dashboard";
       } catch (e) {
         console.error("Failed to parse user string", e);
       }
