@@ -1,10 +1,28 @@
 import { NextResponse } from "next/server";
 import { getConversations, upsertConversation } from "@/lib/db";
+import { serverCache } from "@/lib/cache";
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 export async function GET(req) {
   try {
-    const userId = req.headers.get("x-user-id");
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    let userId = req.headers.get("x-user-id");
+    if (!userId || userId === "undefined" || userId === "null") {
+      userId = null;
+    }
+
+    const cacheKey = `convos:${userId || 'all'}`;
+    const cached = serverCache.get(cacheKey);
+    if (cached) {
+      return NextResponse.json({ conversations: cached, cached: true }, {
+        headers: {
+          "Cache-Control": "private, no-cache, no-store, must-revalidate",
+          "X-Cache-Status": "HIT"
+        }
+      });
+    }
 
     let conversations = await getConversations(userId);
     
@@ -41,10 +59,51 @@ export async function GET(req) {
       conversations = await getConversations(userId);
     }
 
-    return NextResponse.json({ conversations });
+    serverCache.set(cacheKey, conversations, 20, [`user:${userId}`, "conversations"]);
+
+    return NextResponse.json({ conversations, cached: false }, {
+      headers: {
+        "Cache-Control": "private, no-cache, no-store, must-revalidate",
+        "X-Cache-Status": "MISS"
+      }
+    });
   } catch (error) {
     console.error("Error fetching conversations:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
 
+export async function POST(req) {
+  try {
+    const userId = req.headers.get("x-user-id");
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const body = await req.json();
+    const { conversationId, text, externalId } = body;
+
+    if (!text || (!conversationId && !externalId)) {
+      return NextResponse.json({ error: "Text and conversationId are required" }, { status: 400 });
+    }
+
+    const newMessage = {
+      sender: "agent",
+      text,
+      timestamp: new Date().toISOString()
+    };
+
+    const updated = await upsertConversation({
+      externalId,
+      userId,
+      lastMessageAt: newMessage.timestamp,
+      messages: [newMessage]
+    });
+
+    serverCache.revalidateTag(`user:${userId}`);
+    serverCache.revalidateTag("conversations");
+
+    return NextResponse.json({ success: true, conversation: updated, message: newMessage });
+  } catch (error) {
+    console.error("Error posting message:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}

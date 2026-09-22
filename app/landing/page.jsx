@@ -40,7 +40,7 @@ export default function LightSaaSLandingPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const userStr = localStorage.getItem("yt_user");
+    const userStr = localStorage.getItem("socialflow_user") || localStorage.getItem("yt_user");
     if (userStr) {
       router.replace("/");
     }

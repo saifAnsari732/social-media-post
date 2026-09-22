@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import { updateUserPlan } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req) {
   try {
@@ -16,8 +19,16 @@ export async function POST(req) {
     const isAuthentic = expectedSignature === razorpay_signature;
 
     if (isAuthentic || process.env.NODE_ENV === "development") {
-      // Payment verified successfully!
-      // Here you can update user's plan in DB
+      // 1. Update user's plan in DB & store transaction history
+      if (userId) {
+        await updateUserPlan(userId, planName, {
+          orderId: razorpay_order_id,
+          paymentId: razorpay_payment_id,
+          signature: razorpay_signature,
+          status: "paid"
+        });
+      }
+
       return NextResponse.json({
         success: true,
         message: "Payment verified successfully",

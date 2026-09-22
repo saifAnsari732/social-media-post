@@ -33,16 +33,48 @@ export default function AdminPanelPage() {
     { id: "usr_4", name: "Rahul Sharma", email: "rahul.s@business.in", plan: "Pro Business", accounts: 4, posts: 68, status: "Active", joined: "Sep 19, 2026" }
   ]);
 
+  const [serverStats, setServerStats] = useState({ totalUsers: 0, totalPosts: 0, totalAccounts: 0, totalRules: 0 });
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    const userStr = localStorage.getItem("yt_user");
+    const userStr = localStorage.getItem("socialflow_user") || localStorage.getItem("yt_user");
     if (userStr) {
       const u = JSON.parse(userStr);
-      // Verify if email is admin email or has admin permission
-      if (u.email && (u.email.includes("ansari") || u.email.includes("admin") || u.email.includes("saif"))) {
-        setIsAdmin(true);
-      } else {
-        setIsAdmin(true); // Allow current user workspace access
-      }
+      // Check admin status
+      const isSaifAdmin = u.email && (
+        u.email.includes("ansari") || 
+        u.email.includes("admin") || 
+        u.email.includes("saif") ||
+        u.role === "admin"
+      );
+      setIsAdmin(Boolean(isSaifAdmin));
+
+      // Fetch live data from database
+      fetch("/api/admin/users", {
+        headers: { "x-user-id": u.userId }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.users && data.users.length > 0) {
+            const mappedUsers = data.users.map((usr, i) => ({
+              id: usr.userId || `usr_${i}`,
+              name: usr.name || "User",
+              email: usr.email,
+              role: usr.role || (usr.email.includes("saif") || usr.email.includes("ansari") ? "admin" : "user"),
+              plan: usr.role === "admin" ? "Super Admin" : (usr.plan || "Pro Business"),
+              accounts: usr.accountsCount || 4,
+              posts: usr.postsCount || 12,
+              status: "Active",
+              joined: usr.createdAt ? new Date(usr.createdAt).toLocaleDateString() : "Active"
+            }));
+            setUsers(mappedUsers);
+            if (data.stats) setServerStats(data.stats);
+          }
+        })
+        .catch(err => {
+          console.error("Failed to load admin stats", err);
+        })
+        .finally(() => setLoading(false));
     }
   }, []);
 
@@ -60,6 +92,29 @@ export default function AdminPanelPage() {
     u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     u.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center font-sans">
+        <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mb-4 shadow-sm">
+          <Lock className="w-8 h-8" />
+        </div>
+        <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-800 text-xs font-bold uppercase tracking-wider mb-2">
+          403 Access Forbidden
+        </span>
+        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Super Admin Restricted Area</h2>
+        <p className="text-slate-500 text-xs max-w-md mt-2 leading-relaxed font-medium">
+          Your account role is restricted to standard user workspace permissions. Super administrator privileges are reserved for system owners.
+        </p>
+        <button
+          onClick={() => window.location.href = "/dashboard"}
+          className="mt-6 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+        >
+          Return to Workspace Dashboard
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 font-sans">

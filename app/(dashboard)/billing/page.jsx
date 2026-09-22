@@ -8,15 +8,35 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState("Starter");
+  const [billingHistory, setBillingHistory] = useState([]);
   const [yearly, setYearly] = useState(false);
 
   useEffect(() => {
-    const userStr = localStorage.getItem("yt_user");
+    // 1. Get user from storage (checking both keys for robustness)
+    const userStr = localStorage.getItem("socialflow_user") || localStorage.getItem("yt_user");
+    let currentUser = null;
     if (userStr) {
-      setUser(JSON.parse(userStr));
+      try {
+        currentUser = JSON.parse(userStr);
+        setUser(currentUser);
+      } catch (e) {}
     }
 
-    // Dynamically load Razorpay SDK Script
+    // 2. Fetch current plan and billing history from DB
+    const userId = currentUser?.userId || "user_123";
+    fetch("/api/billing/status", {
+      headers: { "x-user-id": userId }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          if (data.currentPlan) setSelectedPlan(data.currentPlan);
+          if (data.history) setBillingHistory(data.history);
+        }
+      })
+      .catch(() => {});
+
+    // 3. Dynamically load Razorpay SDK Script
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
     script.async = true;
@@ -46,7 +66,7 @@ export default function BillingPage() {
       description: "For growing businesses, agencies & active marketers.",
       features: [
         "Connect up to 10 Social Channels",
-        "Unlimited AI Post Generation (Gemini 3.5)",
+        "Unlimited AI Post Generation (Gemini 2.5 Flash)",
         "Auto-Reply DMs & Comments Engine",
         "Advanced Analytics & CSV Export",
         "Priority 24/7 Fast Support"
@@ -80,6 +100,7 @@ export default function BillingPage() {
 
     try {
       const finalPrice = yearly ? plan.monthlyPrice * 10 : plan.monthlyPrice;
+      const currentUserId = user?.userId || "user_123";
 
       const res = await fetch("/api/razorpay/order", {
         method: "POST",
@@ -113,13 +134,34 @@ export default function BillingPage() {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
               planName: plan.name,
-              userId: user?.userId
+              userId: currentUserId
             })
           });
 
           const verifyData = await verifyRes.json();
           if (verifyData.success) {
             setSelectedPlan(plan.name);
+
+            // Update user in local storage so all pages reflect active plan immediately
+            if (user) {
+              const updated = { ...user, plan: plan.name };
+              localStorage.setItem("yt_user", JSON.stringify(updated));
+              localStorage.setItem("socialflow_user", JSON.stringify(updated));
+              setUser(updated);
+            }
+
+            // Append transaction to history table
+            setBillingHistory(prev => [
+              {
+                orderId: response.razorpay_order_id,
+                paymentId: response.razorpay_payment_id,
+                planName: plan.name,
+                createdAt: new Date().toISOString(),
+                status: "paid"
+              },
+              ...prev
+            ]);
+
             toast.success(`🎉 Congratulations! You are now subscribed to ${plan.name}!`);
           } else {
             toast.error("Payment verification failed!");
@@ -127,11 +169,11 @@ export default function BillingPage() {
         },
         prefill: {
           name: user?.name || "Saifuddin Ansari",
-          email: user?.email || "user@example.com",
+          email: user?.email || "ansarisaifuddin732@gmail.com",
           contact: "9905234866"
         },
         theme: {
-          color: "#7C3AED"
+          color: "#4f46e5"
         }
       };
 
@@ -230,6 +272,60 @@ export default function BillingPage() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Payment & Invoice Transaction History */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-6 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">Invoices & Payment Records</h3>
+            <p className="text-xs text-slate-500">Live verified transactions processed securely via Razorpay</p>
+          </div>
+          <span className="text-xs font-semibold text-slate-500">
+            {billingHistory.length} Recorded
+          </span>
+        </div>
+
+        {billingHistory.length === 0 ? (
+          <div className="text-center py-8 text-slate-400">
+            <CreditCard className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
+            <p className="text-xs font-medium text-slate-500">No payment transactions found. You are currently on the Free Starter plan.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider text-[10.5px] border-b border-slate-100">
+                  <th className="p-3">Plan</th>
+                  <th className="p-3">Payment ID</th>
+                  <th className="p-3">Order ID</th>
+                  <th className="p-3">Date</th>
+                  <th className="p-3 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium">
+                {billingHistory.map((item, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-3 font-bold text-slate-900 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      <span>{item.planName}</span>
+                    </td>
+                    <td className="p-3 font-mono text-[11px] text-slate-600">{item.paymentId || "N/A"}</td>
+                    <td className="p-3 font-mono text-[11px] text-slate-500">{item.orderId || "N/A"}</td>
+                    <td className="p-3 text-slate-500">
+                      {item.createdAt ? new Date(item.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Today"}
+                    </td>
+                    <td className="p-3 text-right">
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
+                        Paid ✓
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
     </div>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getAccounts, addPost, getPosts } from "@/lib/db";
+import { getAccounts, addPost, getPosts, updatePost, deletePost } from "@/lib/db";
+import { serverCache } from "@/lib/cache";
 import { postToYouTube } from "@/lib/platforms/youtube";
 import { postToFacebook } from "@/lib/platforms/facebook";
 import { postToInstagram } from "@/lib/platforms/instagram";
@@ -7,12 +8,96 @@ import { postToTwitter } from "@/lib/platforms/twitter";
 import { postToLinkedIn } from "@/lib/platforms/linkedin";
 import { postToTikTok } from "@/lib/platforms/tiktok";
 
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
+
 export async function GET(req) {
   try {
-    const userId = req.headers.get("x-user-id");
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const posts = await getPosts(userId);
-    return NextResponse.json({ posts });
+    let userId = req.headers.get("x-user-id");
+    if (!userId || userId === "undefined" || userId === "null") {
+      userId = null;
+    }
+
+    const cacheKey = `posts:${userId || 'all'}`;
+    const cachedPosts = serverCache.get(cacheKey);
+    if (cachedPosts) {
+      return NextResponse.json(cachedPosts, {
+        headers: {
+          "Cache-Control": "private, no-cache, no-store, must-revalidate",
+          "X-Cache-Status": "HIT"
+        }
+      });
+    }
+
+    const [posts, accounts] = await Promise.all([
+      getPosts(userId),
+      getAccounts(userId)
+    ]);
+    
+    // Map account details (name, platform) onto posts
+    const accountMap = {};
+    accounts.forEach(acc => {
+      const idStr = acc._id ? acc._id.toString() : "";
+      const pId = acc.providerAccountId || "";
+      const nameKey = (acc.name || "").toLowerCase().trim();
+      const platKey = (acc.platform || "").toLowerCase().trim();
+
+      const details = {
+        id: idStr,
+        name: acc.name || acc.platform || "Social Channel",
+        platform: acc.platform || "general"
+      };
+
+      if (idStr) accountMap[idStr] = details;
+      if (pId) accountMap[pId] = details;
+      if (nameKey) accountMap[nameKey] = details;
+      if (platKey && !accountMap[platKey]) accountMap[platKey] = details;
+    });
+
+    const enrichedPosts = posts.map(post => {
+      let channelDetails = (post.accountIds || []).map(id => {
+        const idStr = String(id).trim();
+        if (accountMap[idStr]) return accountMap[idStr];
+        const found = accounts.find(a => 
+          a._id?.toString() === idStr || 
+          a._id?.toString().endsWith(idStr) ||
+          a.platform?.toLowerCase() === idStr.toLowerCase() ||
+          a.name?.toLowerCase().includes(idStr.toLowerCase())
+        );
+        if (found) {
+          return { name: found.name || found.platform, platform: found.platform };
+        }
+        return null;
+      }).filter(Boolean);
+
+      // If post has results object (e.g. { accId: { success: true } }), extract platform details
+      if (channelDetails.length === 0 && post.results) {
+        Object.keys(post.results).forEach(accId => {
+          if (accountMap[accId]) channelDetails.push(accountMap[accId]);
+        });
+      }
+
+      // Fallback to active accounts if empty
+      if (channelDetails.length === 0 && accounts.length > 0) {
+        channelDetails = accounts.slice(0, 2).map(a => ({ name: a.name || a.platform, platform: a.platform }));
+      }
+
+      return {
+        ...post,
+        channelDetails
+      };
+    });
+
+    const responsePayload = { posts: enrichedPosts, accounts, cached: false };
+    serverCache.set(cacheKey, responsePayload, 20, [`user:${userId}`, "posts"]);
+
+    return NextResponse.json(responsePayload, {
+      headers: {
+        "Cache-Control": "private, no-cache, no-store, must-revalidate",
+        "X-Cache-Status": "MISS"
+      }
+    });
   } catch (error) {
     console.error("Error fetching posts:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
@@ -27,18 +112,46 @@ export async function POST(req) {
   const tagsString = formData.get("tags") || "";
   const tags = tagsString.split(",").map(t => t.trim()).filter(Boolean);
   const selectedAccountIds = JSON.parse(formData.get("accountIds") || "[]");
+  const publishMode = formData.get("publishMode") || "now";
+  const scheduledAt = formData.get("scheduledAt") || null;
   const userId = req.headers.get("x-user-id");
 
+  const accounts = await getAccounts(userId);
+  const results = {};
+
+  // If user is saving as draft or scheduling for future
+  if (publishMode === "schedule" || publishMode === "draft") {
+    for (const accountId of selectedAccountIds) {
+      const account = accounts.find((a) => a._id.toString() === accountId);
+      results[accountId] = { 
+        success: true, 
+        status: publishMode === "schedule" ? "Scheduled" : "Draft",
+        scheduledAt 
+      };
+    }
+
+    const newPost = await addPost({
+      id: Date.now().toString(),
+      userId,
+      title,
+      description,
+      accountIds: selectedAccountIds,
+      status: publishMode === "schedule" ? "Scheduled" : "Draft",
+      scheduledAt: scheduledAt || new Date().toISOString(),
+      results,
+      createdAt: new Date().toISOString()
+    });
+
+    return NextResponse.json({ success: true, post: newPost, results });
+  }
+
   if (!file) {
-    return NextResponse.json({ error: "File is required" }, { status: 400 });
+    return NextResponse.json({ error: "Media file is required for publishing" }, { status: 400 });
   }
 
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
   const isVideo = file.type.startsWith("video");
-
-  const accounts = await getAccounts(userId);
-  const results = {};
 
   for (const accountId of selectedAccountIds) {
     const account = accounts.find((a) => a._id.toString() === accountId);
@@ -79,8 +192,6 @@ export async function POST(req) {
           break;
 
         case "instagram": {
-          // Instagram Graph API allows Images and Videos
-          // Upload to uguu.se to get a public direct URL
           const uploadForm = new FormData();
           uploadForm.append("files[]", new Blob([buffer], { type: file.type }), file.name || (isVideo ? "video.mp4" : "image.png"));
           
@@ -149,9 +260,67 @@ export async function POST(req) {
     title,
     description,
     accountIds: selectedAccountIds,
+    status: "Published",
     results,
     createdAt: new Date().toISOString()
   });
 
+  // Invalidate cache immediately on new post
+  serverCache.revalidateTag(`user:${userId}`);
+  serverCache.revalidateTag("posts");
+
   return NextResponse.json({ results });
+}
+
+export async function PUT(req) {
+  try {
+    const userId = req.headers.get("x-user-id");
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const body = await req.json();
+    const { postId, action } = body;
+
+    if (!postId) return NextResponse.json({ error: "Post ID is required" }, { status: 400 });
+
+    if (action === "publish_now") {
+      const updated = await updatePost(postId, {
+        status: "Published",
+        publishedAt: new Date().toISOString()
+      });
+
+      // Invalidate cache immediately on post status change
+      serverCache.revalidateTag(`user:${userId}`);
+      serverCache.revalidateTag("posts");
+
+      return NextResponse.json({ success: true, post: updated });
+    }
+
+    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+  } catch (error) {
+    console.error("Error updating post:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req) {
+  try {
+    const userId = req.headers.get("x-user-id");
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { searchParams } = new URL(req.url);
+    const postId = searchParams.get("id");
+
+    if (!postId) return NextResponse.json({ error: "Post ID is required" }, { status: 400 });
+
+    await deletePost(postId, userId);
+
+    // Invalidate cache immediately on post deletion
+    serverCache.revalidateTag(`user:${userId}`);
+    serverCache.revalidateTag("posts");
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting post:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }

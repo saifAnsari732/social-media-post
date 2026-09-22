@@ -11,7 +11,7 @@ export default function RootHomePage() {
 
   useEffect(() => {
     setMounted(true);
-    const userStr = localStorage.getItem("yt_user");
+    const userStr = localStorage.getItem("socialflow_user") || localStorage.getItem("yt_user");
     if (userStr) {
       try {
         const u = JSON.parse(userStr);

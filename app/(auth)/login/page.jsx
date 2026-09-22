@@ -41,7 +41,9 @@ export default function LoginPage() {
       
       if (!res.ok) throw new Error("Login failed on server");
       
-      localStorage.setItem("yt_user", JSON.stringify({ userId, name: n, email: em }));
+      const userData = { userId, name: n, email: em };
+      localStorage.setItem("yt_user", JSON.stringify(userData));
+      localStorage.setItem("socialflow_user", JSON.stringify(userData));
       router.push("/dashboard");
     } catch {
       setError("Something went wrong. Please try again.");
