@@ -8,7 +8,7 @@ export async function POST(req) {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, planName, userId } = await req.json();
 
-    const key_secret = process.env.RAZORPAY_KEY_SECRET || "qBu6p4BHsfBqdh77UqTPoVP1";
+    const key_secret = process.env.RAZORPAY_KEY_SECRET || "5GO0yjbVCTn58B1FDUocEjyb";
 
     const body = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSignature = crypto

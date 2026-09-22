@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { PlatformIcon } from "@/components/ui/SocialIcons";
-import { getStoredUser } from "@/lib/user";
+import { getStoredUser, checkPlanAccess } from "@/lib/user";
 
 export default function PublisherPage() {
   const [user, setUser] = useState(null);
@@ -86,6 +86,8 @@ export default function PublisherPage() {
 
   async function handlePublishDraft(postId) {
     if (!user) return;
+    const allowed = checkPlanAccess({ action: "publish_post", router, toast });
+    if (!allowed) return;
     try {
       const res = await fetch("/api/post", {
         method: "PUT",
@@ -156,6 +158,8 @@ export default function PublisherPage() {
   }
 
   async function handleGenerate(customTopic) {
+    const allowed = checkPlanAccess({ action: "ai_generator", router, toast });
+    if (!allowed) return;
     const promptToUse = customTopic || topic;
     if (!promptToUse) { 
       toast.error("Please enter a topic or click an idea below!"); 
@@ -197,6 +201,8 @@ export default function PublisherPage() {
   }
 
   async function handlePost(overrideMode) {
+    const allowed = checkPlanAccess({ action: "publish_post", router, toast });
+    if (!allowed) return;
     const effectiveMode = overrideMode || publishMode;
     if (selectedIds.length === 0) {
       toast.error("Please select at least 1 social channel!");

@@ -30,11 +30,7 @@ const PLATFORMS = [
     name: "Twitter / X",
     desc: "Connect your X account and post threads",
   },
-  {
-    id: "tiktok",
-    name: "TikTok",
-    desc: "Connect your TikTok creator account",
-  },
+
   {
     id: "linkedin",
     name: "LinkedIn",

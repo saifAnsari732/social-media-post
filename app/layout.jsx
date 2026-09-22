@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "SocialFlow — AI Social Media Automation & Publisher",
+  title: "Postfly — AI Social Media Automation & Publisher",
   description: "Schedule, publish, and automate your social media content across Instagram, Facebook, and YouTube with AI.",
   verification: {
     google: "PGNbKPaL5LatP1QDJc73lVa9CPnWeAO5AebFE1xIsm0",

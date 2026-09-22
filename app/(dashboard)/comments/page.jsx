@@ -15,15 +15,20 @@ import {
   Zap,
   TrendingUp
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { PlatformIcon } from "@/components/ui/SocialIcons";
+import { checkPlanAccess } from "@/lib/user";
 
 export default function CommentsPage() {
   const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const router = useRouter();
 
   useEffect(() => {
+    const allowed = checkPlanAccess({ action: "social_inbox", router, toast });
+    if (!allowed) return;
     const userStr = localStorage.getItem("socialflow_user") || localStorage.getItem("yt_user");
     if (userStr) {
       try {

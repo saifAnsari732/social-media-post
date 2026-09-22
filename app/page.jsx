@@ -6,25 +6,31 @@ import SaaSLandingPage from "./landing/page";
 
 export default function RootHomePage() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
-  const [mounted, setMounted] = useState(false);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    setMounted(true);
-    const userStr = localStorage.getItem("socialflow_user") || localStorage.getItem("yt_user");
-    if (userStr) {
-      try {
+    try {
+      const userStr = localStorage.getItem("socialflow_user") || localStorage.getItem("yt_user");
+      if (userStr) {
         const u = JSON.parse(userStr);
-        setUser(u);
-        // Clean client navigation to dashboard
-        window.location.href = "/dashboard";
-      } catch (e) {
-        console.error("Failed to parse user string", e);
+        if (u && u.userId) {
+          router.replace("/dashboard");
+          return;
+        }
       }
+    } catch (e) {
+      console.error(e);
     }
+    setChecking(false);
   }, [router]);
 
-  if (!mounted || user) return null;
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return <SaaSLandingPage />;
 }

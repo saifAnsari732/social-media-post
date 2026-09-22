@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { 
   Link2, 
   Trash2, 
@@ -20,7 +21,7 @@ import toast from "react-hot-toast";
 import ConnectModal from "@/components/modals/ConnectModal";
 import { SocialCardSkeleton } from "@/components/ui/Skeletons";
 import { PlatformIcon } from "@/components/ui/SocialIcons";
-import { getStoredUser, getUserHeaders } from "@/lib/user";
+import { getStoredUser, getUserHeaders, checkPlanAccess } from "@/lib/user";
 
 const SUPPORTED_PLATFORMS = [
   {
@@ -54,12 +55,6 @@ const SUPPORTED_PLATFORMS = [
     category: "Micro-blogging"
   },
   {
-    id: "tiktok",
-    name: "TikTok",
-    desc: "Schedule viral TikTok clips and trend-driven video posts",
-    category: "Short Video"
-  },
-  {
     id: "linkedin",
     name: "LinkedIn",
     desc: "Share professional articles, company updates, and insights",
@@ -79,6 +74,7 @@ export default function AccountsPage() {
   const [user, setUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const u = getStoredUser();
@@ -102,6 +98,18 @@ export default function AccountsPage() {
     } finally {
       setLoading(false);
       setIsSyncing(false);
+    }
+  };
+
+  const handleOpenConnectModal = () => {
+    const allowed = checkPlanAccess({
+      action: "connect_channel",
+      currentAccountCount: accounts.length,
+      router,
+      toast
+    });
+    if (allowed) {
+      setIsModalOpen(true);
     }
   };
 
@@ -151,7 +159,7 @@ export default function AccountsPage() {
           </button>
 
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={handleOpenConnectModal}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-xs font-semibold text-white shadow-xs shadow-indigo-600/20 hover:shadow-indigo-600/30 transition-all cursor-pointer active:scale-[0.98]"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
@@ -187,7 +195,7 @@ export default function AccountsPage() {
               <span className="text-lg font-bold text-slate-950">100% Operational</span>
             </div>
           </div>
-          <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-[11px] font-semibold">
+          <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-semibold">
             Auto-Sync
           </span>
         </div>
@@ -211,7 +219,7 @@ export default function AccountsPage() {
       {/* Channels Grid */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {Array.from({ length: 8 }).map((_, i) => (
+          {Array.from({ length: 7 }).map((_, i) => (
             <SocialCardSkeleton key={i} />
           ))}
         </div>
@@ -234,60 +242,37 @@ export default function AccountsPage() {
                         <PlatformIcon platform={platform.id} className="w-9 h-9" />
                       </div>
                       <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Connected
+                        <Check className="w-3 h-3 stroke-[2.5]" /> Connected
                       </span>
                     </div>
 
-                    {/* Account Name & Handle */}
+                    {/* Account Name & Info */}
                     <div className="mt-3.5">
-                      <h4 className="text-sm font-bold text-slate-950 truncate" title={acc.name || platform.name}>
-                        {acc.name || platform.name}
+                      <h4 className="text-sm font-bold text-slate-950 truncate" title={acc.accountName}>
+                        {acc.accountName || `${platform.name} Channel`}
                       </h4>
-                      <p className="text-xs text-slate-500 font-normal capitalize mt-0.5">
-                        {platform.name} Account
+                      <p className="text-xs text-slate-500 font-medium mt-0.5 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span>OAuth Authorized</span>
                       </p>
-                    </div>
-
-                    {/* Followers & Sync Stats */}
-                    <div className="mt-4 p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between text-xs">
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Followers</span>
-                        <span className="text-xs font-bold text-slate-900 mt-0.5 block">
-                          {acc.followersFormatted || (acc.followers !== null && acc.followers !== undefined ? (acc.followers > 1000 ? `${(acc.followers/1000).toFixed(1)}K` : acc.followers) : "Active")}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Status</span>
-                        <span className="text-[11px] font-semibold text-emerald-600 mt-0.5 block">
-                          Live Sync
-                        </span>
-                      </div>
                     </div>
                   </div>
 
-                  {/* Actions Toolbar */}
-                  <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
-                    <button 
-                      onClick={() => window.location.href = `/publisher?platform=${platform.id}`}
-                      className="flex-1 py-2 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  {/* Actions */}
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-[11px] text-slate-400 font-medium">Auto-Sync On</span>
+                    <button
+                      onClick={() => handleDelete(acc._id, acc.accountName)}
+                      className="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2 py-1 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
                     >
-                      <Send className="w-3.5 h-3.5" />
-                      <span>Post</span>
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(acc._id, acc.name)}
-                      className="p-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition-all cursor-pointer"
-                      title="Disconnect Account"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-3.5 h-3.5" /> Disconnect
                     </button>
                   </div>
                 </div>
               ));
             }
 
-            {/* Unconnected Card (Solid, Clean Enterprise Style) */}
+            {/* Unconnected Card */}
             return (
               <div 
                 key={platform.id} 
@@ -316,7 +301,7 @@ export default function AccountsPage() {
                 {/* Connect Action Button */}
                 <div className="pt-2">
                   <button
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={handleOpenConnectModal}
                     className="w-full py-2 px-3 rounded-xl border border-slate-300 bg-white hover:bg-indigo-600 hover:text-white hover:border-indigo-600 text-slate-800 text-xs font-semibold shadow-2xs transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-[0.98]"
                   >
                     <Plus className="w-3.5 h-3.5" />
@@ -329,7 +314,7 @@ export default function AccountsPage() {
         </div>
       )}
 
-      {/* Multi-Step Connect Modal */}
+      {/* Modal */}
       <ConnectModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

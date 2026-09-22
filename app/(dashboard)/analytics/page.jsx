@@ -82,13 +82,12 @@ export default function AnalyticsPage() {
       "Instagram,54.2K,12.3K,430K,+9.4%\n" +
       "Facebook,38.1K,8.2K,310K,+6.1%\n" +
       "YouTube,28.4K,19.2K,620K,+14.8%\n" +
-      "TikTok,22.0K,15.1K,520K,+8.2%\n" +
       "LinkedIn,12.5K,2.4K,120K,+4.5%\n" +
       "Twitter/X,18.9K,6.7K,210K,+7.3%\n";
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `SocialFlow_Analytics_${timeRange}.csv`);
+    link.setAttribute("download", `Postfly_Analytics_${timeRange}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -411,7 +410,6 @@ export default function AnalyticsPage() {
                   { name: "Instagram", followers: "54.2K", eng: "12.3K", reach: "430K", growth: "+9.4%" },
                   { name: "Facebook", followers: "38.1K", eng: "8.2K", reach: "310K", growth: "+6.1%" },
                   { name: "YouTube", followers: "28.4K", eng: "19.2K", reach: "620K", growth: "+14.8%" },
-                  { name: "TikTok", followers: "22.0K", eng: "15.1K", reach: "520K", growth: "+8.2%" },
                   { name: "LinkedIn", followers: "12.5K", eng: "2.4K", reach: "120K", growth: "+4.5%" },
                   { name: "Twitter", label: "Twitter / X", followers: "18.9K", eng: "6.7K", reach: "210K", growth: "+7.3%" }
                 ]).map((row, i) => {

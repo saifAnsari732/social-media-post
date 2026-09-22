@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, Zap, Building2, CreditCard, Sparkles, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Zap, Building2, CreditCard, Layers, ShieldCheck, X } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function BillingPage() {
@@ -12,7 +12,7 @@ export default function BillingPage() {
   const [yearly, setYearly] = useState(false);
 
   useEffect(() => {
-    // 1. Get user from storage (checking both keys for robustness)
+    // 1. Get user from storage
     const userStr = localStorage.getItem("socialflow_user") || localStorage.getItem("yt_user");
     let currentUser = null;
     if (userStr) {
@@ -46,67 +46,70 @@ export default function BillingPage() {
   const plans = [
     {
       name: "Starter",
-      monthlyPrice: 0,
-      priceLabel: "₹0",
-      description: "Perfect for small businesses & creators just starting out.",
+      monthlyPrice: 999,
+      priceLabel: yearly ? "₹799" : "₹999",
+      description: "For solopreneurs & small creators starting out.",
       features: [
-        "Connect up to 2 Social Channels",
-        "100 AI Captions & Hashtags/mo",
-        "Basic Analytics & Post History",
-        "Standard Webhook Automation"
+        "3 Connected Social Accounts",
+        "❌ NO AI Support / AI Assistant",
+        "50 Scheduled Posts / month",
+        "Visual Content Calendar",
+        "Multi-Platform Composer",
+        "Basic Reach & Engagement Stats"
       ],
-      buttonText: "Current Active Plan",
+      buttonText: "Upgrade with Razorpay",
       active: selectedPlan === "Starter",
-      icon: <Zap className="w-5 h-5 text-violet-600" />
+      icon: <Zap className="w-5 h-5 text-indigo-600" />
     },
     {
-      name: "Pro Business",
+      name: "Growth",
       monthlyPrice: 1999,
-      priceLabel: yearly ? "₹1,659" : "₹1,999",
-      description: "For growing businesses, agencies & active marketers.",
+      priceLabel: yearly ? "₹1,599" : "₹1,999",
+      description: "For growing brands, creators & active teams.",
       features: [
-        "Connect up to 10 Social Channels",
-        "Unlimited AI Post Generation (Gemini 2.5 Flash)",
-        "Auto-Reply DMs & Comments Engine",
-        "Advanced Analytics & CSV Export",
-        "Priority 24/7 Fast Support"
+        "6 Connected Social Accounts",
+        "✅ Full AI Support & Assistant",
+        "500 AI Generator Credits / mo",
+        "Unlimited Scheduled Posts",
+        "Unified Social Inbox (Comments & DMs)",
+        "Advanced Performance Analytics"
       ],
       buttonText: "Upgrade with Razorpay",
-      active: selectedPlan === "Pro Business",
+      active: selectedPlan === "Growth",
       popular: true,
-      icon: <Sparkles className="w-5 h-5 text-pink-600" />
+      icon: <Layers className="w-5 h-5 text-indigo-600" />
     },
     {
-      name: "Agency / Enterprise",
-      monthlyPrice: 4999,
-      priceLabel: yearly ? "₹4,149" : "₹4,999",
-      description: "For agencies requiring unlimited power and white-labeling.",
+      name: "Pro Unlimited",
+      monthlyPrice: 3999,
+      priceLabel: yearly ? "₹3,199" : "₹3,999",
+      description: "For power marketers, brands & agencies needing everything.",
       features: [
-        "Unlimited Social Accounts",
-        "Dedicated Multi-Tenant Workspaces",
-        "Custom Branding & White-Label Dashboard",
-        "Dedicated Account Manager",
-        "Custom Webhook & API Integrations"
+        "Unlimited Connected Social Accounts",
+        "✅ Unlimited AI Credits & All AI Tools",
+        "Unlimited Scheduled Posts & Queues",
+        "Smart Auto-Reply Comment Bot Rules",
+        "Multi-Client Workspaces & White-Label",
+        "24/7 Dedicated Account Manager"
       ],
       buttonText: "Upgrade with Razorpay",
-      active: selectedPlan === "Agency / Enterprise",
-      icon: <Building2 className="w-5 h-5 text-slate-900" />
+      active: selectedPlan === "Pro Unlimited",
+      icon: <Building2 className="w-5 h-5 text-purple-600" />
     }
   ];
 
   const handleRazorpayPayment = async (plan) => {
-    if (plan.monthlyPrice === 0) return;
     setLoading(true);
 
     try {
-      const finalPrice = yearly ? plan.monthlyPrice * 10 : plan.monthlyPrice;
+      const finalPrice = yearly ? plan.monthlyPrice * 12 * 0.8 : plan.monthlyPrice;
       const currentUserId = user?.userId || "user_123";
 
       const res = await fetch("/api/razorpay/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: finalPrice,
+          amount: Math.round(finalPrice),
           planName: plan.name,
           currency: "INR"
         })
@@ -119,8 +122,8 @@ export default function BillingPage() {
         key: data.keyId,
         amount: data.amount,
         currency: data.currency,
-        name: "SocialFlow Pro Suite",
-        description: `Upgrade to ${plan.name} Plan`,
+        name: "Postfly Pro Suite",
+        description: `Subscribe to ${plan.name} Plan`,
         image: "https://cdn-icons-png.flaticon.com/512/3670/3670147.png",
         order_id: data.orderId,
         handler: async function (response) {
@@ -192,15 +195,15 @@ export default function BillingPage() {
       
       {/* Header */}
       <div className="text-center max-w-2xl mx-auto pb-6 border-b border-slate-200/80">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-50 border border-violet-200 text-violet-700 text-xs font-bold mb-3">
-          <ShieldCheck className="w-4 h-4" /> 100% Secure Razorpay Payment Gateway
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold mb-3">
+          <ShieldCheck className="w-4 h-4" /> 100% Secure Razorpay Payment Gateway (Live Keys Enabled)
         </div>
         <h1 className="text-3xl font-black text-slate-900 tracking-tight">Choose Your Subscription Plan</h1>
         <p className="text-xs text-slate-500 mt-1 font-medium">
-          Scale your social media automation across Meta, Instagram, Facebook & YouTube with powerful AI tools.
+          Scale your social media automation across Meta, Instagram, Facebook, YouTube, LinkedIn & X.
         </p>
 
-        {/* Monthly / Yearly Toggle (Matches Section 17 of Prompt) */}
+        {/* Monthly / Yearly Toggle */}
         <div className="mt-6 inline-flex items-center gap-3 p-1 rounded-xl bg-slate-100 border border-slate-200/80 text-xs font-bold">
           <button
             onClick={() => setYearly(false)}
@@ -210,19 +213,19 @@ export default function BillingPage() {
           </button>
           <button
             onClick={() => setYearly(true)}
-            className={`px-4 py-2 rounded-lg transition-all ${yearly ? "bg-slate-900 text-white shadow-xs" : "text-slate-500"}`}
+            className={`px-4 py-2 rounded-lg transition-all ${yearly ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500"}`}
           >
-            Yearly Billed <span className="text-emerald-500 ml-1">(2 Months Free)</span>
+            Annual Billed <span className="text-emerald-300 ml-1">(Save 20%)</span>
           </button>
         </div>
       </div>
 
       {/* Pricing Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch max-w-5xl mx-auto">
         {plans.map((plan, i) => (
-          <div key={i} className={`relative flex flex-col justify-between bg-white rounded-2xl border ${plan.popular ? 'border-violet-600 shadow-xl ring-2 ring-violet-600/20' : 'border-slate-200/80 shadow-sm'} p-8 transition-all hover:shadow-md`}>
+          <div key={i} className={`relative flex flex-col justify-between bg-white rounded-2xl border ${plan.popular ? 'border-indigo-600 shadow-xl ring-2 ring-indigo-600/20' : 'border-slate-200/80 shadow-sm'} p-7 transition-all hover:shadow-md`}>
             {plan.popular && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-violet-600 to-pink-600 text-white text-[10px] font-black uppercase tracking-widest py-1 px-3.5 rounded-full shadow-sm">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-[10px] font-black uppercase tracking-widest py-1 px-3.5 rounded-full shadow-sm">
                 MOST POPULAR
               </div>
             )}
@@ -252,7 +255,7 @@ export default function BillingPage() {
                   plan.active 
                     ? 'bg-slate-100 text-slate-500 border border-slate-200 cursor-default' 
                     : plan.popular 
-                      ? 'bg-violet-600 text-white hover:bg-violet-700 shadow-md shadow-violet-600/20'
+                      ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-600/20'
                       : 'bg-slate-900 text-white hover:bg-slate-800 shadow-sm'
                 }`}
               >
@@ -263,19 +266,28 @@ export default function BillingPage() {
             
             <div className="space-y-3 border-t border-slate-100 pt-6">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Features included:</p>
-              {plan.features.map((feature, j) => (
-                <div key={j} className="flex items-start gap-2.5">
-                  <CheckCircle2 className={`w-4 h-4 shrink-0 mt-0.5 ${plan.popular ? 'text-violet-600' : 'text-emerald-600'}`} />
-                  <span className="text-xs font-medium text-slate-700 leading-snug">{feature}</span>
-                </div>
-              ))}
+              {plan.features.map((feature, j) => {
+                const isExcluded = feature.startsWith("❌");
+                return (
+                  <div key={j} className="flex items-start gap-2.5">
+                    {isExcluded ? (
+                      <X className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                    ) : (
+                      <CheckCircle2 className={`w-4 h-4 shrink-0 mt-0.5 ${plan.popular ? 'text-indigo-600' : 'text-emerald-600'}`} />
+                    )}
+                    <span className={`text-xs font-medium ${isExcluded ? 'text-slate-500 font-bold' : 'text-slate-700'}`}>
+                      {feature.replace("❌ ", "").replace("✅ ", "")}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
       </div>
 
       {/* Payment & Invoice Transaction History */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-6 space-y-4">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-6 space-y-4 max-w-5xl mx-auto">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div>
             <h3 className="text-sm font-bold text-slate-900">Invoices & Payment Records</h3>
@@ -289,7 +301,7 @@ export default function BillingPage() {
         {billingHistory.length === 0 ? (
           <div className="text-center py-8 text-slate-400">
             <CreditCard className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
-            <p className="text-xs font-medium text-slate-500">No payment transactions found. You are currently on the Free Starter plan.</p>
+            <p className="text-xs font-medium text-slate-500">No payment transactions recorded yet.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">

@@ -13,8 +13,10 @@ import {
   Filter,
   ShieldCheck
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { PlatformIcon } from "@/components/ui/SocialIcons";
+import { checkPlanAccess } from "@/lib/user";
 
 export default function InboxPage() {
   const [conversations, setConversations] = useState([]);
@@ -26,8 +28,11 @@ export default function InboxPage() {
   const [sending, setSending] = useState(false);
   const [user, setUser] = useState(null);
   const messagesEndRef = useRef(null);
+  const router = useRouter();
 
   useEffect(() => {
+    const allowed = checkPlanAccess({ action: "social_inbox", router, toast });
+    if (!allowed) return;
     const userStr = localStorage.getItem("socialflow_user") || localStorage.getItem("yt_user");
     if (userStr) {
       try {

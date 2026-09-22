@@ -24,7 +24,8 @@ import toast from "react-hot-toast";
 import { TableSkeleton } from "@/components/ui/Skeletons";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PlatformIcon } from "@/components/ui/SocialIcons";
-import { getStoredUser } from "@/lib/user";
+import { useRouter } from "next/navigation";
+import { getStoredUser, checkPlanAccess } from "@/lib/user";
 
 export default function PostsPage() {
   const [posts, setPosts] = useState([]);

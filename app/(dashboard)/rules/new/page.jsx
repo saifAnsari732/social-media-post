@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Save, Plus, X, Zap } from "lucide-react";
 import toast, { Toaster } from 'react-hot-toast';
+import { checkPlanAccess } from "@/lib/user";
 
 export default function NewRulePage() {
   const router = useRouter();
@@ -74,6 +75,8 @@ export default function NewRulePage() {
   };
 
   const handleSave = async () => {
+    const allowed = checkPlanAccess({ action: "automation", router, toast });
+    if (!allowed) return;
     if (!formData.name) return toast.error("Rule name is required");
     if (!formData.account) return toast.error("Select an account");
     if (formData.trigger.type === 'keyword' && formData.trigger.keywords.length === 0) {

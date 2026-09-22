@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { getStoredUser, getUserPlanLimits } from '@/lib/user';
 import {
   LayoutDashboard,
   Link2,
@@ -12,7 +13,7 @@ import {
   BarChart3,
   FileTerminal,
   Settings,
-  Sparkles,
+  Layers,
   LayoutGrid,
   CreditCard,
   Calendar as CalendarIcon,
@@ -25,25 +26,21 @@ import {
   ChevronDown,
   Building,
   ShieldCheck,
-  PlusCircle
+  PlusCircle,
+  AlertTriangle
 } from 'lucide-react';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [user, setUser] = useState({ name: 'Saif Ansari', email: 'saif@me.com', initials: 'SA' });
   const [collapsed, setCollapsed] = useState(false);
+  const [limits, setLimits] = useState({ isExpired: false, planTitle: '5-Day Trial' });
 
   useEffect(() => {
-    const userStr = localStorage.getItem("socialflow_user") || localStorage.getItem("yt_user");
-    if (userStr) {
-      try {
-        const u = JSON.parse(userStr);
-        const initials = u.name ? u.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "SA";
-        setUser({ ...u, initials });
-      } catch (e) {
-        console.error("Failed to parse user string", e);
-      }
-    }
+    const u = getStoredUser();
+    const initials = u.name ? u.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "SA";
+    setUser({ ...u, initials });
+    setLimits(getUserPlanLimits(u));
   }, []);
 
   const handleLogout = () => {
@@ -108,12 +105,12 @@ export default function Sidebar() {
         <div className="p-4 border-b border-slate-200/80 flex items-center justify-between bg-white">
           <Link href="/dashboard" className="flex items-center gap-3 no-underline overflow-hidden group">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-600/30 group-hover:scale-105 transition-transform">
-              <Sparkles className="h-5 w-5 stroke-[2.5]" />
+              <Layers className="h-5 w-5 stroke-[2.5]" />
             </div>
             {!collapsed && (
               <div className="flex flex-col">
-                <span className="text-[17px] font-extrabold tracking-tight text-slate-950 leading-none">SocialFlow</span>
-                <span className="text-[11px] font-semibold text-indigo-600 mt-1 uppercase tracking-wider">AI Platform</span>
+                <span className="text-[17px] font-extrabold tracking-tight text-slate-950 leading-none">Postfly</span>
+                <span className="text-[11px] font-semibold text-indigo-600 mt-1 uppercase tracking-wider">SaaS Platform</span>
               </div>
             )}
           </Link>
@@ -127,9 +124,9 @@ export default function Sidebar() {
           </button>
         </div>
 
-        {/* Workspace Switcher */}
+        {/* Workspace & Plan Badge Switcher */}
         {!collapsed && (
-          <div className="px-4 py-3 border-b border-slate-200/80 shrink-0 bg-slate-50/70">
+          <div className="px-4 py-3 border-b border-slate-200/80 shrink-0 bg-slate-50/70 space-y-2">
             <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 hover:border-indigo-400 hover:shadow-xs transition-all cursor-pointer shadow-2xs">
               <div className="flex items-center gap-2.5 truncate">
                 <div className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
@@ -139,10 +136,27 @@ export default function Sidebar() {
               </div>
               <ChevronDown className="w-4 h-4 text-slate-600 shrink-0 stroke-[2.5]" />
             </div>
+
+            {/* Plan Badge Display */}
+            <Link href="/billing" className="no-underline block">
+              <div className={`p-2 rounded-xl border text-xs font-bold flex items-center justify-between transition-all ${
+                limits.isExpired 
+                  ? "bg-rose-50 border-rose-300 text-rose-700 animate-pulse" 
+                  : "bg-indigo-50 border-indigo-200 text-indigo-700"
+              }`}>
+                <span className="flex items-center gap-1.5 truncate">
+                  {limits.isExpired ? <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" /> : <CreditCard className="w-3.5 h-3.5 text-indigo-600 shrink-0" />}
+                  <span className="truncate">{limits.isExpired ? "Plan Expired" : limits.planTitle}</span>
+                </span>
+                <span className="text-[10px] uppercase underline ml-1 shrink-0">
+                  {limits.isExpired ? "Purchase Plan →" : "Manage"}
+                </span>
+              </div>
+            </Link>
           </div>
         )}
 
-        {/* Navigation Section with Ultra High-Visibility Text */}
+        {/* Navigation Section */}
         <nav className="flex-1 overflow-y-auto px-3.5 py-4 space-y-5 custom-scrollbar">
           {navGroups.map((group, idx) => (
             <div key={idx} className="space-y-1">
@@ -175,16 +189,18 @@ export default function Sidebar() {
           ))}
         </nav>
 
-        {/* Footer Actions with High-Visibility Text */}
+        {/* Footer Actions */}
         <div className="p-3.5 space-y-2.5 border-t border-slate-200 bg-slate-50/80 shrink-0">
           {!collapsed && (
             <Link
               href="/billing"
-              className="flex items-center justify-between p-2.5 rounded-xl bg-indigo-600 text-white font-bold text-[13px] hover:bg-indigo-700 shadow-xs shadow-indigo-600/20 transition-all no-underline group"
+              className={`flex items-center justify-between p-2.5 rounded-xl text-white font-bold text-[13px] shadow-xs transition-all no-underline group ${
+                limits.isExpired ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/20" : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20"
+              }`}
             >
               <span className="flex items-center gap-2">
                 <CreditCard className="w-4 h-4 stroke-[2.5]" />
-                <span>Upgrade Plan</span>
+                <span>{limits.isExpired ? "Purchase Plan Now" : "Upgrade Plan"}</span>
               </span>
               <ChevronRight className="w-4 h-4 stroke-[2.5] group-hover:translate-x-0.5 transition-transform" />
             </Link>

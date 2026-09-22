@@ -17,16 +17,21 @@ import {
   ArrowRight,
   TrendingUp
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { PlatformIcon } from "@/components/ui/SocialIcons";
+import { checkPlanAccess } from "@/lib/user";
 
 export default function RulesPage() {
   const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("all");
   const [user, setUser] = useState(null);
+  const router = useRouter();
 
   useEffect(() => {
+    const allowed = checkPlanAccess({ action: "automation", router, toast });
+    if (!allowed) return;
     const userStr = localStorage.getItem("socialflow_user") || localStorage.getItem("yt_user");
     if (userStr) {
       try {
