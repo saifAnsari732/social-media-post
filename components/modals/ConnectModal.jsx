@@ -52,7 +52,8 @@ export default function ConnectModal({ isOpen, onClose, userId, onFinish }) {
 
   const handleSelectPlatform = (platform) => {
     setSelectedPlatform(platform);
-    setStep(2);
+    const provider = platform.id === "twitter" ? "twitter" : platform.id;
+    window.location.href = `/api/auth/connect/${provider}?userId=${userId}`;
   };
 
   const handleAuthorize = () => {

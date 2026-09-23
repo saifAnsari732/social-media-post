@@ -115,6 +115,19 @@ export default function AccountsPage() {
     }
   };
 
+  const handleDirectConnect = (platformId) => {
+    const allowed = checkPlanAccess({
+      action: "connect_channel",
+      currentAccountCount: accounts.length,
+      router,
+      toast
+    });
+    if (allowed) {
+      const provider = platformId === "twitter" ? "twitter" : platformId;
+      window.location.href = `/api/auth/connect/${provider}?userId=${user?.userId}`;
+    }
+  };
+
   const handleDelete = async (id, accountName) => {
     if (!confirm(`Are you sure you want to disconnect ${accountName || "this account"}?`)) return;
     try {
@@ -331,7 +344,7 @@ export default function AccountsPage() {
                 {/* Connect Action Button */}
                 <div className="pt-2">
                   <button
-                    onClick={handleOpenConnectModal}
+                    onClick={() => handleDirectConnect(platform.id)}
                     className="w-full py-2 px-3 rounded-xl border border-slate-300 bg-white hover:bg-indigo-600 hover:text-white hover:border-indigo-600 text-slate-800 text-xs font-semibold shadow-2xs transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-[0.98]"
                   >
                     <Plus className="w-3.5 h-3.5" />
