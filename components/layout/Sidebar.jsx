@@ -102,15 +102,15 @@ export default function Sidebar() {
       title: "Admin Command",
       items: [
         { name: 'Mission Control', href: '/dashboard', icon: LayoutDashboard },
-        { name: 'All Tenants & Users', href: '/dashboard?tab=tenants', icon: Users }
+        { name: 'All Tenants & Users', href: '/tenants', icon: Users }
       ]
     },
     {
       title: "Promotions & Revenue",
       items: [
-        { name: 'Discount Coupons', href: '/dashboard?tab=coupons', icon: Tag },
-        { name: 'Revenue & MRR', href: '/dashboard?tab=subscriptions', icon: DollarSign },
-        { name: 'Billing Ledger', href: '/dashboard?tab=subscriptions', icon: CreditCard }
+        { name: 'Discount Coupons', href: '/coupons', icon: Tag },
+        { name: 'Revenue & MRR', href: '/revenue', icon: DollarSign },
+        { name: 'Billing Ledger', href: '/ledger', icon: CreditCard }
       ]
     },
     {
