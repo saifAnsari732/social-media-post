@@ -46,13 +46,8 @@ import { getStoredUser } from "@/lib/user";
 export default function DashboardPage() {
   const [user, setUser] = useState({ name: "Saif Ansari" });
   const [viewMode, setViewMode] = useState("admin");
-  const [adminUsers, setAdminUsers] = useState([
-    { id: "usr_1", name: "Saifuddin Ansari", email: "ansarisaifuddin732@gmail.com", role: "admin", plan: "Super Admin (Unrestricted)", accounts: 4, posts: 128, status: "Active" },
-    { id: "usr_2", name: "Brooklyn Simmons", email: "brook.sim@example.com", role: "user", plan: "Pro Business", accounts: 3, posts: 45, status: "Active" },
-    { id: "usr_3", name: "Dwayne Tatum", email: "dwayne.t@agency.com", role: "user", plan: "Starter Free", accounts: 1, posts: 12, status: "Active" },
-    { id: "usr_4", name: "Rahul Sharma", email: "rahul.s@business.in", role: "user", plan: "Growth", accounts: 4, posts: 68, status: "Active" }
-  ]);
-  const [adminStats, setAdminStats] = useState({ totalUsers: 4, totalPosts: 128, totalAccounts: 12, totalRules: 5 });
+  const [adminUsers, setAdminUsers] = useState([]);
+  const [adminStats, setAdminStats] = useState({ totalUsers: 0, totalPosts: 0, totalAccounts: 0, totalRules: 0, activeCoupons: 0, paidUsers: 0 });
   const [adminActiveTab, setAdminActiveTab] = useState("tenants");
   const [adminSearch, setAdminSearch] = useState("");
   const [isAdminLoading, setIsAdminLoading] = useState(false);
