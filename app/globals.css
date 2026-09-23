@@ -56,3 +56,46 @@ button, input, select, textarea {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #CBD5E1;
 }
+
+/* Postfly Logo Loading Animations */
+@keyframes logoPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 4px 20px rgba(79, 70, 229, 0.25));
+  }
+  50% {
+    transform: scale(1.06);
+    filter: drop-shadow(0 10px 35px rgba(99, 102, 241, 0.5));
+  }
+}
+
+@keyframes orbitSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes progressShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+.animate-logo-pulse {
+  animation: logoPulse 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-orbit-spin {
+  animation: orbitSpin 6s linear infinite;
+}
+
+.animate-progress-shimmer {
+  animation: progressShimmer 1.8s ease-in-out infinite;
+}
+

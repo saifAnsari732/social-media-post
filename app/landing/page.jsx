@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import ClientReviewsSlider from "@/components/landing/ClientReviewsSlider";
 import { PlatformIcon } from "@/components/ui/SocialIcons";
 import { 
   Sparkles, 
@@ -218,8 +219,8 @@ export default function LightSaaSLandingPage() {
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-6 py-3.5 shadow-2xs">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 no-underline">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-xs shadow-indigo-600/30">
-              <Layers className="h-5 w-5" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white border border-slate-200/90 p-0.5 shadow-xs overflow-hidden">
+              <img src="/postflyLOGO.png" alt="Postfly" className="w-full h-full object-contain" />
             </div>
             <span className="text-xl font-bold tracking-tight text-slate-900">Postfly</span>
           </Link>
@@ -228,6 +229,7 @@ export default function LightSaaSLandingPage() {
             <a href="#features" className="hover:text-slate-900 transition-colors no-underline">Features</a>
             <a href="#channels" className="hover:text-slate-900 transition-colors no-underline">Social Channels</a>
             <a href="#ai-tools" className="hover:text-slate-900 transition-colors no-underline">AI Tools</a>
+            <a href="#reviews" className="hover:text-slate-900 transition-colors no-underline text-emerald-700 font-bold">Client Stories ★</a>
             <a href="#pricing" className="hover:text-slate-900 transition-colors no-underline">Pricing</a>
             <a href="#faq" className="hover:text-slate-900 transition-colors no-underline">FAQ</a>
           </nav>
@@ -496,6 +498,11 @@ export default function LightSaaSLandingPage() {
         </div>
       </section>
 
+      {/* ── CLIENT STORIES & TESTIMONIALS SLIDER SECTION (EXACT REFERENCE UI) ── */}
+      <div id="reviews">
+        <ClientReviewsSlider />
+      </div>
+
       {/* ── CUSTOMIZED PAID PRICING SECTION (3 PLANS) ── */}
       <section id="pricing" className="py-24 px-6 bg-white border-t border-slate-200/80 relative">
         <div className="max-w-6xl mx-auto space-y-16">
@@ -721,46 +728,48 @@ export default function LightSaaSLandingPage() {
         </div>
       </section>
 
-      {/* ── Final CTA Banner ── */}
-      <section className="py-20 px-6 bg-gradient-to-b from-indigo-900 to-slate-900 text-white text-center">
-        <div className="max-w-3xl mx-auto space-y-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 text-indigo-200 text-xs font-semibold">
-            <Layers className="w-4 h-4 text-indigo-300" /> Start Your 5-Day Free Trial Today
+      {/* ── Final CTA Banner (Clean Light SaaS Theme) ── */}
+      <section className="py-20 sm:py-24 px-6 bg-gradient-to-b from-white via-indigo-50/40 to-slate-50 border-t border-slate-200/80 relative text-center overflow-hidden">
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="max-w-4xl mx-auto space-y-6 relative z-10">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-200/90 text-indigo-700 text-xs font-bold shadow-2xs">
+            <Layers className="w-4 h-4 text-indigo-600" /> Start Your 5-Day Free Trial Today
           </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+          <h2 className="text-3xl sm:text-5xl font-black text-slate-950 tracking-tight leading-tight">
             Ready to Supercharge Your Social Media?
           </h2>
-          <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto leading-relaxed font-normal">
             Join thousands of creators, brands, and digital agencies using Postfly to create, schedule, and scale their content strategy.
           </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
-            <Link href="/login" className="px-6 py-3 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white font-bold text-xs shadow-lg shadow-indigo-500/30 no-underline transition-all flex items-center justify-center gap-2">
+          <div className="flex flex-col sm:flex-row justify-center gap-3 pt-3">
+            <Link href="/login" className="px-7 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-lg shadow-indigo-600/25 no-underline transition-all flex items-center justify-center gap-2 transform active:scale-98 cursor-pointer">
               Get Started for Free <ArrowRight className="w-4 h-4" />
             </Link>
-            <a href="#pricing" className="px-6 py-3 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-bold text-xs no-underline transition-all flex items-center justify-center gap-2">
+            <a href="#pricing" className="px-7 py-3.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs shadow-2xs no-underline transition-all flex items-center justify-center gap-2 cursor-pointer">
               View Pricing Plans
             </a>
           </div>
         </div>
       </section>
 
-      {/* ── ENHANCED ULTRA-MODERN FOOTER ── */}
-      <footer className="bg-slate-900 text-slate-400 text-xs pt-16 pb-12 px-6 border-t border-slate-800">
+      {/* ── ENHANCED ULTRA-MODERN LIGHT FOOTER ── */}
+      <footer className="bg-white text-slate-600 text-xs pt-16 pb-12 px-6 border-t border-slate-200/90">
         <div className="max-w-7xl mx-auto space-y-12">
           
           {/* Top Newsletter & Brand Card */}
-          <div className="bg-slate-800/60 rounded-2xl border border-slate-700/60 p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="bg-slate-50 rounded-2xl border border-slate-200/90 p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xs">
             <div className="space-y-2 max-w-xl text-center md:text-left">
               <div className="flex items-center justify-center md:justify-start gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-xs">
-                  <Layers className="h-4 h-4" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white border border-slate-200 p-0.5 shadow-xs overflow-hidden">
+                  <img src="/postflyLOGO.png" alt="Postfly" className="w-full h-full object-contain" />
                 </div>
-                <span className="text-lg font-bold text-white tracking-tight">Postfly</span>
-                <span className="text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 ml-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Systems Operational
+                <span className="text-xl font-extrabold text-slate-950 tracking-tight">Postfly</span>
+                <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 ml-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Systems Operational
                 </span>
               </div>
-              <p className="text-slate-300 text-xs leading-relaxed font-normal">
+              <p className="text-slate-500 text-xs leading-relaxed font-normal">
                 Subscribe to Postfly Pulse for the latest AI prompt updates, social media growth hacks, and product releases.
               </p>
             </div>
@@ -775,12 +784,12 @@ export default function LightSaaSLandingPage() {
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
                   placeholder="Enter your email"
-                  className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs placeholder:text-slate-400 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 transition-all shadow-2xs"
                 />
               </div>
               <button
                 type="submit"
-                className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors shrink-0 shadow-xs"
+                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors shrink-0 shadow-xs cursor-pointer"
               >
                 {subscribed ? "Subscribed! ✓" : "Subscribe"}
               </button>
@@ -792,77 +801,77 @@ export default function LightSaaSLandingPage() {
             
             {/* Column 1: Product */}
             <div className="space-y-3">
-              <h5 className="font-bold text-white uppercase tracking-wider text-[11px]">Product Capabilities</h5>
-              <ul className="space-y-2 font-normal">
-                <li><a href="#features" className="hover:text-indigo-400 transition-colors">Multi-Platform Publisher</a></li>
-                <li><a href="#features" className="hover:text-indigo-400 transition-colors">Visual Content Calendar</a></li>
-                <li><a href="#ai-tools" className="hover:text-indigo-400 transition-colors">AI Caption Generator</a></li>
-                <li><a href="#features" className="hover:text-indigo-400 transition-colors">Social Inbox & DMs</a></li>
-                <li><a href="#features" className="hover:text-indigo-400 transition-colors">Auto-Reply Comment Bot</a></li>
-                <li><a href="#features" className="hover:text-indigo-400 transition-colors">Analytics & Reporting</a></li>
-                <li><a href="#pricing" className="hover:text-indigo-400 transition-colors">Pricing Plans</a></li>
+              <h5 className="font-bold text-slate-950 uppercase tracking-wider text-[11px]">Product Capabilities</h5>
+              <ul className="space-y-2 font-normal text-slate-600">
+                <li><a href="#features" className="hover:text-indigo-600 transition-colors">Multi-Platform Publisher</a></li>
+                <li><a href="#features" className="hover:text-indigo-600 transition-colors">Visual Content Calendar</a></li>
+                <li><a href="#ai-tools" className="hover:text-indigo-600 transition-colors">AI Caption Generator</a></li>
+                <li><a href="#features" className="hover:text-indigo-600 transition-colors">Social Inbox & DMs</a></li>
+                <li><a href="#features" className="hover:text-indigo-600 transition-colors">Auto-Reply Comment Bot</a></li>
+                <li><a href="#features" className="hover:text-indigo-600 transition-colors">Analytics & Reporting</a></li>
+                <li><a href="#pricing" className="hover:text-indigo-600 transition-colors">Pricing Plans</a></li>
               </ul>
             </div>
 
             {/* Column 2: Channels Supported */}
             <div className="space-y-3">
-              <h5 className="font-bold text-white uppercase tracking-wider text-[11px]">Supported Platforms</h5>
-              <ul className="space-y-2 font-normal">
-                <li className="flex items-center gap-2"><PlatformIcon platform="instagram" className="w-3.5 h-3.5" /><a href="#channels" className="hover:text-indigo-400 transition-colors">Instagram Posts & Reels</a></li>
-                <li className="flex items-center gap-2"><PlatformIcon platform="facebook" className="w-3.5 h-3.5" /><a href="#channels" className="hover:text-indigo-400 transition-colors">Facebook Pages & Groups</a></li>
-                <li className="flex items-center gap-2"><PlatformIcon platform="linkedin" className="w-3.5 h-3.5" /><a href="#channels" className="hover:text-indigo-400 transition-colors">LinkedIn Posts & Articles</a></li>
-                <li className="flex items-center gap-2"><PlatformIcon platform="x" className="w-3.5 h-3.5" /><a href="#channels" className="hover:text-indigo-400 transition-colors">Twitter / X Threads</a></li>
-                <li className="flex items-center gap-2"><PlatformIcon platform="youtube" className="w-3.5 h-3.5" /><a href="#channels" className="hover:text-indigo-400 transition-colors">YouTube Shorts & Videos</a></li>
-                <li className="flex items-center gap-2"><PlatformIcon platform="threads" className="w-3.5 h-3.5" /><a href="#channels" className="hover:text-indigo-400 transition-colors">Threads & Pinterest</a></li>
+              <h5 className="font-bold text-slate-950 uppercase tracking-wider text-[11px]">Supported Platforms</h5>
+              <ul className="space-y-2 font-normal text-slate-600">
+                <li className="flex items-center gap-2"><PlatformIcon platform="instagram" className="w-3.5 h-3.5" /><a href="#channels" className="hover:text-indigo-600 transition-colors">Instagram Posts & Reels</a></li>
+                <li className="flex items-center gap-2"><PlatformIcon platform="facebook" className="w-3.5 h-3.5" /><a href="#channels" className="hover:text-indigo-600 transition-colors">Facebook Pages & Groups</a></li>
+                <li className="flex items-center gap-2"><PlatformIcon platform="linkedin" className="w-3.5 h-3.5" /><a href="#channels" className="hover:text-indigo-600 transition-colors">LinkedIn Posts & Articles</a></li>
+                <li className="flex items-center gap-2"><PlatformIcon platform="x" className="w-3.5 h-3.5" /><a href="#channels" className="hover:text-indigo-600 transition-colors">Twitter / X Threads</a></li>
+                <li className="flex items-center gap-2"><PlatformIcon platform="youtube" className="w-3.5 h-3.5" /><a href="#channels" className="hover:text-indigo-600 transition-colors">YouTube Shorts & Videos</a></li>
+                <li className="flex items-center gap-2"><PlatformIcon platform="threads" className="w-3.5 h-3.5" /><a href="#channels" className="hover:text-indigo-600 transition-colors">Threads & Pinterest</a></li>
               </ul>
             </div>
 
             {/* Column 3: Resources & Docs */}
             <div className="space-y-3">
-              <h5 className="font-bold text-white uppercase tracking-wider text-[11px]">Resources & Help</h5>
-              <ul className="space-y-2 font-normal">
-                <li><a href="#" className="hover:text-indigo-400 transition-colors">Help Center & FAQs</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition-colors">API Documentation</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition-colors">Social Growth Playbook</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition-colors">API Status Page</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition-colors">Community Forum</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition-colors">Security & Compliance</a></li>
+              <h5 className="font-bold text-slate-950 uppercase tracking-wider text-[11px]">Resources & Help</h5>
+              <ul className="space-y-2 font-normal text-slate-600">
+                <li><a href="#" className="hover:text-indigo-600 transition-colors">Help Center & FAQs</a></li>
+                <li><a href="#" className="hover:text-indigo-600 transition-colors">API Documentation</a></li>
+                <li><a href="#" className="hover:text-indigo-600 transition-colors">Social Growth Playbook</a></li>
+                <li><a href="#" className="hover:text-indigo-600 transition-colors">API Status Page</a></li>
+                <li><a href="#" className="hover:text-indigo-600 transition-colors">Community Forum</a></li>
+                <li><a href="#" className="hover:text-indigo-600 transition-colors">Security & Compliance</a></li>
               </ul>
             </div>
 
             {/* Column 4: Company & Legal */}
             <div className="space-y-3">
-              <h5 className="font-bold text-white uppercase tracking-wider text-[11px]">Company & Legal</h5>
-              <ul className="space-y-2 font-normal">
-                <li><a href="#" className="hover:text-indigo-400 transition-colors">About Postfly</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition-colors">Contact Support</a></li>
-                <li><Link href="/privacy" className="hover:text-indigo-400 transition-colors">Privacy Policy</Link></li>
-                <li><Link href="/terms" className="hover:text-indigo-400 transition-colors">Terms of Service</Link></li>
-                <li><a href="#" className="hover:text-indigo-400 transition-colors">Refund & Cancellation Policy</a></li>
+              <h5 className="font-bold text-slate-950 uppercase tracking-wider text-[11px]">Company & Legal</h5>
+              <ul className="space-y-2 font-normal text-slate-600">
+                <li><a href="#" className="hover:text-indigo-600 transition-colors">About Postfly</a></li>
+                <li><a href="#" className="hover:text-indigo-600 transition-colors">Contact Support</a></li>
+                <li><Link href="/privacy" className="hover:text-indigo-600 transition-colors">Privacy Policy</Link></li>
+                <li><Link href="/terms" className="hover:text-indigo-600 transition-colors">Terms of Service</Link></li>
+                <li><a href="#" className="hover:text-indigo-600 transition-colors">Refund & Cancellation Policy</a></li>
               </ul>
             </div>
 
           </div>
 
           {/* Social Platform Badges Bar */}
-          <div className="pt-6 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4">
+          <div className="pt-6 border-t border-slate-200 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-2">Connect:</span>
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-2">Connect:</span>
               {["Instagram", "Facebook", "LinkedIn", "YouTube", "Twitter", "Threads", "Pinterest"].map((plat) => (
-                <span key={plat} className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer">
+                <span key={plat} className="p-1.5 rounded-lg bg-slate-100 hover:bg-indigo-50 border border-slate-200 text-slate-600 hover:text-indigo-600 transition-all cursor-pointer">
                   <PlatformIcon platform={plat} className="w-4 h-4" />
                 </span>
               ))}
             </div>
             
-            <div className="flex items-center gap-2 text-slate-400 font-semibold text-[11px]">
-              <span className="px-2.5 py-1 rounded-md bg-slate-800 border border-slate-700/60">🇮🇳 INR ₹ (India)</span>
-              <span className="px-2.5 py-1 rounded-md bg-slate-800 border border-slate-700/60">🔒 SSL Encrypted</span>
+            <div className="flex items-center gap-2 text-slate-600 font-semibold text-[11px]">
+              <span className="px-2.5 py-1 rounded-md bg-slate-100 border border-slate-200">🇮🇳 INR ₹ (India)</span>
+              <span className="px-2.5 py-1 rounded-md bg-slate-100 border border-slate-200">🔒 SSL Encrypted</span>
             </div>
           </div>
 
           {/* Bottom Copyright */}
-          <div className="pt-6 border-t border-slate-800/60 flex flex-col sm:flex-row justify-between items-center gap-3 text-slate-500 text-[11px]">
+          <div className="pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row justify-between items-center gap-3 text-slate-500 text-[11px]">
             <span>© 2026 Postfly Inc. All rights reserved.</span>
             <span>Empowering creators & businesses worldwide with AI social automation.</span>
           </div>

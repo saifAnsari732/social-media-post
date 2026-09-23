@@ -52,22 +52,28 @@ function TrialCountdownPill({ user }) {
   return (
     <Link
       href="/billing"
-      className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100/90 text-rose-700 border border-rose-300/90 font-bold text-xs shadow-xs transition-all no-underline group cursor-pointer"
+      className="inline-flex items-center gap-2.5 px-3.5 sm:px-4 py-1.5 rounded-full bg-gradient-to-r from-rose-50 via-amber-50/50 to-rose-50 hover:from-rose-100 hover:to-rose-100 text-rose-800 border-2 border-rose-300 shadow-xs transition-all no-underline group cursor-pointer"
       title="Trial Countdown Timer. Click to view subscription plans."
     >
-      <span className="relative flex h-2.5 w-2.5">
+      <span className="relative flex h-3 w-3 shrink-0">
         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-80"></span>
-        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600"></span>
+        <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-600"></span>
       </span>
-      <Clock className="w-3.5 h-3.5 text-rose-600 group-hover:rotate-12 transition-transform shrink-0" />
-      <span className="text-[11.5px] text-slate-700 font-semibold">
+      <Clock className="w-4 h-4 text-rose-600 group-hover:rotate-12 transition-transform shrink-0" />
+      <span className="text-xs text-slate-800 font-bold whitespace-nowrap">
         Trial Expires in:
       </span>
-      <span className="font-extrabold text-rose-700 font-mono text-xs tracking-tight bg-rose-100/80 px-2 py-0.5 rounded-md border border-rose-200">
-        {timeLeft.days}d {String(timeLeft.hours).padStart(2, '0')}h {String(timeLeft.minutes).padStart(2, '0')}m {String(timeLeft.seconds).padStart(2, '0')}s
+      <span className="font-mono font-black text-sm tracking-wide bg-white px-2.5 py-0.5 rounded-lg border border-rose-300 shadow-2xs inline-flex items-center gap-1">
+        <span className="text-rose-700 font-black">{timeLeft.days}d</span>
+        <span className="text-slate-400">:</span>
+        <span className="text-rose-700 font-black">{String(timeLeft.hours).padStart(2, '0')}h</span>
+        <span className="text-slate-400">:</span>
+        <span className="text-rose-700 font-black">{String(timeLeft.minutes).padStart(2, '0')}m</span>
+        <span className="text-slate-400">:</span>
+        <span className="text-red-600 font-black animate-pulse">{String(timeLeft.seconds).padStart(2, '0')}s</span>
       </span>
-      <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-600 group-hover:bg-rose-700 text-white text-[10.5px] font-extrabold transition-colors">
-        Upgrade <ArrowRight className="w-3 h-3" />
+      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-rose-600 to-red-600 group-hover:from-rose-700 group-hover:to-red-700 text-white text-xs font-black shadow-xs transition-all">
+        Upgrade <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
       </span>
     </Link>
   );

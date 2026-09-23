@@ -11,7 +11,6 @@ import {
   Heart, 
   CheckCircle2, 
   Calendar,
-  Sparkles,
   ArrowUpRight,
   RefreshCw,
   Globe,

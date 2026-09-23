@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
-  Sparkles, 
   Send, 
   Calendar, 
   Clock, 
@@ -306,8 +305,8 @@ export default function PublisherPage() {
           <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-50/70 via-indigo-50/30 to-violet-50/50 border border-indigo-100/90 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-bold text-indigo-900">
-                <Sparkles className="w-4 h-4 text-indigo-600" />
-                <span>Gemini AI Copilot</span>
+                <Zap className="w-4 h-4 text-indigo-600" />
+                <span>Smart Caption Assistant</span>
               </div>
               <span className="text-[10px] font-semibold text-indigo-600 uppercase tracking-wider bg-white px-2 py-0.5 rounded-full border border-indigo-100">
                 Fast Generation

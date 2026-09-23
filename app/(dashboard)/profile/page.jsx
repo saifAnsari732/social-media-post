@@ -15,7 +15,7 @@ import {
   KeyRound, 
   CreditCard,
   ArrowRight,
-  Sparkles,
+  Share2,
   Edit3
 } from "lucide-react";
 import Link from "next/link";
@@ -174,7 +174,7 @@ export default function ProfilePage() {
                 Connected Channels
               </span>
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-indigo-600" />
+                <Share2 className="w-4 h-4 text-indigo-600" />
                 <span className="text-sm font-bold text-slate-900">{connectedCount} Channels Linked</span>
               </div>
             </div>

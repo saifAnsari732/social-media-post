@@ -15,7 +15,6 @@ import {
   Clock,
   Layers,
   FileText,
-  Sparkles,
   RefreshCw,
   ExternalLink,
   ArrowRight

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FileCode, Sparkles, ArrowRight, Check } from "lucide-react";
+import { FileCode, ArrowRight, Check } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function TemplatesPage() {

@@ -139,8 +139,8 @@ export default function Sidebar() {
         {/* Header & Logo */}
         <div className="p-4 border-b border-slate-200/80 flex items-center justify-between bg-white">
           <Link href="/dashboard" className="flex items-center gap-3 no-underline overflow-hidden group">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-600/30 group-hover:scale-105 transition-transform">
-              <Layers className="h-5 w-5 stroke-[2.5]" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-200/90 p-1 shadow-xs group-hover:scale-105 transition-transform overflow-hidden">
+              <img src="/postflyLOGO.png" alt="Postfly" className="w-full h-full object-contain" />
             </div>
             {!collapsed && (
               <div className="flex flex-col">

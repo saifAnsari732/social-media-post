@@ -13,7 +13,6 @@ import {
   Eye,
   CalendarCheck2,
   CalendarDays,
-  Sparkles,
   ExternalLink
 } from "lucide-react";
 import Link from "next/link";
