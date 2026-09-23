@@ -10,7 +10,6 @@ import {
   Send, 
   Zap, 
   BarChart3, 
-  Sparkles,
   CheckCircle2,
   Clock,
   MoreVertical,
@@ -36,7 +35,20 @@ import {
   UserPlus,
   X,
   Percent,
-  Megaphone
+  Megaphone,
+  CreditCard,
+  Filter,
+  Download,
+  FileText,
+  AlertTriangle,
+  Info,
+  Bell,
+  Globe,
+  Shield,
+  UserCheck,
+  UserX,
+  Hash,
+  Receipt
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { PlatformIcon } from "@/components/ui/SocialIcons";
@@ -74,6 +86,7 @@ export default function DashboardPage() {
   // Today's Live Logs State
   const [todayLogs, setTodayLogs] = useState([]);
   const [logsLoading, setLogsLoading] = useState(false);
+  const [logFilter, setLogFilter] = useState("ALL");
 
   // System Announcement State
   const [systemSettings, setSystemSettings] = useState({
@@ -107,6 +120,20 @@ export default function DashboardPage() {
     user?.role === 'admin' || 
     (user?.email && (user.email.includes("ansari") || user.email.includes("saif") || user.email.includes("admin")))
   );
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlTab = params.get("tab");
+      if (urlTab) {
+        if (urlTab === "coupons") setAdminActiveTab("coupons");
+        else if (urlTab === "subscriptions" || urlTab === "revenue") setAdminActiveTab("revenue");
+        else if (urlTab === "tenants" || urlTab === "users") setAdminActiveTab("tenants");
+        else if (urlTab === "audit" || urlTab === "today-logs" || urlTab === "logs") setAdminActiveTab("today-logs");
+        else if (urlTab === "broadcast" || urlTab === "announcement") setAdminActiveTab("broadcast");
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const activeUser = getStoredUser();
@@ -571,7 +598,7 @@ export default function DashboardPage() {
                   <DollarSign className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-black text-slate-950 tracking-tight">₹4,997</div>
+              <div className="text-2xl font-black text-slate-950 tracking-tight">₹{adminInvoices.reduce((sum, inv) => sum + (inv.amountPaid || 0), 0).toLocaleString("en-IN")}</div>
             </div>
             <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 text-[11px] text-emerald-600 font-bold">
               <TrendingUp className="w-3.5 h-3.5" /> +28% MoM Growth
@@ -588,7 +615,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="text-2xl font-black text-slate-950 tracking-tight">
-                {adminStats.totalUsers || adminUsers.length || 4}
+                {adminStats.totalUsers || adminUsers.length}
               </div>
             </div>
             <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 text-[11px] text-indigo-600 font-bold">
@@ -606,7 +633,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="text-2xl font-black text-slate-950 tracking-tight">
-                {adminStats.totalAccounts || 12}
+                {adminStats.totalAccounts || 0}
               </div>
             </div>
             <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 text-[11px] text-blue-600 font-bold">
@@ -624,7 +651,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="text-2xl font-black text-slate-950 tracking-tight">
-                {adminStats.totalPosts || 128}
+                {adminStats.totalPosts || 0}
               </div>
             </div>
             <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 text-[11px] text-slate-500 font-medium">
@@ -642,7 +669,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="text-2xl font-black text-slate-950 tracking-tight">
-                {adminCoupons.length || 3}
+                {adminCoupons.filter(c => c.status === "active").length}
               </div>
             </div>
             <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 text-[11px] text-amber-600 font-bold">
@@ -652,7 +679,7 @@ export default function DashboardPage() {
 
         </div>
 
-        {/* FEATURED: Today's Real-Time Activities Section */}
+        {/* FEATURED: Real-Time Activities Section */}
         <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-3.5">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2.5">
@@ -661,91 +688,173 @@ export default function DashboardPage() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-slate-950 flex items-center gap-2">
-                  <span>Today's Live Platform Activities & Audit Feed</span>
+                  <span>Live Platform Activity Feed</span>
                 </h3>
-                <p className="text-xs text-slate-500">Real-time purchase invoices, coupon applications, auth sessions, and cron tasks happening today</p>
+                <p className="text-xs text-slate-500">Real-time system events from MongoDB audit collection</p>
               </div>
             </div>
 
-            <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold inline-flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Live Telemetry Active</span>
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { loadAdminData(user?.userId); toast.success("Activity feed refreshed!"); }}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer transition-all"
+              >
+                <RefreshCw className={`w-3 h-3 ${isAdminLoading ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
+              </button>
+              <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold inline-flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Live</span>
+              </span>
+            </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider text-[10.5px] border-b border-slate-200">
-                  <th className="py-3 px-4">Time</th>
-                  <th className="py-3 px-4">Event Type</th>
-                  <th className="py-3 px-4">Description / Details</th>
-                  <th className="py-3 px-4">Actor / System</th>
-                  <th className="py-3 px-4 text-right">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                {[
-                  { time: "Today, 10:04 AM", type: "PAYMENT", desc: "Rahul Sharma purchased Growth Plan (₹1,599) via Razorpay", actor: "Razorpay Live Gateway", status: "VERIFIED ✓" },
-                  { time: "Today, 09:45 AM", type: "COUPON", desc: "Coupon 'WELCOME50' validated for subscription checkout", actor: "Billing Checkout", status: "VALID" },
-                  { time: "Today, 08:30 AM", type: "AUTH", desc: "Superadmin authentication token verified for Saifuddin Ansari", actor: "Saifuddin Ansari", status: "AUTHORIZED" },
-                  { time: "Today, 07:00 AM", type: "CRON", desc: "Multi-tenant post queue executed for 12 social channels — 0 errors", actor: "Post Scheduler Worker", status: "SUCCESS" },
-                  { time: "Yesterday, 14:20 PM", type: "TENANT", desc: "Brooklyn Simmons connected Instagram & Facebook accounts", actor: "Brooklyn Simmons", status: "CONNECTED" }
-                ].map((act, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="py-2.5 px-4 font-mono text-[11px] text-slate-500 whitespace-nowrap">{act.time}</td>
-                    <td className="py-2.5 px-4">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                        act.type === "PAYMENT" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                        act.type === "COUPON" ? "bg-amber-50 text-amber-700 border-amber-200" :
-                        act.type === "AUTH" ? "bg-purple-50 text-purple-700 border-purple-200" :
-                        "bg-indigo-50 text-indigo-700 border-indigo-200"
-                      }`}>
-                        {act.type}
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-4 font-semibold text-slate-900">{act.desc}</td>
-                    <td className="py-2.5 px-4 text-slate-500">{act.actor}</td>
-                    <td className="py-2.5 px-4 text-right">
-                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10.5px] font-bold border border-emerald-200">
-                        {act.status}
-                      </span>
-                    </td>
+          {todayLogs.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider text-[10.5px] border-b border-slate-200">
+                    <th className="py-3 px-4">Time</th>
+                    <th className="py-3 px-4">Event Type</th>
+                    <th className="py-3 px-4">Description / Details</th>
+                    <th className="py-3 px-4">Actor / System</th>
+                    <th className="py-3 px-4 text-right">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                  {todayLogs.slice(0, 5).map((log, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="py-2.5 px-4 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                        {new Date(log.timestamp || log.createdAt || Date.now()).toLocaleString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </td>
+                      <td className="py-2.5 px-4">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                          (log.type || "").includes("AUTH") ? "bg-purple-50 text-purple-700 border-purple-200" :
+                          (log.type || "").includes("PAYMENT") ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                          (log.type || "").includes("COUPON") ? "bg-amber-50 text-amber-700 border-amber-200" :
+                          (log.type || "").includes("TENANT") ? "bg-blue-50 text-blue-700 border-blue-200" :
+                          "bg-indigo-50 text-indigo-700 border-indigo-200"
+                        }`}>
+                          {log.type || "SYSTEM"}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-4 font-semibold text-slate-900 max-w-xs truncate">{log.message || log.desc || "System event"}</td>
+                      <td className="py-2.5 px-4 text-slate-500">{log.source || log.actor || "System"}</td>
+                      <td className="py-2.5 px-4 text-right">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border ${
+                          log.level === "error" ? "bg-rose-50 text-rose-700 border-rose-200" :
+                          log.level === "warn" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                          "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        }`}>
+                          {log.level === "error" ? "ERROR" : log.level === "warn" ? "WARNING" : "OK ✓"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="py-10 text-center">
+              <Activity className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-slate-500">No activity recorded yet</p>
+              <p className="text-xs text-slate-400 mt-1">System events like logins, payments, and admin actions will appear here in real-time</p>
+            </div>
+          )}
         </div>
 
-        {/* Tab Switcher - Clean Indigo/White styling, NO BLACK */}
-        <div className="flex items-center gap-2 border-b border-slate-200 pb-3 overflow-x-auto">
+        {/* Tab Switcher - Professional Card Buttons */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {[
-            { id: "tenants", label: "👥 All Tenants & Controls" },
-            { id: "revenue", label: "💳 Subscriptions & Tax Invoices" },
-            { id: "coupons", label: "🏷️ Discount Coupons" },
-            { id: "today-logs", label: "📜 Operational Audit Trail" },
-            { id: "broadcast", label: "📢 Global Announcement" }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setAdminActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                adminActiveTab === tab.id
-                  ? "bg-indigo-600 text-white shadow-xs shadow-indigo-600/20"
-                  : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+            { id: "tenants", label: "All Tenants & Controls", icon: Users, color: "indigo", count: adminUsers.length, badge: "registered" },
+            { id: "revenue", label: "Subscriptions & Invoices", icon: CreditCard, color: "emerald", count: adminInvoices.length, badge: "transactions" },
+            { id: "coupons", label: "Discount Coupons", icon: Tag, color: "amber", count: adminCoupons.length, badge: "active" },
+            { id: "today-logs", label: "Audit Trail", icon: Activity, color: "purple", count: todayLogs.length, badge: "events" },
+            { id: "broadcast", label: "Announcement", icon: Megaphone, color: "rose", count: null, badge: systemSettings?.announcement?.enabled ? "ON" : "OFF" }
+          ].map(tab => {
+            const isActive = adminActiveTab === tab.id;
+            const colorMap = {
+              indigo: { activeBg: "bg-indigo-600", activeRing: "ring-indigo-200", iconBg: "bg-indigo-100 text-indigo-600", badgeBg: "bg-indigo-100 text-indigo-700" },
+              emerald: { activeBg: "bg-emerald-600", activeRing: "ring-emerald-200", iconBg: "bg-emerald-100 text-emerald-600", badgeBg: "bg-emerald-100 text-emerald-700" },
+              amber: { activeBg: "bg-amber-500", activeRing: "ring-amber-200", iconBg: "bg-amber-100 text-amber-600", badgeBg: "bg-amber-100 text-amber-700" },
+              purple: { activeBg: "bg-purple-600", activeRing: "ring-purple-200", iconBg: "bg-purple-100 text-purple-600", badgeBg: "bg-purple-100 text-purple-700" },
+              rose: { activeBg: "bg-rose-600", activeRing: "ring-rose-200", iconBg: "bg-rose-100 text-rose-600", badgeBg: "bg-rose-100 text-rose-700" }
+            };
+            const c = colorMap[tab.color];
+            const TabIcon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setAdminActiveTab(tab.id)}
+                className={`relative flex flex-col items-start gap-2.5 p-4 rounded-2xl text-left transition-all cursor-pointer border ${
+                  isActive
+                    ? `${c.activeBg} text-white shadow-lg ring-4 ${c.activeRing} border-transparent`
+                    : "bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:shadow-sm shadow-2xs"
+                }`}
+              >
+                <div className="flex items-center justify-between w-full">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isActive ? "bg-white/20" : c.iconBg}`}>
+                    <TabIcon className="w-4.5 h-4.5" />
+                  </div>
+                  {tab.count !== null && (
+                    <span className={`text-lg font-black ${isActive ? "text-white" : "text-slate-900"}`}>
+                      {tab.count}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <span className={`text-xs font-bold block leading-tight ${isActive ? "text-white" : "text-slate-800"}`}>
+                    {tab.label}
+                  </span>
+                  <span className={`text-[10px] font-semibold mt-0.5 block ${isActive ? "text-white/70" : "text-slate-400"}`}>
+                    {tab.count !== null ? `${tab.count} ${tab.badge}` : tab.badge}
+                  </span>
+                </div>
+                {isActive && (
+                  <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-white/60 animate-pulse" />
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* TAB 1: Tenants & Advanced Control Controls */}
         {adminActiveTab === "tenants" && (
-          <div className="space-y-4">
+          <div className="space-y-5">
+            {/* Tenant Stats Summary */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
+                <div className="flex items-center gap-2 mb-1">
+                  <Users className="w-4 h-4 text-indigo-600" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Tenants</span>
+                </div>
+                <span className="text-xl font-black text-slate-950">{adminUsers.length}</span>
+              </div>
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
+                <div className="flex items-center gap-2 mb-1">
+                  <UserCheck className="w-4 h-4 text-emerald-600" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Active</span>
+                </div>
+                <span className="text-xl font-black text-emerald-700">{adminUsers.filter(u => u.status === "Active").length}</span>
+              </div>
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
+                <div className="flex items-center gap-2 mb-1">
+                  <UserX className="w-4 h-4 text-rose-600" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Suspended</span>
+                </div>
+                <span className="text-xl font-black text-rose-700">{adminUsers.filter(u => u.status === "Suspended").length}</span>
+              </div>
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
+                <div className="flex items-center gap-2 mb-1">
+                  <Clock className="w-4 h-4 text-amber-600" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">On Trial</span>
+                </div>
+                <span className="text-xl font-black text-amber-700">{adminUsers.filter(u => (u.plan || "").includes("Trial")).length}</span>
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2 bg-white border border-slate-200 px-3.5 py-2 rounded-xl text-xs max-w-sm w-full shadow-2xs">
+              <div className="flex items-center gap-2 bg-white border border-slate-200 px-3.5 py-2.5 rounded-xl text-xs max-w-sm w-full shadow-2xs">
                 <Search className="w-4 h-4 text-slate-400 shrink-0" />
                 <input
                   type="text"
@@ -756,13 +865,28 @@ export default function DashboardPage() {
                 />
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5">
                 <span className="text-xs font-semibold text-slate-500">
-                  Total {filteredAdminUsers.length} Tenants Registered
+                  {filteredAdminUsers.length} of {adminUsers.length} tenants
                 </span>
                 <button
+                  onClick={() => {
+                    const csv = ["Name,Email,Plan,Status,Channels,Posts"].concat(
+                      adminUsers.map(u => `"${u.name}","${u.email}","${u.plan}","${u.status}",${u.accounts || 0},${u.posts || 0}`)
+                    ).join("\n");
+                    const blob = new Blob([csv], { type: "text/csv" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a"); a.href = url; a.download = "tenants_export.csv"; a.click();
+                    toast.success("Tenant list exported as CSV!");
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 cursor-pointer shadow-2xs transition-all"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Export CSV</span>
+                </button>
+                <button
                   onClick={() => setIsAddUserOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-2xs cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-2xs cursor-pointer transition-all"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add Tenant</span>
@@ -898,123 +1022,144 @@ export default function DashboardPage() {
 
         {/* TAB 2: Subscriptions & Tax Invoices (WITH TAX INVOICE RECEIPT MODAL) */}
         {adminActiveTab === "revenue" && (
-          <div className="space-y-4">
+          <div className="space-y-5">
+            {/* Revenue Analytics Metric Strip */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
+                <div className="flex items-center gap-2 mb-1">
+                  <DollarSign className="w-4 h-4 text-emerald-600" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Revenue</span>
+                </div>
+                <span className="text-xl font-black text-slate-950">
+                  ₹{adminInvoices.reduce((sum, inv) => sum + (inv.amountPaid || 0), 0).toLocaleString("en-IN")}
+                </span>
+              </div>
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
+                <div className="flex items-center gap-2 mb-1">
+                  <Receipt className="w-4 h-4 text-indigo-600" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Paid Invoices</span>
+                </div>
+                <span className="text-xl font-black text-indigo-700">{adminInvoices.length}</span>
+              </div>
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
+                <div className="flex items-center gap-2 mb-1">
+                  <Percent className="w-4 h-4 text-amber-600" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Discounts</span>
+                </div>
+                <span className="text-xl font-black text-amber-700">
+                  ₹{adminInvoices.reduce((sum, inv) => sum + (inv.discountAmount || 0), 0).toLocaleString("en-IN")}
+                </span>
+              </div>
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
+                <div className="flex items-center gap-2 mb-1">
+                  <TrendingUp className="w-4 h-4 text-blue-600" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Avg Transaction</span>
+                </div>
+                <span className="text-xl font-black text-blue-700">
+                  ₹{adminInvoices.length > 0 ? Math.round(adminInvoices.reduce((sum, inv) => sum + (inv.amountPaid || 0), 0) / adminInvoices.length).toLocaleString("en-IN") : 0}
+                </span>
+              </div>
+            </div>
+
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
                 <div>
                   <h3 className="text-base font-bold text-slate-950 flex items-center gap-2">
                     <CreditCard className="w-4 h-4 text-indigo-600" />
-                    <span>Live Razorpay Subscription Transactions & Tax Invoices</span>
+                    <span>Live Subscription Transactions & Tax Invoices</span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">Verified subscriber purchases with breakdown of original price, coupon discounts, net total, and downloadable tax invoices</p>
                 </div>
-                <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
-                  Razorpay Live Gateway Active 🟢
-                </span>
+                <div className="flex items-center gap-2.5">
+                  <button
+                    onClick={() => {
+                      if (adminInvoices.length === 0) {
+                        toast.error("No invoices available to export yet");
+                        return;
+                      }
+                      const csv = ["Invoice ID,Subscriber,Email,Plan,Subtotal,Discount,Amount Paid,Payment ID,Date,Status"].concat(
+                        adminInvoices.map(inv => `"${inv.invoiceId || ''}","${inv.userName || ''}","${inv.userEmail || ''}","${inv.planName || ''}",${inv.originalAmount || 0},${inv.discountAmount || 0},${inv.amountPaid || 0},"${inv.paymentId || ''}","${new Date(inv.createdAt || Date.now()).toLocaleDateString('en-IN')}","${inv.status || 'PAID'}"`)
+                      ).join("\n");
+                      const blob = new Blob([csv], { type: "text/csv" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a"); a.href = url; a.download = "invoices_ledger_export.csv"; a.click();
+                      toast.success("Invoices ledger exported as CSV!");
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 cursor-pointer shadow-2xs transition-all"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export Ledger</span>
+                  </button>
+                  <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold inline-flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Payment Gateway Active</span>
+                  </span>
+                </div>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider text-[10.5px] border-b border-slate-200">
-                      <th className="p-3.5">Invoice ID</th>
-                      <th className="p-3.5">Subscriber</th>
-                      <th className="p-3.5">Plan</th>
-                      <th className="p-3.5">Subtotal</th>
-                      <th className="p-3.5">Discount</th>
-                      <th className="p-3.5">Amount Paid</th>
-                      <th className="p-3.5">Payment ID</th>
-                      <th className="p-3.5">Date</th>
-                      <th className="p-3.5 text-right">Invoice Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                    {(adminInvoices.length > 0 ? adminInvoices : [
-                      {
-                        invoiceId: "INV-2026-092301",
-                        userName: "Rahul Sharma",
-                        userEmail: "rahul.s@business.in",
-                        planName: "Growth Plan",
-                        originalAmount: 1999,
-                        discountAmount: 400,
-                        amountPaid: 1599,
-                        couponCode: "POSTFLY20",
-                        paymentId: "pay_N18742_live",
-                        orderId: "order_PO9821",
-                        paymentMethod: "Razorpay (UPI / NetBanking)",
-                        status: "PAID",
-                        createdAt: "2026-09-23T08:50:00.000Z",
-                        billingAddress: "Mumbai, Maharashtra, India"
-                      },
-                      {
-                        invoiceId: "INV-2026-092002",
-                        userName: "Saifuddin Ansari",
-                        userEmail: "ansarisaifuddin732@gmail.com",
-                        planName: "Pro Unlimited Plan",
-                        originalAmount: 3999,
-                        discountAmount: 2000,
-                        amountPaid: 1999,
-                        couponCode: "WELCOME50",
-                        paymentId: "pay_N18720_live",
-                        orderId: "order_PO9810",
-                        paymentMethod: "Razorpay (Credit Card)",
-                        status: "PAID",
-                        createdAt: "2026-09-20T14:30:00.000Z",
-                        billingAddress: "Indore, MP, India"
-                      },
-                      {
-                        invoiceId: "INV-2026-091803",
-                        userName: "Brooklyn Simmons",
-                        userEmail: "brook.sim@example.com",
-                        planName: "Starter Plan",
-                        originalAmount: 999,
-                        discountAmount: 0,
-                        amountPaid: 999,
-                        couponCode: "None",
-                        paymentId: "pay_N18695_live",
-                        orderId: "order_PO9790",
-                        paymentMethod: "Razorpay (Debit Card)",
-                        status: "PAID",
-                        createdAt: "2026-09-18T10:15:00.000Z",
-                        billingAddress: "Delhi, India"
-                      }
-                    ]).map((item, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="p-3.5 font-mono font-bold text-indigo-700 text-[11px]">{item.invoiceId || `INV-2026-${idx+1}`}</td>
-                        <td className="p-3.5">
-                          <div>
-                            <span className="font-bold text-slate-950 block">{item.userName || item.user}</span>
-                            <span className="text-[10.5px] text-slate-500 block">{item.userEmail || "user@example.com"}</span>
-                          </div>
-                        </td>
-                        <td className="p-3.5 font-semibold text-indigo-600">{item.planName || item.plan}</td>
-                        <td className="p-3.5 text-slate-500 line-through font-medium">₹{item.originalAmount || item.amount || 1999}</td>
-                        <td className="p-3.5">
-                          {item.discountAmount > 0 ? (
-                            <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 text-[10.5px] font-bold border border-amber-200">
-                              -{item.couponCode ? item.couponCode : 'Coupon'} (₹{item.discountAmount})
-                            </span>
-                          ) : (
-                            <span className="text-slate-400 text-[11px]">—</span>
-                          )}
-                        </td>
-                        <td className="p-3.5 font-black text-slate-950">₹{item.amountPaid || item.amount || 1599}</td>
-                        <td className="p-3.5 font-mono text-[11px] text-slate-500">{item.paymentId || item.payId}</td>
-                        <td className="p-3.5 text-slate-500 text-[11px]">{new Date(item.createdAt || Date.now()).toLocaleDateString("en-IN")}</td>
-                        <td className="p-3.5 text-right">
-                          <button
-                            onClick={() => setSelectedInvoice(item)}
-                            className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-2xs transition-all cursor-pointer inline-flex items-center gap-1.5"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>View Tax Invoice</span>
-                          </button>
-                        </td>
+              {adminInvoices.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider text-[10.5px] border-b border-slate-200">
+                        <th className="p-3.5">Invoice ID</th>
+                        <th className="p-3.5">Subscriber</th>
+                        <th className="p-3.5">Plan</th>
+                        <th className="p-3.5">Subtotal</th>
+                        <th className="p-3.5">Discount</th>
+                        <th className="p-3.5">Amount Paid</th>
+                        <th className="p-3.5">Payment ID</th>
+                        <th className="p-3.5">Date</th>
+                        <th className="p-3.5 text-right">Invoice Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                      {adminInvoices.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="p-3.5 font-mono font-bold text-indigo-700 text-[11px]">{item.invoiceId || `INV-2026-${idx+1}`}</td>
+                          <td className="p-3.5">
+                            <div>
+                              <span className="font-bold text-slate-950 block">{item.userName || item.user}</span>
+                              <span className="text-[10.5px] text-slate-500 block">{item.userEmail || "user@example.com"}</span>
+                            </div>
+                          </td>
+                          <td className="p-3.5 font-semibold text-indigo-600">{item.planName || item.plan}</td>
+                          <td className="p-3.5 text-slate-500 line-through font-medium">₹{item.originalAmount || item.amount || 0}</td>
+                          <td className="p-3.5">
+                            {item.discountAmount > 0 ? (
+                              <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 text-[10.5px] font-bold border border-amber-200">
+                                -{item.couponCode ? item.couponCode : 'Coupon'} (₹{item.discountAmount})
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 text-[11px]">—</span>
+                            )}
+                          </td>
+                          <td className="p-3.5 font-black text-slate-950">₹{item.amountPaid || item.amount || 0}</td>
+                          <td className="p-3.5 font-mono text-[11px] text-slate-500">{item.paymentId || item.payId || "—"}</td>
+                          <td className="p-3.5 text-slate-500 text-[11px]">{new Date(item.createdAt || Date.now()).toLocaleDateString("en-IN")}</td>
+                          <td className="p-3.5 text-right">
+                            <button
+                              onClick={() => setSelectedInvoice(item)}
+                              className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-2xs transition-all cursor-pointer inline-flex items-center gap-1.5"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>View Tax Invoice</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="py-12 text-center">
+                  <CreditCard className="w-9 h-9 text-slate-300 mx-auto mb-2.5" />
+                  <p className="text-sm font-bold text-slate-700">No subscription transactions recorded yet</p>
+                  <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                    When tenants upgrade their subscriptions through the billing checkout, their itemized payment records and downloadable tax invoices will appear here in real time.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1022,6 +1167,42 @@ export default function DashboardPage() {
         {/* TAB 3: Discount Coupons Management */}
         {adminActiveTab === "coupons" && (
           <div className="space-y-5">
+            {/* Coupon Analytics Metric Strip */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
+                <div className="flex items-center gap-2 mb-1">
+                  <Tag className="w-4 h-4 text-amber-600" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Coupons</span>
+                </div>
+                <span className="text-xl font-black text-slate-950">{adminCoupons.length}</span>
+              </div>
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
+                <div className="flex items-center gap-2 mb-1">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Active Codes</span>
+                </div>
+                <span className="text-xl font-black text-emerald-700">{adminCoupons.filter(c => c.status === "active").length}</span>
+              </div>
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
+                <div className="flex items-center gap-2 mb-1">
+                  <TrendingUp className="w-4 h-4 text-indigo-600" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Times Redeemed</span>
+                </div>
+                <span className="text-xl font-black text-indigo-700">
+                  {adminCoupons.reduce((sum, c) => sum + (c.usedCount || 0), 0)}
+                </span>
+              </div>
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
+                <div className="flex items-center gap-2 mb-1">
+                  <Layers className="w-4 h-4 text-blue-600" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Redemptions Left</span>
+                </div>
+                <span className="text-xl font-black text-blue-700">
+                  {adminCoupons.reduce((sum, c) => sum + Math.max(0, (c.maxUses || 100) - (c.usedCount || 0)), 0)}
+                </span>
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
               <div>
                 <h3 className="text-base font-bold text-slate-950 flex items-center gap-2">
@@ -1033,13 +1214,34 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <button
-                onClick={() => setIsAddCouponOpen(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs shadow-indigo-600/20 transition-all cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Create New Coupon</span>
-              </button>
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={() => {
+                    if (adminCoupons.length === 0) {
+                      toast.error("No coupons to export");
+                      return;
+                    }
+                    const csv = ["Code,Type,Value,Description,Min Amount,Used Count,Max Uses,Status"].concat(
+                      adminCoupons.map(c => `"${c.code}","${c.type}",${c.value},"${c.description || ''}",${c.minAmount || 0},${c.usedCount || 0},${c.maxUses || 100},"${c.status}"`)
+                    ).join("\n");
+                    const blob = new Blob([csv], { type: "text/csv" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a"); a.href = url; a.download = "coupons_export.csv"; a.click();
+                    toast.success("Coupons list exported as CSV!");
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 cursor-pointer shadow-2xs transition-all"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Export CSV</span>
+                </button>
+                <button
+                  onClick={() => setIsAddCouponOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs shadow-indigo-600/20 transition-all cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Create New Coupon</span>
+                </button>
+              </div>
             </div>
 
             <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
@@ -1059,8 +1261,10 @@ export default function DashboardPage() {
                   <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                     {adminCoupons.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="py-8 text-center text-slate-500">
-                          No coupons found. Click "Create New Coupon" to generate one.
+                        <td colSpan={7} className="py-12 text-center text-slate-500">
+                          <Tag className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                          <p className="text-sm font-bold text-slate-700">No promo coupons created yet</p>
+                          <p className="text-xs text-slate-400 mt-1">Click "Create New Coupon" to generate your first discount code for subscribers.</p>
                         </td>
                       </tr>
                     ) : (
@@ -1131,11 +1335,49 @@ export default function DashboardPage() {
 
         {/* TAB 4: Operational Audit Trail */}
         {adminActiveTab === "today-logs" && (
-          <div className="space-y-4">
+          <div className="space-y-5">
+            {/* Audit Trail KPI Metrics */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
+                <div className="flex items-center gap-2 mb-1">
+                  <Activity className="w-4 h-4 text-purple-600" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Telemetry</span>
+                </div>
+                <span className="text-xl font-black text-slate-950">{todayLogs.length}</span>
+              </div>
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
+                <div className="flex items-center gap-2 mb-1">
+                  <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Auth Events</span>
+                </div>
+                <span className="text-xl font-black text-indigo-700">
+                  {todayLogs.filter(l => (l.type || '').toUpperCase().includes('AUTH')).length}
+                </span>
+              </div>
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
+                <div className="flex items-center gap-2 mb-1">
+                  <CreditCard className="w-4 h-4 text-emerald-600" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Payment Events</span>
+                </div>
+                <span className="text-xl font-black text-emerald-700">
+                  {todayLogs.filter(l => (l.type || '').toUpperCase().includes('PAYMENT')).length}
+                </span>
+              </div>
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
+                <div className="flex items-center gap-2 mb-1">
+                  <Users className="w-4 h-4 text-blue-600" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tenant Changes</span>
+                </div>
+                <span className="text-xl font-black text-blue-700">
+                  {todayLogs.filter(l => (l.type || '').toUpperCase().includes('TENANT')).length}
+                </span>
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
               <div>
                 <h3 className="text-base font-bold text-slate-950 flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-emerald-600" />
+                  <Activity className="w-4 h-4 text-purple-600" />
                   <span>Operational Audit Trail & System Telemetry</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -1144,11 +1386,64 @@ export default function DashboardPage() {
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    if (todayLogs.length === 0) {
+                      toast.error("No logs to export");
+                      return;
+                    }
+                    const csv = ["Timestamp,Type,Level,Source,Message"].concat(
+                      todayLogs.map(l => `"${new Date(l.timestamp || l.createdAt || Date.now()).toISOString()}","${l.type || 'SYSTEM'}","${l.level || 'info'}","${l.source || ''}","${(l.message || l.desc || '').replace(/"/g, '""')}"`)
+                    ).join("\n");
+                    const blob = new Blob([csv], { type: "text/csv" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a"); a.href = url; a.download = "system_audit_logs.csv"; a.click();
+                    toast.success("Audit logs exported as CSV!");
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 cursor-pointer shadow-2xs transition-all"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Export Logs</span>
+                </button>
+                <button
+                  onClick={() => {
+                    loadAdminData(user?.userId);
+                    toast.success("Audit trail re-synced!");
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 cursor-pointer shadow-2xs transition-all"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isAdminLoading ? 'animate-spin' : ''}`} />
+                  <span>Refresh</span>
+                </button>
                 <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold inline-flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span>Operational Buffer Live</span>
+                  <span>Telemetry Live</span>
                 </span>
               </div>
+            </div>
+
+            {/* Log Category Filter Tabs */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              {[
+                { id: "ALL", label: "All Events" },
+                { id: "AUTH", label: "Auth & Security" },
+                { id: "PAYMENT", label: "Payments & Invoices" },
+                { id: "TENANT", label: "Tenant Updates" },
+                { id: "COUPON", label: "Coupons" },
+                { id: "SYSTEM", label: "System & Cron" }
+              ].map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => setLogFilter(f.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    logFilter === f.id
+                      ? "bg-purple-600 text-white shadow-xs"
+                      : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
             </div>
 
             <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
@@ -1164,44 +1459,59 @@ export default function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                    {[
-                      { time: "Today, 10:04 AM", type: "PAYMENT", desc: "Razorpay signature verified for Growth Plan subscription", actor: "Razorpay Live Webhook", status: "VERIFIED" },
-                      { time: "Today, 09:45 AM", type: "COUPON", desc: "Coupon code WELCOME50 validated for user checkout", actor: "Checkout Gateway", status: "VALID" },
-                      { time: "Today, 08:30 AM", type: "AUTH", desc: "Superadmin authentication token verified with unrestricted privileges", actor: "Saifuddin Ansari", status: "AUTHORIZED" },
-                      { time: "Today, 07:00 AM", type: "CRON", desc: "Multi-tenant scheduled post queue executed with 0 failures", actor: "Post Scheduler Worker", status: "SUCCESS" },
-                      { time: "Yesterday, 18:20 PM", type: "SYSTEM", desc: "Meta Graph API v20.0 token health check completed for all channels", actor: "Meta Tech Provider", status: "HEALTHY" }
-                    ].map((log, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="py-3 px-5 text-slate-500 font-mono text-[11px] whitespace-nowrap">
-                          {log.time}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                            log.type === "PAYMENT"
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                              : log.type === "COUPON"
-                              ? "bg-amber-50 text-amber-700 border-amber-200"
-                              : log.type === "AUTH"
-                              ? "bg-purple-50 text-purple-700 border-purple-200"
-                              : "bg-indigo-50 text-indigo-700 border-indigo-200"
-                          }`}>
-                            {log.type}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 font-medium text-slate-900">
-                          {log.desc}
-                        </td>
-                        <td className="py-3 px-4 text-slate-500">
-                          {log.actor}
-                        </td>
-                        <td className="py-3 px-5 text-right">
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            {log.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                    {(() => {
+                      const filteredLogs = todayLogs.filter(l => {
+                        if (logFilter === "ALL") return true;
+                        return (l.type || "").toUpperCase().includes(logFilter);
+                      });
+
+                      if (filteredLogs.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan={5} className="py-12 text-center text-slate-500">
+                              <Activity className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                              <p className="text-sm font-bold text-slate-700">No telemetry records match this category</p>
+                              <p className="text-xs text-slate-400 mt-1">Actions performed on the platform will be automatically audited here.</p>
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return filteredLogs.map((log, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
+                          <td className="py-3 px-5 text-slate-500 font-mono text-[11px] whitespace-nowrap">
+                            {new Date(log.timestamp || log.createdAt || Date.now()).toLocaleString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                              (log.type || "").includes("PAYMENT") ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                              (log.type || "").includes("COUPON") ? "bg-amber-50 text-amber-700 border-amber-200" :
+                              (log.type || "").includes("AUTH") ? "bg-purple-50 text-purple-700 border-purple-200" :
+                              (log.type || "").includes("TENANT") ? "bg-blue-50 text-blue-700 border-blue-200" :
+                              "bg-indigo-50 text-indigo-700 border-indigo-200"
+                            }`}>
+                              {log.type || "SYSTEM"}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 font-medium text-slate-900">
+                            {log.message || log.desc || "Telemetry entry"}
+                          </td>
+                          <td className="py-3 px-4 text-slate-500">
+                            {log.source || log.actor || "System Worker"}
+                          </td>
+                          <td className="py-3 px-5 text-right">
+                            <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+                              log.level === "error" ? "bg-rose-50 text-rose-700 border-rose-200" :
+                              log.level === "warn" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                              "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            }`}>
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              {log.level === "error" ? "ERROR" : log.level === "warn" ? "WARNING" : "VERIFIED ✓"}
+                            </span>
+                          </td>
+                        </tr>
+                      ));
+                    })()}
                   </tbody>
                 </table>
               </div>
@@ -1212,38 +1522,119 @@ export default function DashboardPage() {
         {/* TAB 5: Global System Announcement */}
         {adminActiveTab === "broadcast" && (
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-3">
               <div>
                 <h3 className="text-base font-bold text-slate-950 flex items-center gap-2">
-                  <Megaphone className="w-4 h-4 text-indigo-600" />
+                  <Megaphone className="w-4 h-4 text-rose-600" />
                   <span>Global System Announcement Engine</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Broadcast promotions, maintenance alerts, or coupon announcements across all user workspaces simultaneously.
                 </p>
               </div>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold border inline-flex items-center gap-1.5 ${
+                systemSettings?.announcement?.enabled
+                  ? "bg-rose-50 text-rose-700 border-rose-200"
+                  : "bg-slate-100 text-slate-600 border-slate-200"
+              }`}>
+                <span className={`w-2 h-2 rounded-full ${systemSettings?.announcement?.enabled ? "bg-rose-500 animate-pulse" : "bg-slate-400"}`}></span>
+                <span>{systemSettings?.announcement?.enabled ? "Broadcast Live" : "Broadcast Paused"}</span>
+              </span>
             </div>
 
-            <div className="space-y-4 max-w-2xl">
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="enableAnnouncement"
-                  checked={Boolean(systemSettings?.announcement?.enabled)}
-                  onChange={e => setSystemSettings({
-                    ...systemSettings,
-                    announcement: {
-                      ...(systemSettings?.announcement || {}),
-                      enabled: e.target.checked
-                    }
-                  })}
-                  className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
-                />
-                <label htmlFor="enableAnnouncement" className="text-xs font-bold text-slate-800 cursor-pointer">
-                  Enable Global Top Announcement Banner
-                </label>
+            <div className="space-y-5 max-w-3xl">
+              {/* Enable Switch */}
+              <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-200">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="enableAnnouncement"
+                    checked={Boolean(systemSettings?.announcement?.enabled)}
+                    onChange={e => setSystemSettings({
+                      ...systemSettings,
+                      announcement: {
+                        ...(systemSettings?.announcement || {}),
+                        enabled: e.target.checked
+                      }
+                    })}
+                    className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                  />
+                  <div>
+                    <label htmlFor="enableAnnouncement" className="text-xs font-bold text-slate-900 cursor-pointer block">
+                      Enable Top Announcement Banner for All Users
+                    </label>
+                    <span className="text-[11px] text-slate-500 block">
+                      When enabled, this message will be pinned to the top of all subscriber dashboards.
+                    </span>
+                  </div>
+                </div>
               </div>
 
+              {/* Announcement Type Selector */}
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-2">Announcement Category & Styling</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {[
+                    { id: "promo", label: "Special Promo", color: "indigo", desc: "Discounts & Offers" },
+                    { id: "info", label: "Product Update", color: "blue", desc: "New Features & News" },
+                    { id: "warning", label: "Maintenance", color: "amber", desc: "Planned Downtime" },
+                    { id: "alert", label: "Important Alert", color: "rose", desc: "Action Required" }
+                  ].map(t => {
+                    const isSelected = (systemSettings?.announcement?.type || "promo") === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setSystemSettings({
+                          ...systemSettings,
+                          announcement: {
+                            ...(systemSettings?.announcement || {}),
+                            type: t.id
+                          }
+                        })}
+                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                          isSelected
+                            ? "border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-200"
+                            : "border-slate-200 bg-white hover:bg-slate-50"
+                        }`}
+                      >
+                        <span className="text-xs font-bold text-slate-900 block">{t.label}</span>
+                        <span className="text-[10px] text-slate-500 block mt-0.5">{t.desc}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Quick Template Presets */}
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1.5">Quick Presets</label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    "🎉 Special Launch Offer: Use coupon WELCOME50 at checkout to get 50% OFF all plans!",
+                    "🚀 We just updated our Instagram & Facebook publishing engine for faster multi-channel delivery.",
+                    "⚡ Scheduled maintenance this Sunday from 02:00 AM to 03:00 AM IST. All posts will queue automatically.",
+                    "🏷️ Festive Flash Sale: Upgrade to Pro Unlimited today and get 2 extra social channels free!"
+                  ].map((tpl, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setSystemSettings({
+                        ...systemSettings,
+                        announcement: {
+                          ...(systemSettings?.announcement || {}),
+                          message: tpl
+                        }
+                      })}
+                      className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 border border-slate-200 transition-all text-left cursor-pointer"
+                    >
+                      {tpl.slice(0, 48)}...
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Message Input */}
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1.5">Announcement Banner Message</label>
                 <textarea
@@ -1256,18 +1647,35 @@ export default function DashboardPage() {
                       message: e.target.value
                     }
                   })}
-                  placeholder="e.g. 🎉 Special Launch Offer: Use coupon WELCOME50 at checkout to get 50% OFF all plans!"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 font-medium"
+                  placeholder="Type your global announcement text..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 font-medium shadow-2xs"
                 />
               </div>
 
-              {/* Preview */}
+              {/* Dynamic Live Preview */}
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">Live Preview</span>
-                <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs font-bold flex items-center gap-2">
-                  <Megaphone className="w-4 h-4 text-indigo-600 shrink-0" />
-                  <span>{systemSettings?.announcement?.message || "No announcement message set."}</span>
-                </div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">Live Preview for Subscribers</span>
+                {(() => {
+                  const annType = systemSettings?.announcement?.type || "promo";
+                  const themeMap = {
+                    promo: "bg-indigo-50 border-indigo-200 text-indigo-950",
+                    info: "bg-blue-50 border-blue-200 text-blue-950",
+                    warning: "bg-amber-50 border-amber-200 text-amber-950",
+                    alert: "bg-rose-50 border-rose-200 text-rose-950"
+                  };
+                  const iconColorMap = {
+                    promo: "text-indigo-600",
+                    info: "text-blue-600",
+                    warning: "text-amber-600",
+                    alert: "text-rose-600"
+                  };
+                  return (
+                    <div className={`p-3.5 rounded-xl border text-xs font-bold flex items-center gap-2.5 ${themeMap[annType] || themeMap.promo}`}>
+                      <Megaphone className={`w-4 h-4 shrink-0 ${iconColorMap[annType] || iconColorMap.promo}`} />
+                      <span>{systemSettings?.announcement?.message || "No announcement message set."}</span>
+                    </div>
+                  );
+                })()}
               </div>
 
               <button
@@ -1283,7 +1691,7 @@ export default function DashboardPage() {
                     });
                     const data = await res.json();
                     if (data.success) {
-                      toast.success("Broadcast announcement saved successfully!");
+                      toast.success("Broadcast announcement saved and published!");
                     } else {
                       toast.error("Failed to save broadcast");
                     }
@@ -1291,9 +1699,10 @@ export default function DashboardPage() {
                     toast.error("Failed to save broadcast");
                   }
                 }}
-                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs shadow-indigo-600/20 transition-all cursor-pointer"
+                className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs shadow-indigo-600/20 transition-all cursor-pointer inline-flex items-center gap-2"
               >
-                Save & Broadcast System Alert
+                <Megaphone className="w-3.5 h-3.5" />
+                <span>Save & Broadcast System Alert</span>
               </button>
             </div>
           </div>

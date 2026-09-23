@@ -34,9 +34,11 @@ import {
   Tag,
   Megaphone,
   Bell,
-  Sparkles,
   Percent,
-  Eye
+  Eye,
+  UserCheck,
+  UserX,
+  Receipt
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { getStoredUser } from "@/lib/user";
@@ -90,6 +92,18 @@ export default function AdminPanelPage() {
   // Subscriptions & Invoices State
   const [invoices, setInvoices] = useState([]);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlTab = params.get("tab");
+      if (urlTab) {
+        if (urlTab === "coupons" || urlTab === "subscriptions" || urlTab === "users" || urlTab === "logs" || urlTab === "announcement") {
+          setActiveTab(urlTab);
+        }
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const userStr = localStorage.getItem("socialflow_user") || localStorage.getItem("yt_user");
@@ -635,7 +649,7 @@ export default function AdminPanelPage() {
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-black text-slate-900 tracking-tight">{users.length || 4}</div>
+          <div className="text-3xl font-black text-slate-900 tracking-tight">{users.length}</div>
           <span className="text-xs font-bold text-indigo-600 mt-2 inline-block">100% Verified in Database</span>
         </div>
 
@@ -647,7 +661,7 @@ export default function AdminPanelPage() {
             </div>
           </div>
           <div className="text-3xl font-black text-slate-900 tracking-tight">
-            {serverStats.totalAccounts || 12}
+            {serverStats.totalAccounts || 0}
           </div>
           <span className="text-xs font-bold text-blue-600 mt-2 inline-block">Live Active Channels</span>
         </div>
@@ -659,32 +673,64 @@ export default function AdminPanelPage() {
               <Tag className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-black text-slate-900 tracking-tight">{coupons.length || 3}</div>
+          <div className="text-3xl font-black text-slate-900 tracking-tight">{coupons.length}</div>
           <span className="text-xs font-bold text-purple-600 mt-2 inline-block">Active Promotional Offers</span>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
+      {/* Professional Large Card Tab Switcher */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
-          { id: "users", label: `👥 All Tenants (${users.length})` },
-          { id: "coupons", label: `🎟️ Discount Coupons (${coupons.length})` },
-          { id: "today-logs", label: `⚡ Today's Live Logs (${todayLogs.length})` },
-          { id: "subscriptions", label: "💳 Razorpay Subscriptions" },
-          { id: "broadcast", label: "📢 Announcements & Settings" }
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === tab.id
-                ? "bg-indigo-600 text-white shadow-xs font-black"
-                : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+          { id: "users", label: "All Tenants & Controls", icon: Users, color: "indigo", count: users.length, badge: "registered" },
+          { id: "subscriptions", label: "Subscriptions & Invoices", icon: CreditCard, color: "emerald", count: null, badge: "ledger" },
+          { id: "coupons", label: "Discount Coupons", icon: Tag, color: "amber", count: coupons.length, badge: "offers" },
+          { id: "today-logs", label: "Audit Trail", icon: Activity, color: "purple", count: todayLogs.length, badge: "events" },
+          { id: "broadcast", label: "Announcement", icon: Megaphone, color: "rose", count: null, badge: systemSettings?.announcement?.enabled ? "ON" : "OFF" }
+        ].map((tab) => {
+          const isActive = activeTab === tab.id;
+          const colorMap = {
+            indigo: { activeBg: "bg-indigo-600", activeRing: "ring-indigo-200", iconBg: "bg-indigo-100 text-indigo-600" },
+            emerald: { activeBg: "bg-emerald-600", activeRing: "ring-emerald-200", iconBg: "bg-emerald-100 text-emerald-600" },
+            amber: { activeBg: "bg-amber-500", activeRing: "ring-amber-200", iconBg: "bg-amber-100 text-amber-600" },
+            purple: { activeBg: "bg-purple-600", activeRing: "ring-purple-200", iconBg: "bg-purple-100 text-purple-600" },
+            rose: { activeBg: "bg-rose-600", activeRing: "ring-rose-200", iconBg: "bg-rose-100 text-rose-600" }
+          };
+          const c = colorMap[tab.color];
+          const TabIcon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`relative flex flex-col items-start gap-2.5 p-4 rounded-2xl text-left transition-all cursor-pointer border ${
+                isActive
+                  ? `${c.activeBg} text-white shadow-lg ring-4 ${c.activeRing} border-transparent`
+                  : "bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:shadow-sm shadow-2xs"
+              }`}
+            >
+              <div className="flex items-center justify-between w-full">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isActive ? "bg-white/20" : c.iconBg}`}>
+                  <TabIcon className="w-4.5 h-4.5" />
+                </div>
+                {tab.count !== null && (
+                  <span className={`text-lg font-black ${isActive ? "text-white" : "text-slate-900"}`}>
+                    {tab.count}
+                  </span>
+                )}
+              </div>
+              <div>
+                <span className={`text-xs font-bold block leading-tight ${isActive ? "text-white" : "text-slate-800"}`}>
+                  {tab.label}
+                </span>
+                <span className={`text-[10px] font-semibold mt-0.5 block ${isActive ? "text-white/70" : "text-slate-400"}`}>
+                  {tab.count !== null ? `${tab.count} ${tab.badge}` : tab.badge}
+                </span>
+              </div>
+              {isActive && (
+                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-white/60 animate-pulse" />
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* TAB 1: USER & TENANT MANAGEMENT */}
@@ -941,124 +987,86 @@ export default function AdminPanelPage() {
         </div>
       )}
 
-      {/* TAB 3: SUBSCRIPTIONS & RAZORPAY REVENUE */}
+      {/* TAB 3: SUBSCRIPTIONS & REVENUE */}
       {activeTab === "subscriptions" && (
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">
             <div>
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-indigo-600" />
-                <span>Live Razorpay Subscription Transactions & Tax Invoices</span>
+                <span>Live Subscription Transactions & Tax Invoices</span>
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">Live verified subscriber purchases with breakdown of original price, coupon discounts, net total, and tax invoices</p>
             </div>
-            <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
-              Razorpay Live Gateway Active 🟢
+            <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold inline-flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Payment Gateway Active</span>
             </span>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider text-[10.5px] border-b border-slate-200">
-                  <th className="p-3.5">Invoice ID</th>
-                  <th className="p-3.5">Subscriber</th>
-                  <th className="p-3.5">Plan</th>
-                  <th className="p-3.5">Subtotal</th>
-                  <th className="p-3.5">Discount</th>
-                  <th className="p-3.5">Amount Paid</th>
-                  <th className="p-3.5">Payment ID</th>
-                  <th className="p-3.5">Date</th>
-                  <th className="p-3.5 text-right">Invoice Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                {(invoices.length > 0 ? invoices : [
-                  {
-                    invoiceId: "INV-2026-092301",
-                    userName: "Rahul Sharma",
-                    userEmail: "rahul.s@business.in",
-                    planName: "Growth Plan",
-                    originalAmount: 1999,
-                    discountAmount: 400,
-                    amountPaid: 1599,
-                    couponCode: "POSTFLY20",
-                    paymentId: "pay_N18742_live",
-                    orderId: "order_PO9821",
-                    paymentMethod: "Razorpay (UPI / NetBanking)",
-                    status: "PAID",
-                    createdAt: "2026-09-23T08:50:00.000Z",
-                    billingAddress: "Mumbai, Maharashtra, India"
-                  },
-                  {
-                    invoiceId: "INV-2026-092002",
-                    userName: "Saifuddin Ansari",
-                    userEmail: "ansarisaifuddin732@gmail.com",
-                    planName: "Pro Unlimited Plan",
-                    originalAmount: 3999,
-                    discountAmount: 2000,
-                    amountPaid: 1999,
-                    couponCode: "WELCOME50",
-                    paymentId: "pay_N18720_live",
-                    orderId: "order_PO9810",
-                    paymentMethod: "Razorpay (Credit Card)",
-                    status: "PAID",
-                    createdAt: "2026-09-20T14:30:00.000Z",
-                    billingAddress: "Indore, MP, India"
-                  },
-                  {
-                    invoiceId: "INV-2026-091803",
-                    userName: "Brooklyn Simmons",
-                    userEmail: "brook.sim@example.com",
-                    planName: "Starter Plan",
-                    originalAmount: 999,
-                    discountAmount: 0,
-                    amountPaid: 999,
-                    couponCode: "None",
-                    paymentId: "pay_N18695_live",
-                    orderId: "order_PO9790",
-                    paymentMethod: "Razorpay (Debit Card)",
-                    status: "PAID",
-                    createdAt: "2026-09-18T10:15:00.000Z",
-                    billingAddress: "Delhi, India"
-                  }
-                ]).map((item, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="p-3.5 font-mono font-bold text-indigo-700 text-[11px]">{item.invoiceId || `INV-2026-${idx+1}`}</td>
-                    <td className="p-3.5">
-                      <div>
-                        <span className="font-bold text-slate-950 block">{item.userName || item.user}</span>
-                        <span className="text-[10.5px] text-slate-500 block">{item.userEmail || "user@example.com"}</span>
-                      </div>
-                    </td>
-                    <td className="p-3.5 font-semibold text-indigo-600">{item.planName || item.plan}</td>
-                    <td className="p-3.5 text-slate-500 line-through font-medium">₹{item.originalAmount || item.amount || 1999}</td>
-                    <td className="p-3.5">
-                      {item.discountAmount > 0 ? (
-                        <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 text-[10.5px] font-bold border border-amber-200">
-                          -{item.couponCode ? item.couponCode : 'Coupon'} (₹{item.discountAmount})
-                        </span>
-                      ) : (
-                        <span className="text-slate-400 text-[11px]">—</span>
-                      )}
-                    </td>
-                    <td className="p-3.5 font-black text-slate-950">₹{item.amountPaid || item.amount || 1599}</td>
-                    <td className="p-3.5 font-mono text-[11px] text-slate-500">{item.paymentId || item.payId}</td>
-                    <td className="p-3.5 text-slate-500 text-[11px]">{new Date(item.createdAt || Date.now()).toLocaleDateString("en-IN")}</td>
-                    <td className="p-3.5 text-right">
-                      <button
-                        onClick={() => setSelectedInvoice(item)}
-                        className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-2xs transition-all cursor-pointer inline-flex items-center gap-1.5"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>View Tax Invoice</span>
-                      </button>
-                    </td>
+          {invoices.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider text-[10.5px] border-b border-slate-200">
+                    <th className="p-3.5">Invoice ID</th>
+                    <th className="p-3.5">Subscriber</th>
+                    <th className="p-3.5">Plan</th>
+                    <th className="p-3.5">Subtotal</th>
+                    <th className="p-3.5">Discount</th>
+                    <th className="p-3.5">Amount Paid</th>
+                    <th className="p-3.5">Payment ID</th>
+                    <th className="p-3.5">Date</th>
+                    <th className="p-3.5 text-right">Invoice Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                  {invoices.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="p-3.5 font-mono font-bold text-indigo-700 text-[11px]">{item.invoiceId || `INV-2026-${idx+1}`}</td>
+                      <td className="p-3.5">
+                        <div>
+                          <span className="font-bold text-slate-950 block">{item.userName || item.user}</span>
+                          <span className="text-[10.5px] text-slate-500 block">{item.userEmail || "user@example.com"}</span>
+                        </div>
+                      </td>
+                      <td className="p-3.5 font-semibold text-indigo-600">{item.planName || item.plan}</td>
+                      <td className="p-3.5 text-slate-500 line-through font-medium">₹{item.originalAmount || item.amount || 0}</td>
+                      <td className="p-3.5">
+                        {item.discountAmount > 0 ? (
+                          <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 text-[10.5px] font-bold border border-amber-200">
+                            -{item.couponCode ? item.couponCode : 'Coupon'} (₹{item.discountAmount})
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-[11px]">—</span>
+                        )}
+                      </td>
+                      <td className="p-3.5 font-black text-slate-950">₹{item.amountPaid || item.amount || 0}</td>
+                      <td className="p-3.5 font-mono text-[11px] text-slate-500">{item.paymentId || item.payId || "—"}</td>
+                      <td className="p-3.5 text-slate-500 text-[11px]">{new Date(item.createdAt || Date.now()).toLocaleDateString("en-IN")}</td>
+                      <td className="p-3.5 text-right">
+                        <button
+                          onClick={() => setSelectedInvoice(item)}
+                          className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-2xs transition-all cursor-pointer inline-flex items-center gap-1.5"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>View Tax Invoice</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="py-12 text-center">
+              <CreditCard className="w-9 h-9 text-slate-300 mx-auto mb-2.5" />
+              <p className="text-sm font-bold text-slate-700">No subscription transactions recorded yet</p>
+              <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                When tenants subscribe to paid plans, their tax invoices and payment records will appear here in real time.
+              </p>
+            </div>
+          )}
         </div>
       )}
 

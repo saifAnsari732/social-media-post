@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, Zap, Building2, CreditCard, Layers, ShieldCheck, X, Tag, Sparkles, Check, ArrowRight } from "lucide-react";
+import { CheckCircle2, Zap, Building2, CreditCard, Layers, ShieldCheck, X, Tag, Check, ArrowRight } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { getStoredUser, getUserPlanLimits } from "@/lib/user";
@@ -103,7 +103,7 @@ export default function BillingPage() {
         "2 GB Cloud Media Library",
         "Standard Email Support"
       ],
-      buttonText: "Upgrade with Razorpay",
+      buttonText: "Upgrade Plan",
       active: Boolean(isPaid && selectedPlan && selectedPlan.toLowerCase().includes("starter")),
       icon: <Zap className="w-5 h-5 text-indigo-600" />
     },
@@ -124,7 +124,7 @@ export default function BillingPage() {
         "15 GB Cloud Media Storage",
         "Priority Live Chat Support"
       ],
-      buttonText: "Upgrade with Razorpay",
+      buttonText: "Upgrade Plan",
       active: Boolean(isPaid && selectedPlan && selectedPlan.toLowerCase().includes("growth")),
       popular: true,
       icon: <Layers className="w-5 h-5 text-indigo-600" />
@@ -145,7 +145,7 @@ export default function BillingPage() {
         "100 GB Cloud Media Storage",
         "24/7 Dedicated Account Manager"
       ],
-      buttonText: "Upgrade with Razorpay",
+      buttonText: "Upgrade Plan",
       active: Boolean(isPaid && selectedPlan && (selectedPlan.toLowerCase().includes("pro") || selectedPlan.toLowerCase().includes("unlimited"))),
       icon: <Building2 className="w-5 h-5 text-purple-600" />
     }
@@ -512,7 +512,7 @@ export default function BillingPage() {
                   }`}
                 >
                   {!plan.active && <CreditCard className="w-4 h-4" />}
-                  {loading ? "Preparing Razorpay..." : plan.active ? "Current Active Plan ✓" : appliedCoupon ? `Upgrade at ${pricing.current}` : plan.buttonText}
+                  {loading ? "Processing Upgrade..." : plan.active ? "Current Active Plan ✓" : appliedCoupon ? `Upgrade at ${pricing.current}` : plan.buttonText}
                 </button>
               </div>
             

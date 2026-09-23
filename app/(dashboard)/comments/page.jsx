@@ -8,7 +8,6 @@ import {
   Play, 
   Pause, 
   Trash2, 
-  Sparkles, 
   CheckCircle2, 
   Filter,
   MessageCircle,
@@ -188,7 +187,7 @@ export default function CommentsPage() {
 
                         {usesAI && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-200">
-                            <Sparkles className="w-3 h-3 text-indigo-600" /> Gemini AI
+                            <Zap className="w-3 h-3 text-indigo-600" /> Smart Reply
                           </span>
                         )}
                       </div>

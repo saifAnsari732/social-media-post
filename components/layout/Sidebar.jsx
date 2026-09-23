@@ -30,7 +30,8 @@ import {
   AlertTriangle,
   Activity,
   DollarSign,
-  Key
+  Key,
+  Tag
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -101,15 +102,15 @@ export default function Sidebar() {
       title: "Admin Command",
       items: [
         { name: 'Mission Control', href: '/dashboard', icon: LayoutDashboard },
-        { name: 'All Tenants & Users', href: '/admin', icon: Users }
+        { name: 'All Tenants & Users', href: '/dashboard?tab=tenants', icon: Users }
       ]
     },
     {
       title: "Promotions & Revenue",
       items: [
-        { name: 'Discount Coupons', href: '/admin?tab=coupons', icon: CreditCard },
-        { name: 'Revenue & MRR', href: '/admin?tab=subscriptions', icon: DollarSign },
-        { name: 'Billing Ledger', href: '/billing', icon: CreditCard }
+        { name: 'Discount Coupons', href: '/dashboard?tab=coupons', icon: Tag },
+        { name: 'Revenue & MRR', href: '/dashboard?tab=subscriptions', icon: DollarSign },
+        { name: 'Billing Ledger', href: '/dashboard?tab=subscriptions', icon: CreditCard }
       ]
     },
     {

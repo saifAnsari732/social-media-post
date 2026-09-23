@@ -10,7 +10,6 @@ import {
   Trash2, 
   MessageCircle, 
   MessageSquareQuote, 
-  Sparkles, 
   CheckCircle2, 
   Filter,
   Layers,
@@ -221,7 +220,7 @@ export default function RulesPage() {
 
                         {usesAI && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-200">
-                            <Sparkles className="w-3 h-3 text-indigo-600" /> AI Reply
+                            <Zap className="w-3 h-3 text-indigo-600" /> Smart Reply
                           </span>
                         )}
                       </div>
