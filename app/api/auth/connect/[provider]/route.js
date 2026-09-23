@@ -27,12 +27,15 @@ export async function GET(req, { params }) {
       `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${process.env.LINKEDIN_CLIENT_ID}&redirect_uri=${process.env.LINKEDIN_REDIRECT_URI}&state=${state}&scope=${encodeURIComponent(
         "openid profile w_member_social"
       )}`,
-    threads: () =>
-      `https://threads.net/oauth/authorize?client_id=${process.env.META_APP_ID}&redirect_uri=${encodeURIComponent(
-        process.env.THREADS_REDIRECT_URI || process.env.META_REDIRECT_URI
+    threads: () => {
+      const appId = process.env.THREADS_APP_ID || process.env.META_APP_ID;
+      const redirectUri = process.env.THREADS_REDIRECT_URI || process.env.META_REDIRECT_URI;
+      return `https://threads.net/oauth/authorize?app_id=${appId}&client_id=${appId}&redirect_uri=${encodeURIComponent(
+        redirectUri
       )}&response_type=code&scope=${encodeURIComponent(
         "threads_basic,threads_content_publish"
-      )}&state=${state}`,
+      )}&state=${state}`;
+    },
     pinterest: () =>
       `https://www.pinterest.com/oauth/?client_id=${process.env.PINTEREST_CLIENT_ID}&redirect_uri=${encodeURIComponent(
         process.env.PINTEREST_REDIRECT_URI
