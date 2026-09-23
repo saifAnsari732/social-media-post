@@ -56,6 +56,36 @@ async function exchangeToken(provider, code) {
       });
       return res.json();
     }
+    case "threads": {
+      const res = await fetch("https://graph.threads.net/oauth/access_token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: process.env.META_APP_ID,
+          client_secret: process.env.META_APP_SECRET,
+          grant_type: "authorization_code",
+          redirect_uri: process.env.THREADS_REDIRECT_URI || process.env.META_REDIRECT_URI,
+          code
+        })
+      });
+      return res.json();
+    }
+    case "pinterest": {
+      const basicAuth = Buffer.from(`${process.env.PINTEREST_CLIENT_ID}:${process.env.PINTEREST_CLIENT_SECRET}`).toString("base64");
+      const res = await fetch("https://api.pinterest.com/v5/oauth/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Authorization": `Basic ${basicAuth}`
+        },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          code,
+          redirect_uri: process.env.PINTEREST_REDIRECT_URI
+        })
+      });
+      return res.json();
+    }
     case "tiktok": {
       const res = await fetch("https://open.tiktokapis.com/v2/oauth/token/", {
         method: "POST",
@@ -261,6 +291,30 @@ export async function GET(req, { params }) {
           }
         } catch (err) {
           console.error("Failed to fetch LinkedIn user name", err);
+        }
+      } else if (provider === "threads" && tokenData.access_token) {
+        try {
+          const userRes = await fetch(`https://graph.threads.net/v1.0/me?fields=id,username,threads_profile_picture_url&access_token=${tokenData.access_token}`);
+          const userData = await userRes.json();
+          if (userData.username || userData.id) {
+            name = userData.username || "Threads User";
+            providerAccountId = userData.id;
+          }
+        } catch (err) {
+          console.error("Failed to fetch Threads user info", err);
+        }
+      } else if (provider === "pinterest" && tokenData.access_token) {
+        try {
+          const userRes = await fetch("https://api.pinterest.com/v5/user_account", {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` }
+          });
+          const userData = await userRes.json();
+          if (userData.username) {
+            name = userData.username;
+            providerAccountId = userData.username;
+          }
+        } catch (err) {
+          console.error("Failed to fetch Pinterest user info", err);
         }
       }
 

@@ -7,6 +7,8 @@ import { postToInstagram } from "@/lib/platforms/instagram";
 import { postToTwitter } from "@/lib/platforms/twitter";
 import { postToLinkedIn } from "@/lib/platforms/linkedin";
 import { postToTikTok } from "@/lib/platforms/tiktok";
+import { postToThreads } from "@/lib/platforms/threads";
+import { postToPinterest } from "@/lib/platforms/pinterest";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -279,6 +281,48 @@ export async function POST(req) {
             title
           });
           break;
+
+        case "threads": {
+          let directUrl = null;
+          if (file) {
+            const uploadForm = new FormData();
+            uploadForm.append("files[]", new Blob([buffer], { type: file.type }), file.name || (isVideo ? "video.mp4" : "image.png"));
+            const uploadRes = await fetch("https://uguu.se/upload", { method: "POST", body: uploadForm });
+            const uploadData = await uploadRes.json();
+            if (uploadRes.ok && uploadData.success) {
+              directUrl = uploadData.files[0].url;
+            }
+          }
+          results[accountId] = await postToThreads({
+            threadsUserId: account.providerAccountId,
+            accessToken: account.accessToken,
+            text: `${title}\n\n${description}`,
+            mediaUrl: directUrl,
+            isVideo
+          });
+          break;
+        }
+
+        case "pinterest": {
+          let directUrl = null;
+          if (file) {
+            const uploadForm = new FormData();
+            uploadForm.append("files[]", new Blob([buffer], { type: file.type }), file.name || "image.png");
+            const uploadRes = await fetch("https://uguu.se/upload", { method: "POST", body: uploadForm });
+            const uploadData = await uploadRes.json();
+            if (uploadRes.ok && uploadData.success) {
+              directUrl = uploadData.files[0].url;
+            }
+          }
+          results[accountId] = await postToPinterest({
+            accessToken: account.accessToken,
+            title,
+            description,
+            mediaUrl: directUrl,
+            boardId: account.boardId
+          });
+          break;
+        }
 
         default:
           results[accountId] = { success: false, error: "Unsupported platform" };

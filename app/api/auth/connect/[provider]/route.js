@@ -27,6 +27,18 @@ export async function GET(req, { params }) {
       `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${process.env.LINKEDIN_CLIENT_ID}&redirect_uri=${process.env.LINKEDIN_REDIRECT_URI}&state=${state}&scope=${encodeURIComponent(
         "openid profile w_member_social"
       )}`,
+    threads: () =>
+      `https://threads.net/oauth/authorize?client_id=${process.env.META_APP_ID}&redirect_uri=${encodeURIComponent(
+        process.env.THREADS_REDIRECT_URI || process.env.META_REDIRECT_URI
+      )}&response_type=code&scope=${encodeURIComponent(
+        "threads_basic,threads_content_publish"
+      )}&state=${state}`,
+    pinterest: () =>
+      `https://www.pinterest.com/oauth/?client_id=${process.env.PINTEREST_CLIENT_ID}&redirect_uri=${encodeURIComponent(
+        process.env.PINTEREST_REDIRECT_URI
+      )}&response_type=code&scope=${encodeURIComponent(
+        "boards:read,boards:write,pins:read,pins:write,user_accounts:read"
+      )}&state=${state}`,
     tiktok: () =>
       `https://www.tiktok.com/v2/auth/authorize?client_key=${process.env.TIKTOK_CLIENT_KEY}&redirect_uri=${process.env.TIKTOK_REDIRECT_URI}&response_type=code&state=${state}&scope=video.publish`,
   };
