@@ -302,13 +302,13 @@ export default function PublisherPage() {
           </div>
 
           {/* AI Copilot Box */}
-          <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-50/70 via-indigo-50/30 to-violet-50/50 border border-indigo-100/90 space-y-3">
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-50/90 via-slate-50 to-violet-50/70 border border-indigo-200/90 space-y-3.5 shadow-2xs">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold text-indigo-900">
-                <Zap className="w-4 h-4 text-indigo-600" />
+              <div className="flex items-center gap-2 text-xs font-black text-indigo-950">
+                <Zap className="w-4 h-4 text-indigo-600 fill-indigo-600" />
                 <span>Smart Caption Assistant</span>
               </div>
-              <span className="text-[10px] font-semibold text-indigo-600 uppercase tracking-wider bg-white px-2 py-0.5 rounded-full border border-indigo-100">
+              <span className="text-[10.5px] font-bold text-indigo-700 uppercase tracking-wider bg-white px-2.5 py-0.5 rounded-full border border-indigo-200 shadow-2xs">
                 Fast Generation
               </span>
             </div>
@@ -316,23 +316,24 @@ export default function PublisherPage() {
             <div className="flex gap-2">
               <input
                 type="text"
-                placeholder="What should this post be about?..."
+                placeholder="What should this post be about? (e.g. Summer sale, Monday tip)..."
                 value={topic}
                 onChange={e => setTopic(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && handleGenerate()}
-                className="flex-1 px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition-all placeholder:text-slate-400"
+                className="flex-1 h-11 px-3.5 rounded-xl bg-white border border-slate-300 text-xs font-semibold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all placeholder:text-slate-400 shadow-2xs"
               />
               <button
                 onClick={() => handleGenerate()}
-                disabled={generating || !topic}
-                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-xs shadow-indigo-600/20 transition-all whitespace-nowrap disabled:opacity-50 cursor-pointer"
+                disabled={generating}
+                className="h-11 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm shadow-indigo-600/25 transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 disabled:opacity-70"
               >
-                {generating ? "Crafting..." : "Generate"}
+                <Zap className="w-3.5 h-3.5" />
+                <span>{generating ? "Crafting..." : "Generate"}</span>
               </button>
             </div>
 
             {/* Quick Inspiration Chips */}
-            <div className="flex flex-wrap gap-1.5 pt-1">
+            <div className="flex flex-wrap gap-1.5 pt-0.5">
               {promptIdeas.map((idea, idx) => (
                 <button
                   key={idx}
@@ -340,7 +341,7 @@ export default function PublisherPage() {
                     setTopic(idea);
                     handleGenerate(idea);
                   }}
-                  className="text-[11px] px-2.5 py-1 rounded-lg bg-white/90 hover:bg-indigo-600 hover:text-white text-slate-700 border border-indigo-100 font-medium transition-all cursor-pointer shadow-2xs"
+                  className="text-xs px-3 py-1.5 rounded-lg bg-white hover:bg-indigo-600 hover:text-white text-slate-800 border border-slate-200 hover:border-indigo-600 font-semibold transition-all cursor-pointer shadow-2xs"
                 >
                   {idea}
                 </button>
@@ -350,14 +351,14 @@ export default function PublisherPage() {
 
           {/* Media Upload Area */}
           <div>
-            <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-black text-slate-900 uppercase tracking-wider mb-2">
               Media Attachment (Photo or Video)
             </label>
             
             {filePreview ? (
-              <div className="relative rounded-xl border border-slate-200 overflow-hidden bg-slate-950 p-2.5 flex items-center justify-between">
+              <div className="relative rounded-2xl border border-slate-300 overflow-hidden bg-slate-950 p-3 flex items-center justify-between shadow-xs">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="w-12 h-12 rounded-lg bg-slate-800 overflow-hidden shrink-0 flex items-center justify-center">
+                  <div className="w-14 h-14 rounded-xl bg-slate-800 overflow-hidden shrink-0 flex items-center justify-center border border-slate-700">
                     {isVideo ? (
                       <video src={filePreview} className="w-full h-full object-cover" muted playsInline />
                     ) : (
@@ -366,7 +367,7 @@ export default function PublisherPage() {
                   </div>
                   <div className="min-w-0 pr-3">
                     <p className="text-xs font-bold text-white truncate">{file?.name}</p>
-                    <p className="text-[10px] text-slate-400 font-medium">
+                    <p className="text-[11px] text-slate-300 font-medium mt-0.5">
                       {isVideo ? "🎬 Video" : "🖼️ Image"} • {(file?.size / (1024 * 1024)).toFixed(2)} MB • Ready to publish
                     </p>
                   </div>
@@ -374,7 +375,7 @@ export default function PublisherPage() {
 
                 <button
                   onClick={removeFile}
-                  className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer mr-1"
+                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer mr-1"
                   title="Remove Media"
                 >
                   <X className="w-4 h-4" />
@@ -383,16 +384,23 @@ export default function PublisherPage() {
             ) : (
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="p-5 rounded-xl border-2 border-dashed border-slate-300 hover:border-indigo-400 hover:bg-indigo-50/20 bg-slate-50/50 text-center cursor-pointer transition-all space-y-2"
+                className="p-6 rounded-2xl border-2 border-dashed border-slate-300 hover:border-indigo-600 hover:bg-indigo-50/30 bg-slate-50/80 text-center cursor-pointer transition-all space-y-2.5 group shadow-2xs"
               >
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto shadow-2xs">
-                  <UploadCloud className="w-5 h-5" />
+                <div className="w-12 h-12 rounded-2xl bg-indigo-100 group-hover:bg-indigo-600 text-indigo-700 group-hover:text-white flex items-center justify-center mx-auto transition-all shadow-xs">
+                  <UploadCloud className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-900">Click or drag & drop media here</p>
-                  <p className="text-[11px] text-slate-500 font-normal mt-0.5">
-                    Supports MP4, MOV, PNG, JPG (Up to 500MB)
+                  <p className="text-sm font-bold text-slate-950 group-hover:text-indigo-600 transition-colors">
+                    Click or drag & drop media here
                   </p>
+                  <p className="text-xs text-slate-600 font-medium mt-1">
+                    Supports MP4, MOV, PNG, JPG (High Quality up to 500MB)
+                  </p>
+                </div>
+                <div className="pt-1">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white border border-slate-300 text-slate-800 font-bold text-xs shadow-2xs group-hover:border-indigo-300 group-hover:text-indigo-700">
+                    Browse Computer
+                  </span>
                 </div>
               </div>
             )}
@@ -409,40 +417,44 @@ export default function PublisherPage() {
           {/* Title Input */}
           <div>
             <div className="flex justify-between items-center mb-1.5">
-              <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+              <label className="text-xs font-black text-slate-900 uppercase tracking-wider">
                 Post Title / Headline
               </label>
-              <span className="text-[10px] text-slate-400 font-normal">{title.length} characters</span>
+              <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                {title.length} characters
+              </span>
             </div>
             <input
               type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
               placeholder="Enter an engaging headline or video title..."
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition-all placeholder:text-slate-400"
+              className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-950 focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all placeholder:text-slate-400 shadow-2xs"
             />
           </div>
 
           {/* Caption / Description */}
           <div>
             <div className="flex justify-between items-center mb-1.5">
-              <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+              <label className="text-xs font-black text-slate-900 uppercase tracking-wider">
                 Caption & Content
               </label>
-              <span className="text-[10px] text-slate-400 font-normal">{description.length} / 2,200</span>
+              <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                {description.length} / 2,200
+              </span>
             </div>
             <textarea
               rows={5}
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder="Write your post caption, hook, details, and call to action..."
-              className="w-full p-3.5 rounded-xl border border-slate-300 bg-white text-xs font-normal text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition-all resize-y placeholder:text-slate-400 leading-relaxed"
+              className="w-full p-3.5 rounded-xl border border-slate-300 bg-white text-xs font-medium text-slate-950 focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all resize-y placeholder:text-slate-400 leading-relaxed shadow-2xs min-h-[130px]"
             />
           </div>
 
           {/* Hashtags */}
           <div>
-            <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-black text-slate-900 uppercase tracking-wider mb-1.5">
               Hashtags & Tags
             </label>
             <input
@@ -450,7 +462,7 @@ export default function PublisherPage() {
               value={tags}
               onChange={e => setTags(e.target.value)}
               placeholder="e.g. socialgrowth, contentcreator, viralpost"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition-all placeholder:text-slate-400"
+              className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-950 focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all placeholder:text-slate-400 shadow-2xs"
             />
           </div>
 
@@ -740,23 +752,23 @@ export default function PublisherPage() {
 
           {/* Publishing Mode */}
           <div className="space-y-2.5 pt-2 border-t border-slate-100">
-            <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
+            <label className="block text-xs font-black text-slate-900 uppercase tracking-wider">
               Publishing Mode
             </label>
 
-            <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold border border-slate-200">
+            <div className="grid grid-cols-3 gap-1.5 bg-slate-100 p-1.5 rounded-xl text-xs font-bold border border-slate-200">
               {[
-                { id: "now", label: "Now" },
-                { id: "schedule", label: "Schedule" },
-                { id: "draft", label: "Draft" }
+                { id: "now", label: "Publish Now", color: "bg-indigo-600 text-white" },
+                { id: "schedule", label: "Schedule", color: "bg-indigo-600 text-white" },
+                { id: "draft", label: "Draft", color: "bg-amber-500 text-white" }
               ].map(mode => (
                 <button
                   key={mode.id}
                   onClick={() => setPublishMode(mode.id)}
-                  className={`py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  className={`py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     publishMode === mode.id 
-                      ? "bg-indigo-600 text-white shadow-2xs" 
-                      : "text-slate-700 hover:text-slate-950"
+                      ? `${mode.color} shadow-xs` 
+                      : "text-slate-700 hover:text-slate-950 hover:bg-slate-200/60"
                   }`}
                 >
                   {mode.label}
@@ -767,21 +779,21 @@ export default function PublisherPage() {
 
           {/* Schedule Picker Details */}
           {publishMode === "schedule" && (
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+            <div className="p-3.5 rounded-xl bg-indigo-50/40 border border-indigo-200/80 space-y-3">
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">Release Date</label>
+                <label className="block text-[11px] font-bold text-slate-800 mb-1">Release Date</label>
                 <input
                   type="date"
                   value={scheduleDate}
                   onChange={e => setScheduleDate(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-medium text-slate-900 bg-white"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 bg-white focus:outline-none focus:border-indigo-600 shadow-2xs"
                 />
               </div>
 
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <label className="text-[11px] font-bold text-slate-700">Release Time</label>
-                  <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded">
+                  <label className="text-[11px] font-bold text-slate-800">Release Time</label>
+                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200">
                     Peak: 6:30 PM
                   </span>
                 </div>
@@ -789,20 +801,28 @@ export default function PublisherPage() {
                   type="time"
                   value={scheduleTime}
                   onChange={e => setScheduleTime(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-medium text-slate-900 bg-white"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 bg-white focus:outline-none focus:border-indigo-600 shadow-2xs"
                 />
               </div>
             </div>
           )}
 
           {/* Primary Action Button */}
-          <div className="pt-2 space-y-2">
+          <div className="pt-2 space-y-2.5">
             <button
               onClick={() => handlePost()}
               disabled={posting || selectedIds.length === 0}
-              className="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer active:scale-[0.98]"
+              className={`w-full py-3.5 px-4 rounded-xl text-white font-black text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50 ${
+                publishMode === "draft"
+                  ? "bg-amber-500 hover:bg-amber-600 active:bg-amber-700 shadow-amber-500/25"
+                  : "bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 shadow-indigo-600/25"
+              }`}
             >
-              <Send className="w-4 h-4" />
+              {publishMode === "draft" ? (
+                <Bookmark className="w-4 h-4 fill-white" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
               <span>
                 {posting 
                   ? "Processing..." 
@@ -814,15 +834,15 @@ export default function PublisherPage() {
               </span>
             </button>
 
-            {/* Quick Save as Draft Button (Always accessible) */}
+            {/* Quick Save as Draft Button with Solid Rich Amber BG Color */}
             {publishMode !== "draft" && (
               <button
                 type="button"
                 onClick={() => handlePost("draft")}
                 disabled={posting || selectedIds.length === 0}
-                className="w-full py-2.5 px-4 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs shadow-2xs transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer active:scale-[0.98]"
+                className="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-black text-xs shadow-md shadow-amber-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer active:scale-[0.98]"
               >
-                <Bookmark className="w-3.5 h-3.5 text-rose-600" />
+                <Bookmark className="w-4 h-4 fill-white text-white" />
                 <span>Save as Draft (Don't Publish)</span>
               </button>
             )}
@@ -931,7 +951,7 @@ export default function PublisherPage() {
                       </td>
                       <td className="py-3 px-3 whitespace-nowrap">
                         {isDraft ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold text-[10.5px] border border-rose-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold text-[10.5px] border border-amber-300">
                             Draft
                           </span>
                         ) : isScheduled ? (
