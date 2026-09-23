@@ -1,24 +1,88 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Bell, Search, Plus, ShieldCheck, Sparkles } from 'lucide-react';
+import { Bell, Search, Plus, ShieldCheck, Clock, AlertTriangle, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { getStoredUser, getUserPlanLimits } from '@/lib/user';
+
+function TrialCountdownPill({ user }) {
+  const [timeLeft, setTimeLeft] = useState({ days: 5, hours: 0, minutes: 0, seconds: 0, isExpired: false });
+
+  useEffect(() => {
+    const calculateTime = () => {
+      const startDateStr = user?.trialStartDate || user?.createdAt || new Date().toISOString();
+      const start = new Date(startDateStr).getTime();
+      const expiresAt = start + (5 * 24 * 60 * 60 * 1000); // 5-Day Trial Period
+      const now = Date.now();
+      const diff = expiresAt - now;
+
+      if (isNaN(diff) || diff <= 0) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, isExpired: true });
+      } else {
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((diff / (1000 * 60)) % 60);
+        const seconds = Math.floor((diff / 1000) % 60);
+        setTimeLeft({ days, hours, minutes, seconds, isExpired: false });
+      }
+    };
+
+    calculateTime();
+    const interval = setInterval(calculateTime, 1000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  if (timeLeft.isExpired) {
+    return (
+      <Link
+        href="/billing"
+        className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-black text-xs shadow-md shadow-rose-600/30 border border-rose-400/40 transition-all no-underline animate-pulse cursor-pointer"
+        title="Your 5-Day Trial has expired. Click to upgrade your plan."
+      >
+        <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0" />
+        <span>Trial Expired (Blocked)</span>
+        <span className="px-2 py-0.5 rounded-md bg-white text-rose-700 font-extrabold text-[10.5px]">
+          Upgrade Plan
+        </span>
+      </Link>
+    );
+  }
+
+  return (
+    <Link
+      href="/billing"
+      className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100/90 text-rose-700 border border-rose-300/90 font-bold text-xs shadow-xs transition-all no-underline group cursor-pointer"
+      title="Trial Countdown Timer. Click to view subscription plans."
+    >
+      <span className="relative flex h-2.5 w-2.5">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-80"></span>
+        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600"></span>
+      </span>
+      <Clock className="w-3.5 h-3.5 text-rose-600 group-hover:rotate-12 transition-transform shrink-0" />
+      <span className="text-[11.5px] text-slate-700 font-semibold">
+        Trial Expires in:
+      </span>
+      <span className="font-extrabold text-rose-700 font-mono text-xs tracking-tight bg-rose-100/80 px-2 py-0.5 rounded-md border border-rose-200">
+        {timeLeft.days}d {String(timeLeft.hours).padStart(2, '0')}h {String(timeLeft.minutes).padStart(2, '0')}m {String(timeLeft.seconds).padStart(2, '0')}s
+      </span>
+      <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-600 group-hover:bg-rose-700 text-white text-[10.5px] font-extrabold transition-colors">
+        Upgrade <ArrowRight className="w-3 h-3" />
+      </span>
+    </Link>
+  );
+}
 
 export default function TopNavbar() {
   const pathname = usePathname();
   const [user, setUser] = useState({ name: 'Saifuddin', email: 'saif@example.com' });
+  const [planLimits, setPlanLimits] = useState({ isPaid: true, isExpired: false });
 
   useEffect(() => {
-    const userStr = localStorage.getItem("socialflow_user") || localStorage.getItem("yt_user");
-    if (userStr) {
-      try {
-        setUser(JSON.parse(userStr));
-      } catch (e) {
-        console.error("Error parsing user", e);
-      }
-    }
-  }, []);
+    const activeUser = getStoredUser();
+    setUser(activeUser);
+    setPlanLimits(getUserPlanLimits(activeUser));
+  }, [pathname]);
 
   const getBreadcrumb = () => {
     if (pathname === '/' || pathname === '/dashboard') return isAdminUser ? 'Mission Control & System Operations' : 'Dashboard';
@@ -45,14 +109,17 @@ export default function TopNavbar() {
     (user.email && (user.email.includes("ansari") || user.email.includes("saif") || user.email.includes("admin")))
   );
 
+  const isTrialUser = !isAdminUser && !planLimits.isPaid;
+
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/90 bg-white/95 px-6 lg:px-8 backdrop-blur-md transition-all shadow-[0_1px_3px_rgba(0,0,0,0.03)] font-sans">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/90 bg-white/95 px-4 lg:px-8 backdrop-blur-md transition-all shadow-[0_1px_3px_rgba(0,0,0,0.03)] font-sans">
       
-      {/* Breadcrumb / Page Title */}
+      {/* Left Breadcrumb & Status */}
       <div className="flex items-center gap-3">
-        <h1 className="text-base font-bold text-slate-950 tracking-tight">
+        <h1 className="text-base font-bold text-slate-950 tracking-tight shrink-0">
           {getBreadcrumb()}
         </h1>
+
         {isAdminUser ? (
           <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50/90 text-indigo-950 border border-indigo-200/90 text-[11px] font-bold tracking-wide shadow-2xs">
             <span className="relative flex h-2 w-2">
@@ -61,6 +128,10 @@ export default function TopNavbar() {
             </span>
             <span className="text-indigo-700 font-black">ROOT ADMIN</span>
             <span className="text-slate-500 font-semibold">| 99.98% Live</span>
+          </div>
+        ) : isTrialUser ? (
+          <div className="hidden md:block">
+            <TrialCountdownPill user={user} />
           </div>
         ) : (
           <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/90 text-[11px] font-semibold tracking-wide">
@@ -73,13 +144,13 @@ export default function TopNavbar() {
         )}
       </div>
 
-      {/* Center Search Input */}
-      <div className="hidden md:flex max-w-md flex-1 items-center justify-between rounded-xl border border-slate-200/90 bg-slate-50/90 px-3.5 py-2 text-xs text-slate-600 focus-within:border-indigo-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100 transition-all mx-6 shadow-2xs">
+      {/* Center Search / Mobile Trial Banner */}
+      <div className="flex-1 max-w-md mx-4 hidden md:flex items-center justify-between rounded-xl border border-slate-200/90 bg-slate-50/90 px-3.5 py-2 text-xs text-slate-600 focus-within:border-indigo-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100 transition-all shadow-2xs">
         <div className="flex items-center gap-2.5 flex-1">
           <Search className="h-4 w-4 text-slate-400 shrink-0" />
           <input
             type="text"
-            placeholder={isAdminUser ? "Search tenants, accounts, transactions, or rules..." : "Search posts, channels, or rules..."}
+            placeholder={isAdminUser ? "Search tenants, accounts, transactions..." : "Search posts, channels, or rules..."}
             className="w-full border-none bg-transparent text-xs text-slate-900 font-medium outline-none placeholder:text-slate-400 focus:ring-0"
           />
         </div>
@@ -91,6 +162,13 @@ export default function TopNavbar() {
       {/* Right Actions & User Profile */}
       <div className="flex items-center gap-3">
         
+        {/* Visible Trial Pill for smaller screens if trial user */}
+        {isTrialUser && (
+          <div className="md:hidden">
+            <TrialCountdownPill user={user} />
+          </div>
+        )}
+
         {isAdminUser && (
           <Link
             href="/admin"
@@ -131,8 +209,8 @@ export default function TopNavbar() {
             <span className="block text-xs font-bold text-slate-900 leading-snug truncate max-w-[120px] group-hover:text-indigo-600 transition-colors">
               {user.name || "Saif Ansari"}
             </span>
-            <span className="block text-[10.5px] text-slate-500 font-medium">
-              {isAdminUser ? "Super Administrator" : "Workspace Admin"}
+            <span className="block text-[10.5px] text-slate-500 font-medium truncate max-w-[120px]">
+              {isAdminUser ? "Super Administrator" : (planLimits.planTitle || "5-Day Trial")}
             </span>
           </div>
         </Link>
