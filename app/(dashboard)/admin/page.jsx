@@ -35,7 +35,8 @@ import {
   Megaphone,
   Bell,
   Sparkles,
-  Percent
+  Percent,
+  Eye
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { getStoredUser } from "@/lib/user";
