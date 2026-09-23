@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getRules, createRule } from "@/lib/db";
+import { getRules, createRule, getUserById, isUserTrialExpired } from "@/lib/db";
 import { serverCache } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +43,14 @@ export async function POST(req) {
   try {
     const userId = req.headers.get("x-user-id");
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const user = await getUserById(userId);
+    if (user && isUserTrialExpired(user)) {
+      return NextResponse.json(
+        { error: "Your 5-Day Free Trial has expired. Automation rules are blocked until you upgrade to a plan.", isExpired: true },
+        { status: 403 }
+      );
+    }
 
     const body = await req.json();
     

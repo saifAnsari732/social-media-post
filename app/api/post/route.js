@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAccounts, addPost, getPosts, updatePost, deletePost } from "@/lib/db";
+import { getAccounts, addPost, getPosts, updatePost, deletePost, getUserById, isUserTrialExpired } from "@/lib/db";
 import { serverCache } from "@/lib/cache";
 import { postToYouTube } from "@/lib/platforms/youtube";
 import { postToFacebook } from "@/lib/platforms/facebook";
@@ -113,6 +113,17 @@ export async function POST(req) {
   let publishMode = "now";
   let scheduledAt = null;
   const userId = req.headers.get("x-user-id");
+
+  // SaaS Subscription Guard: Block posting if trial has expired
+  if (userId) {
+    const user = await getUserById(userId);
+    if (user && isUserTrialExpired(user)) {
+      return NextResponse.json(
+        { error: "Your 5-Day Free Trial has expired. All posting permissions are blocked until you upgrade to a plan.", isExpired: true },
+        { status: 403 }
+      );
+    }
+  }
 
   const contentType = req.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
@@ -299,6 +310,14 @@ export async function PUT(req) {
   try {
     const userId = req.headers.get("x-user-id");
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const user = await getUserById(userId);
+    if (user && isUserTrialExpired(user)) {
+      return NextResponse.json(
+        { error: "Your 5-Day Free Trial has expired. Please upgrade your plan to publish drafts.", isExpired: true },
+        { status: 403 }
+      );
+    }
 
     const body = await req.json();
     const { postId, action } = body;

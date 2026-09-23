@@ -2,6 +2,7 @@
 
 import Sidebar from '@/components/layout/Sidebar';
 import TopNavbar from '@/components/layout/TopNavbar';
+import TrialPaywallModal from '@/components/ui/TrialPaywallModal';
 
 export default function DashboardLayout({ children }) {
   return (
@@ -13,6 +14,7 @@ export default function DashboardLayout({ children }) {
           {children}
         </main>
       </div>
+      <TrialPaywallModal />
     </div>
   );
 }

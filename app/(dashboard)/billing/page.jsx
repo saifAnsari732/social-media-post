@@ -352,13 +352,13 @@ export default function BillingPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] uppercase font-bold text-amber-800 tracking-wider">Current Status</span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold">5-DAY FREE TRIAL</span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold">5-DAY ALL-ACCESS TRIAL</span>
                 </div>
                 <h3 className="text-base font-black text-amber-950 mt-0.5">
-                  Free Trial Active — {limits.trialDaysLeft} Days Remaining
+                  Pro Free Trial Active — {limits.trialDaysLeft} Days Remaining
                 </h3>
                 <p className="text-xs text-amber-800 mt-0.5">
-                  No paid plan active. You have full trial access for {limits.trialDaysLeft} more days before an upgrade is required.
+                  You have full unrestricted access to all features (connecting all channels, multi-channel posting, AI assistant, and automations) for {limits.trialDaysLeft} more days before a paid plan is required.
                 </p>
               </div>
             </div>
