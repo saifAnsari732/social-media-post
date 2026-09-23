@@ -13,15 +13,16 @@ import {
   Send, 
   ExternalLink,
   Users,
-  Check,
-  Zap,
-  ArrowRight
+  Check, 
+  Zap, 
+  ArrowRight,
+  AlertTriangle
 } from "lucide-react";
 import toast from "react-hot-toast";
 import ConnectModal from "@/components/modals/ConnectModal";
 import { SocialCardSkeleton } from "@/components/ui/Skeletons";
 import { PlatformIcon } from "@/components/ui/SocialIcons";
-import { getStoredUser, getUserHeaders, checkPlanAccess } from "@/lib/user";
+import { getStoredUser, getUserHeaders, checkPlanAccess, getUserPlanLimits } from "@/lib/user";
 
 const SUPPORTED_PLATFORMS = [
   {
@@ -75,6 +76,7 @@ export default function AccountsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const router = useRouter();
+  const limits = getUserPlanLimits(user);
 
   useEffect(() => {
     const u = getStoredUser();
@@ -216,6 +218,29 @@ export default function AccountsPage() {
         </div>
       </div>
 
+      {/* Expired Trial Warning Banner */}
+      {limits.isExpired && (
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-rose-900 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-rose-100 text-rose-700 shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold">5-Day Free Trial Expired — Actions Blocked</h3>
+              <p className="text-xs text-rose-700 mt-0.5">
+                Your free trial has ended. Connecting new channels, publishing, and auto-sync are restricted until a subscription is activated.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => router.push("/billing")}
+            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shrink-0 shadow-sm cursor-pointer"
+          >
+            Upgrade Plan Now →
+          </button>
+        </div>
+      )}
+
       {/* Channels Grid */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -247,14 +272,19 @@ export default function AccountsPage() {
                     </div>
 
                     {/* Account Name & Info */}
-                    <div className="mt-3.5">
-                      <h4 className="text-sm font-bold text-slate-950 truncate" title={acc.accountName}>
-                        {acc.accountName || `${platform.name} Channel`}
+                    <div className="mt-3.5 space-y-1">
+                      <h4 className="text-sm font-bold text-slate-950 truncate" title={acc.name || acc.accountName}>
+                        {acc.name || acc.accountName || `${platform.name} Channel`}
                       </h4>
-                      <p className="text-xs text-slate-500 font-medium mt-0.5 flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        <span>OAuth Authorized</span>
-                      </p>
+                      <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium truncate">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                        <span className="font-semibold text-indigo-600 truncate">
+                          {acc.handle || (acc.username ? `@${acc.username.replace(/^@/, '')}` : "Connected")}
+                        </span>
+                        {acc.followersFormatted && (
+                          <span className="text-slate-400 text-[11px] shrink-0 font-normal">• {acc.followersFormatted}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
 

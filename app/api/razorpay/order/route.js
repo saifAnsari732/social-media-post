@@ -1,9 +1,22 @@
 import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
+import { validateCoupon } from "@/lib/db";
 
 export async function POST(req) {
   try {
-    const { amount, planName, currency = "INR" } = await req.json();
+    const { amount, planName, currency = "INR", couponCode } = await req.json();
+
+    let finalAmount = Number(amount);
+
+    // If coupon is supplied, verify and apply discount
+    let appliedDiscount = 0;
+    if (couponCode) {
+      const couponValidation = await validateCoupon(couponCode, finalAmount);
+      if (couponValidation.valid) {
+        finalAmount = couponValidation.finalPrice;
+        appliedDiscount = couponValidation.discountAmount;
+      }
+    }
 
     const key_id = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_live_TNdSmDOKSX2g6I";
     const key_secret = process.env.RAZORPAY_KEY_SECRET || "5GO0yjbVCTn58B1FDUocEjyb";
@@ -11,10 +24,14 @@ export async function POST(req) {
     const instance = new Razorpay({ key_id, key_secret });
 
     const options = {
-      amount: Math.round(amount * 100), // amount in smallest currency unit (paisa)
+      amount: Math.round(finalAmount * 100), // amount in smallest currency unit (paisa)
       currency,
-      receipt: `receipt_${Date.now()}`,
-      notes: { planName }
+      receipt: `rcpt_${Date.now().toString(36)}`,
+      notes: { 
+        planName,
+        couponCode: couponCode || "NONE",
+        appliedDiscount: String(appliedDiscount)
+      }
     };
 
     const order = await instance.orders.create(options);

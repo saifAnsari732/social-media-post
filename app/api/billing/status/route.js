@@ -15,11 +15,19 @@ export async function GET(req) {
       getUserBillingHistory(userId)
     ]);
 
+    const history = billingHistory || [];
+    const hasPaid = history.some(b => b.status === "paid" || b.status === "captured");
+    const activePlan = hasPaid && user?.plan && !user.plan.toLowerCase().includes("trial") 
+      ? user.plan 
+      : "5-Day Trial";
+
     return NextResponse.json({
       success: true,
-      currentPlan: user?.plan || "Starter",
+      currentPlan: activePlan,
+      isPaid: hasPaid,
       planUpdatedAt: user?.planUpdatedAt || null,
-      history: billingHistory || []
+      trialStartDate: user?.trialStartDate || user?.createdAt || null,
+      history: history
     });
   } catch (error) {
     console.error("Billing status API error:", error);

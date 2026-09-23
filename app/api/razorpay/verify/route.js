@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import { updateUserPlan } from "@/lib/db";
+import { updateUserPlan, incrementCouponUsage } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req) {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, planName, userId } = await req.json();
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, planName, userId, couponCode } = await req.json();
 
     const key_secret = process.env.RAZORPAY_KEY_SECRET || "5GO0yjbVCTn58B1FDUocEjyb";
 
@@ -25,8 +25,14 @@ export async function POST(req) {
           orderId: razorpay_order_id,
           paymentId: razorpay_payment_id,
           signature: razorpay_signature,
+          couponCode: couponCode || null,
           status: "paid"
         });
+      }
+
+      // 2. Increment coupon usage if used
+      if (couponCode) {
+        await incrementCouponUsage(couponCode);
       }
 
       return NextResponse.json({

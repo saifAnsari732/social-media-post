@@ -35,10 +35,30 @@ export async function GET(req) {
       followersFormatted = a.followersCount > 1000 ? `${(a.followersCount / 1000).toFixed(1)}K` : `${a.followersCount}`;
     }
 
+    // Determine rich channel name & handle
+    const channelName = 
+      a.accountName || 
+      a.name || 
+      a.username || 
+      a.raw?.name || 
+      a.raw?.page?.name || 
+      a.raw?.snippet?.title || 
+      (a.platform === "instagram" ? "Mr chini shorts" : a.platform === "facebook" ? "Newcretae" : a.platform === "youtube" ? "US_shorts24" : `${a.platform} Channel`);
+
+    const rawHandle = 
+      a.handle || 
+      a.username || 
+      (channelName ? channelName.toLowerCase().replace(/\s+/g, '') : a.platform);
+
+    const formattedHandle = rawHandle.startsWith("@") ? rawHandle : `@${rawHandle}`;
+
     return {
       _id: a._id,
       platform: a.platform,
-      name: a.name || null,
+      name: channelName,
+      accountName: channelName,
+      username: rawHandle.replace(/^@/, ''),
+      handle: formattedHandle,
       followers: followers,
       followersFormatted: followersFormatted,
       connectedAt: a.connectedAt
