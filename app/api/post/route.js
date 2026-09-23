@@ -105,16 +105,39 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
-  const formData = await req.formData();
-  const file = formData.get("file");
-  const title = formData.get("title") || "";
-  const description = formData.get("description") || "";
-  const tagsString = formData.get("tags") || "";
-  const tags = tagsString.split(",").map(t => t.trim()).filter(Boolean);
-  const selectedAccountIds = JSON.parse(formData.get("accountIds") || "[]");
-  const publishMode = formData.get("publishMode") || "now";
-  const scheduledAt = formData.get("scheduledAt") || null;
+  let file = null;
+  let title = "";
+  let description = "";
+  let tags = [];
+  let selectedAccountIds = [];
+  let publishMode = "now";
+  let scheduledAt = null;
   const userId = req.headers.get("x-user-id");
+
+  const contentType = req.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    const json = await req.json();
+    title = json.title || "";
+    description = json.content || json.description || "";
+    tags = json.tags || [];
+    selectedAccountIds = json.accountIds || json.platforms || [];
+    publishMode = json.publishMode || (json.scheduledAt ? "schedule" : "draft");
+    scheduledAt = json.scheduledAt || null;
+  } else {
+    const formData = await req.formData();
+    file = formData.get("file");
+    title = formData.get("title") || "";
+    description = formData.get("description") || "";
+    const tagsString = formData.get("tags") || "";
+    tags = tagsString.split(",").map(t => t.trim()).filter(Boolean);
+    try {
+      selectedAccountIds = JSON.parse(formData.get("accountIds") || "[]");
+    } catch {
+      selectedAccountIds = [];
+    }
+    publishMode = formData.get("publishMode") || "now";
+    scheduledAt = formData.get("scheduledAt") || null;
+  }
 
   const accounts = await getAccounts(userId);
   const results = {};

@@ -4,7 +4,7 @@ import { logWebhookEvent } from '@/lib/db';
 import { matchRule } from '@/lib/automation/rule-matcher';
 import { sendReply } from '@/lib/automation/reply-sender';
 
-const VERIFY_TOKEN = process.env.META_WEBHOOK_VERIFY_TOKEN || 'my_custom_verify_token_123';
+const VERIFY_TOKEN = process.env.META_WEBHOOK_VERIFY_TOKEN || 'socialflow_meta_secret_2026';
 const APP_SECRET = process.env.META_APP_SECRET;
 
 export async function GET(req) {
