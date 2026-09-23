@@ -5,17 +5,21 @@ export async function GET(req, { params }) {
   const userId = req.nextUrl.searchParams.get("userId") || "anonymous";
   const state = Buffer.from(JSON.stringify({ userId, provider })).toString("base64url");
 
+  const metaAppId = process.env.META_APP_ID || "1401279338528045";
+  const metaRedirectUri = process.env.META_REDIRECT_URI || "https://social-media-post-eta.vercel.app/api/auth/callback/facebook";
+  const threadsRedirectUri = process.env.THREADS_REDIRECT_URI || "https://social-media-post-eta.vercel.app/api/auth/callback/threads";
+
   const AUTH_URLS = {
     youtube: () =>
       `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.YOUTUBE_CLIENT_ID}&redirect_uri=${process.env.YOUTUBE_REDIRECT_URI}&response_type=code&access_type=offline&state=${state}&scope=${encodeURIComponent(
         "https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly"
       )}`,
     facebook: () =>
-      `https://www.facebook.com/v20.0/dialog/oauth?client_id=${process.env.META_APP_ID}&redirect_uri=${process.env.META_REDIRECT_URI}&state=${state}&auth_type=rerequest&scope=${encodeURIComponent(
+      `https://www.facebook.com/v20.0/dialog/oauth?client_id=${metaAppId}&redirect_uri=${encodeURIComponent(metaRedirectUri)}&state=${state}&auth_type=rerequest&scope=${encodeURIComponent(
         "pages_show_list,pages_read_engagement,pages_manage_posts"
       )}`,
     instagram: () =>
-      `https://www.facebook.com/v20.0/dialog/oauth?client_id=${process.env.META_APP_ID}&redirect_uri=${process.env.META_REDIRECT_URI}&state=${state}&auth_type=rerequest&scope=${encodeURIComponent(
+      `https://www.facebook.com/v20.0/dialog/oauth?client_id=${metaAppId}&redirect_uri=${encodeURIComponent(metaRedirectUri)}&state=${state}&auth_type=rerequest&scope=${encodeURIComponent(
         "pages_show_list,pages_read_engagement,instagram_basic,instagram_content_publish,instagram_manage_messages,instagram_manage_comments"
       )}`,
     twitter: () => {
@@ -27,15 +31,12 @@ export async function GET(req, { params }) {
       `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${process.env.LINKEDIN_CLIENT_ID}&redirect_uri=${process.env.LINKEDIN_REDIRECT_URI}&state=${state}&scope=${encodeURIComponent(
         "openid profile w_member_social"
       )}`,
-    threads: () => {
-      const appId = process.env.THREADS_APP_ID || process.env.META_APP_ID;
-      const redirectUri = process.env.THREADS_REDIRECT_URI || process.env.META_REDIRECT_URI;
-      return `https://threads.net/oauth/authorize?app_id=${appId}&client_id=${appId}&redirect_uri=${encodeURIComponent(
-        redirectUri
+    threads: () =>
+      `https://www.threads.net/oauth/authorize?client_id=${metaAppId}&redirect_uri=${encodeURIComponent(
+        threadsRedirectUri
       )}&response_type=code&scope=${encodeURIComponent(
         "threads_basic,threads_content_publish"
-      )}&state=${state}`;
-    },
+      )}&state=${state}`,
     pinterest: () =>
       `https://www.pinterest.com/oauth/?client_id=${process.env.PINTEREST_CLIENT_ID}&redirect_uri=${encodeURIComponent(
         process.env.PINTEREST_REDIRECT_URI

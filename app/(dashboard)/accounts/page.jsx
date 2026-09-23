@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { 
   Link2, 
   Trash2, 
@@ -16,7 +16,9 @@ import {
   Check, 
   Zap, 
   ArrowRight,
-  AlertTriangle
+  AlertTriangle,
+  AlertCircle,
+  X
 } from "lucide-react";
 import toast from "react-hot-toast";
 import ConnectModal from "@/components/modals/ConnectModal";
@@ -70,19 +72,39 @@ const SUPPORTED_PLATFORMS = [
 ];
 
 export default function AccountsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-slate-500 font-medium">Loading channels...</div>}>
+      <AccountsContent />
+    </Suspense>
+  );
+}
+
+function AccountsContent() {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [errorNotice, setErrorNotice] = useState(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const limits = getUserPlanLimits(user);
 
   useEffect(() => {
     const u = getStoredUser();
     setUser(u);
     fetchAccounts(u.userId);
-  }, []);
+
+    const err = searchParams?.get("error");
+    const connected = searchParams?.get("connected");
+
+    if (err) {
+      setErrorNotice(decodeURIComponent(err));
+      toast.error("Channel connection notice");
+    } else if (connected) {
+      toast.success(`Successfully connected ${connected.toUpperCase()} channel!`);
+    }
+  }, [searchParams]);
 
   const fetchAccounts = async (targetUserId) => {
     try {
@@ -182,6 +204,40 @@ export default function AccountsPage() {
           </button>
         </div>
       </div>
+
+      {/* Modern High-Contrast Error Alert UI */}
+      {errorNotice && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-rose-50 border-2 border-rose-300 shadow-sm flex items-start justify-between gap-4 text-rose-950 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-start gap-3.5">
+            <div className="p-2.5 rounded-xl bg-rose-200/80 text-rose-700 shrink-0 mt-0.5">
+              <AlertCircle className="w-5 h-5 stroke-[2.5]" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-rose-950">Channel Connection Notice</h3>
+                <span className="px-2 py-0.5 rounded-md bg-rose-200 text-rose-800 text-[10px] font-bold uppercase tracking-wider">
+                  Action Required
+                </span>
+              </div>
+              <p className="text-xs text-rose-900 leading-relaxed font-medium">
+                {errorNotice}
+              </p>
+              {(errorNotice.toLowerCase().includes("unavailable") || errorNotice.toLowerCase().includes("permission") || errorNotice.toLowerCase().includes("role")) && (
+                <p className="text-[11px] text-rose-800 bg-white/70 p-2.5 rounded-xl border border-rose-200/80 mt-2 font-normal leading-relaxed">
+                  💡 <strong>Tip for Meta / Facebook:</strong> If you are testing before Meta App Review is approved, ensure this Facebook profile is added to <strong>App Roles ➔ Testers</strong> in the Meta Developer Portal.
+                </p>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={() => setErrorNotice(null)}
+            className="p-1.5 rounded-lg text-rose-600 hover:text-rose-900 hover:bg-rose-200/50 transition-colors shrink-0 cursor-pointer"
+            title="Dismiss notice"
+          >
+            <X className="w-4 h-4 stroke-[2.5]" />
+          </button>
+        </div>
+      )}
 
       {/* Overview Stat Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

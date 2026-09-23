@@ -19,8 +19,10 @@ async function exchangeToken(provider, code) {
     }
     case "facebook":
     case "instagram": {
+      const appId = process.env.META_APP_ID || "1401279338528045";
+      const redirectUri = process.env.META_REDIRECT_URI || "https://social-media-post-eta.vercel.app/api/auth/callback/facebook";
       const res = await fetch(
-        `https://graph.facebook.com/v20.0/oauth/access_token?client_id=${process.env.META_APP_ID}&redirect_uri=${process.env.META_REDIRECT_URI}&client_secret=${process.env.META_APP_SECRET}&code=${code}`
+        `https://graph.facebook.com/v20.0/oauth/access_token?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${process.env.META_APP_SECRET}&code=${code}`
       );
       return res.json();
     }
@@ -57,14 +59,16 @@ async function exchangeToken(provider, code) {
       return res.json();
     }
     case "threads": {
+      const appId = process.env.META_APP_ID || "1401279338528045";
+      const redirectUri = process.env.THREADS_REDIRECT_URI || "https://social-media-post-eta.vercel.app/api/auth/callback/threads";
       const res = await fetch("https://graph.threads.net/oauth/access_token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
-          client_id: process.env.META_APP_ID,
+          client_id: appId,
           client_secret: process.env.META_APP_SECRET,
           grant_type: "authorization_code",
-          redirect_uri: process.env.THREADS_REDIRECT_URI || process.env.META_REDIRECT_URI,
+          redirect_uri: redirectUri,
           code
         })
       });
@@ -164,9 +168,9 @@ export async function GET(req, { params }) {
       });
     } else if ((provider === "facebook" || provider === "instagram") && tokenData.access_token) {
       try {
-        // Fast & Advanced: Fetch Pages AND linked Instagram Accounts in a SINGLE query!
+        // Fast & Advanced: Fetch ALL Pages AND linked Instagram Accounts with high limit & pagination
         let pagesRes = await fetch(
-          `https://graph.facebook.com/v20.0/me/accounts?fields=id,name,fan_count,access_token,instagram_business_account{id,username,name,followers_count}&access_token=${tokenData.access_token}`
+          `https://graph.facebook.com/v20.0/me/accounts?fields=id,name,fan_count,access_token,instagram_business_account{id,username,name,profile_picture_url,followers_count}&limit=100&access_token=${tokenData.access_token}`
         );
         let pagesData = await pagesRes.json();
         
@@ -178,6 +182,25 @@ export async function GET(req, { params }) {
 
         let pages = pagesData.data || [];
 
+        // Paginate if user manages more than 100 pages
+        let nextUrl = pagesData.paging?.next;
+        let pageCount = 0;
+        while (nextUrl && pageCount < 5) {
+          try {
+            const nextRes = await fetch(nextUrl);
+            const nextData = await nextRes.json();
+            if (nextData.data && nextData.data.length > 0) {
+              pages.push(...nextData.data);
+              nextUrl = nextData.paging?.next;
+              pageCount++;
+            } else {
+              break;
+            }
+          } catch (e) {
+            break;
+          }
+        }
+
         // Fallback for Meta Granular Scopes
         if (pages.length === 0) {
           const debugRes = await fetch(`https://graph.facebook.com/debug_token?input_token=${tokenData.access_token}&access_token=${tokenData.access_token}`);
@@ -186,7 +209,7 @@ export async function GET(req, { params }) {
             const pageScopes = debugData.data.granular_scopes.find(s => s.scope === "pages_manage_posts" || s.scope === "pages_show_list");
             if (pageScopes && pageScopes.target_ids && pageScopes.target_ids.length > 0) {
               const fetchPromises = pageScopes.target_ids.map(pageId => 
-                fetch(`https://graph.facebook.com/v20.0/${pageId}?fields=id,name,fan_count,access_token,instagram_business_account{id,username,name,followers_count}&access_token=${tokenData.access_token}`)
+                fetch(`https://graph.facebook.com/v20.0/${pageId}?fields=id,name,fan_count,access_token,instagram_business_account{id,username,name,profile_picture_url,followers_count}&access_token=${tokenData.access_token}`)
                   .then(r => r.json())
               );
               
@@ -200,22 +223,21 @@ export async function GET(req, { params }) {
           const upsertPromises = [];
 
           for (const page of pages) {
-            if (provider === "facebook") {
-              const fanCount = page.fan_count || 0;
-              upsertPromises.push(upsertAccount({
-                platform: "facebook",
-                providerAccountId: page.id,
-                pageId: page.id,
-                userId,
-                accessToken: page.access_token,
-                refreshToken: null,
-                name: page.name,
-                followers: fanCount,
-                followersFormatted: fanCount > 1000 ? `${(fanCount / 1000).toFixed(1)}K` : `${fanCount}`,
-                connectedAt: new Date().toISOString(),
-                raw: { ...tokenData, page }
-              }));
-            }
+            // 1. Connect Facebook Page
+            const fanCount = page.fan_count || 0;
+            upsertPromises.push(upsertAccount({
+              platform: "facebook",
+              providerAccountId: page.id,
+              pageId: page.id,
+              userId,
+              accessToken: page.access_token,
+              refreshToken: null,
+              name: page.name,
+              followers: fanCount,
+              followersFormatted: fanCount > 1000 ? `${(fanCount / 1000).toFixed(1)}K` : `${fanCount}`,
+              connectedAt: new Date().toISOString(),
+              raw: { ...tokenData, page }
+            }));
 
             if (page.instagram_business_account) {
               const igAcc = page.instagram_business_account;
@@ -330,8 +352,8 @@ export async function GET(req, { params }) {
       });
     }
 
-    return NextResponse.redirect(new URL("/?connected=" + provider, req.url));
+    return NextResponse.redirect(new URL("/accounts?connected=" + provider, req.url));
   } catch (err) {
-    return NextResponse.redirect(new URL("/?error=" + encodeURIComponent(err.message), req.url));
+    return NextResponse.redirect(new URL("/accounts?error=" + encodeURIComponent(err.message), req.url));
   }
 }
