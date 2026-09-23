@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAllUsers, getAdminStats, getUserById, adminUpdateUser, adminCreateUser, adminDeleteUser } from "@/lib/db";
+import { getAllUsers, getAdminStats, getUserById, adminUpdateUser, adminCreateUser, adminDeleteUser, addSystemLog } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +60,15 @@ export async function PATCH(req) {
     }
 
     const updatedUser = await adminUpdateUser(targetUserId, updates);
+    
+    await addSystemLog({
+      type: "TENANT_UPDATED",
+      level: "INFO",
+      source: "Super Admin Command",
+      message: `Tenant updated: ${updatedUser?.name || targetUserId} (${Object.keys(updates).join(", ")})`,
+      details: { targetUserId, updates }
+    });
+
     return NextResponse.json({ success: true, user: updatedUser });
   } catch (error) {
     console.error("Admin user update error:", error);
@@ -93,6 +102,15 @@ export async function POST(req) {
     }
 
     const newUser = await adminCreateUser({ name, email, plan, role });
+
+    await addSystemLog({
+      type: "TENANT_CREATED",
+      level: "SUCCESS",
+      source: "Super Admin Command",
+      message: `New Tenant registered by Admin: ${name || email} (${email}) - Plan: ${plan || "5-Day Trial"}`,
+      details: { userId: newUser.userId, email, plan, role }
+    });
+
     return NextResponse.json({ success: true, user: newUser });
   } catch (error) {
     console.error("Admin user creation error:", error);
@@ -126,6 +144,15 @@ export async function DELETE(req) {
     }
 
     await adminDeleteUser(targetUserId);
+
+    await addSystemLog({
+      type: "TENANT_DELETED",
+      level: "WARNING",
+      source: "Super Admin Command",
+      message: `Tenant account deleted: ${targetUserId}`,
+      details: { targetUserId }
+    });
+
     return NextResponse.json({ success: true, deleted: true });
   } catch (error) {
     console.error("Admin user delete error:", error);
