@@ -11,7 +11,8 @@ import {
   TrendingUp, 
   ShieldCheck, 
   HeartHandshake,
-  MessageSquareQuote
+  MessageSquareQuote,
+  Award
 } from "lucide-react";
 
 export default function ClientReviewsSlider() {
@@ -195,54 +196,54 @@ export default function ClientReviewsSlider() {
   };
 
   return (
-    <section className="relative bg-slate-950 py-24 sm:py-32 overflow-hidden select-none border-y border-slate-800">
+    <section className="relative bg-slate-950 py-24 sm:py-32 overflow-hidden select-none border-y border-slate-800/80">
       
-      {/* Background ambient lighting effects */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-b from-indigo-500/10 via-emerald-500/5 to-transparent blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -top-20 -right-20 w-80 h-80 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none" />
+      {/* Dynamic Background Lighting Effects */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-b from-indigo-500/15 via-purple-500/5 to-transparent blur-3xl pointer-events-none" />
+      <div className="absolute top-1/3 -left-32 w-96 h-96 bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-10 -right-32 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
 
-      {/* Grid Pattern Accent */}
+      {/* Modern Grid Pattern Accent */}
       <div 
-        className="absolute inset-0 opacity-[0.03] pointer-events-none" 
-        style={{ backgroundImage: "radial-gradient(#ffffff 1px, transparent 1px)", backgroundSize: "24px 24px" }}
+        className="absolute inset-0 opacity-[0.04] pointer-events-none" 
+        style={{ backgroundImage: "radial-gradient(#ffffff 1px, transparent 1px)", backgroundSize: "28px 28px" }}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto space-y-4 mb-14 sm:mb-18">
+        <div className="text-center max-w-3xl mx-auto space-y-5 mb-12 sm:mb-16">
           
           {/* Rating Pill Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900 border border-slate-700/80 shadow-inner text-xs font-semibold text-slate-200">
+          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-slate-900/90 border border-slate-700/80 shadow-lg text-xs font-semibold text-slate-200">
             <div className="flex items-center text-amber-400">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className="w-3.5 h-3.5 fill-amber-400" />
               ))}
             </div>
-            <span className="font-bold text-white">4.9 / 5</span>
-            <span className="text-slate-400">•</span>
-            <span className="text-slate-300">2,400+ Verified Reviews</span>
+            <span className="font-bold text-white">4.9 / 5.0</span>
+            <span className="text-slate-500">•</span>
+            <span className="text-indigo-300 font-medium">2,400+ Verified Client Reviews</span>
           </div>
 
           {/* Main Title */}
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight">
-            Loved by Growing Brands & Creators
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
+            Loved by Growing <span className="bg-gradient-to-r from-indigo-400 via-purple-300 to-emerald-400 bg-clip-text text-transparent">Brands & Creators</span>
           </h2>
 
-          <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto font-normal leading-relaxed">
+          <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto font-normal leading-relaxed">
             See how founders, agencies, and social media managers automate publishing, engage audiences, and scale organic reach with Postfly.
           </p>
 
-          {/* Category Filter Pills & Controls */}
-          <div className="pt-4 flex flex-wrap items-center justify-center gap-2">
+          {/* Category Filter Pills */}
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-2.5">
             {categories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   selectedCategory === cat.id
-                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-500 scale-105"
+                    ? "bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-600/30 border border-indigo-400 scale-105"
                     : "bg-slate-900/80 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800"
                 }`}
               >
@@ -251,7 +252,7 @@ export default function ClientReviewsSlider() {
             ))}
           </div>
 
-          {/* Controls bar (Pause / Scroll) */}
+          {/* Controls Bar (Pause / Scroll Arrow Navigation) */}
           <div className="pt-2 flex items-center justify-center gap-3">
             <button
               onClick={() => handleManualScroll("left")}
@@ -260,8 +261,9 @@ export default function ClientReviewsSlider() {
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="text-xs text-slate-400 font-medium px-2">
-              Hover over any review to pause slide
+            <span className="text-xs text-slate-400 font-medium px-2 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              Hover over cards to pause floating slide
             </span>
             <button
               onClick={() => handleManualScroll("right")}
@@ -276,65 +278,70 @@ export default function ClientReviewsSlider() {
 
       </div>
 
-      {/* ── Seamless Infinite Sliding Rows ── */}
+      {/* ── DIAGONAL SLANTED MARQUEE SLIDER CONTAINER ("TIRCHAA" Top-Right to Bottom-Left) ── */}
       <div 
-        className="relative w-full overflow-hidden space-y-6"
+        className="relative w-full py-6 overflow-hidden"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
       >
         
-        {/* Left & Right Gradient Fade Masks for seamless edge effect */}
-        <div className="absolute top-0 bottom-0 left-0 w-16 sm:w-32 bg-gradient-to-r from-slate-950 to-transparent z-20 pointer-events-none" />
-        <div className="absolute top-0 bottom-0 right-0 w-16 sm:w-32 bg-gradient-to-l from-slate-950 to-transparent z-20 pointer-events-none" />
+        {/* Left & Right Edge Vignette Fades */}
+        <div className="absolute top-0 bottom-0 left-0 w-20 sm:w-40 bg-gradient-to-r from-slate-950 via-slate-950/90 to-transparent z-30 pointer-events-none" />
+        <div className="absolute top-0 bottom-0 right-0 w-20 sm:w-40 bg-gradient-to-l from-slate-950 via-slate-950/90 to-transparent z-30 pointer-events-none" />
 
-        {/* ── ROW 1: Smooth Left Slide ── */}
-        <div 
-          ref={row1Ref}
-          className="flex overflow-x-hidden"
-        >
+        {/* Slanted Rotated Wrapper: Tilted at -4deg / -5deg for top-right to bottom-left motion */}
+        <div className="transform -rotate-2 sm:-rotate-3 lg:-rotate-4 scale-105 sm:scale-110 space-y-6 sm:space-y-8 my-6 transition-transform duration-500">
+          
+          {/* ── ROW 1: Gliding Top-Right to Bottom-Left ── */}
           <div 
-            className="animate-marquee-smooth flex items-stretch gap-6 px-3"
-            style={{ animationPlayState: isPaused ? "paused" : "running" }}
+            ref={row1Ref}
+            className="flex overflow-x-hidden"
           >
-            {infiniteRow1.map((item, idx) => (
-              <ReviewCard key={`r1-${item.id}-${idx}`} review={item} />
-            ))}
+            <div 
+              className="animate-marquee-smooth flex items-stretch gap-6 px-3"
+              style={{ animationPlayState: isPaused ? "paused" : "running" }}
+            >
+              {infiniteRow1.map((item, idx) => (
+                <ReviewCard key={`r1-${item.id}-${idx}`} review={item} />
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* ── ROW 2: Smooth Right Slide ── */}
-        <div 
-          ref={row2Ref}
-          className="flex overflow-x-hidden"
-        >
+          {/* ── ROW 2: Counter-Gliding Stream ── */}
           <div 
-            className="animate-marquee-reverse flex items-stretch gap-6 px-3"
-            style={{ animationPlayState: isPaused ? "paused" : "running" }}
+            ref={row2Ref}
+            className="flex overflow-x-hidden"
           >
-            {infiniteRow2.map((item, idx) => (
-              <ReviewCard key={`r2-${item.id}-${idx}`} review={item} />
-            ))}
+            <div 
+              className="animate-marquee-reverse flex items-stretch gap-6 px-3"
+              style={{ animationPlayState: isPaused ? "paused" : "running" }}
+            >
+              {infiniteRow2.map((item, idx) => (
+                <ReviewCard key={`r2-${item.id}-${idx}`} review={item} />
+              ))}
+            </div>
           </div>
+
         </div>
 
       </div>
 
       {/* Trust Stats Footer Strip */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-16 pt-10 border-t border-slate-800/80">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-12 pt-10 border-t border-slate-800/80 relative z-10">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
-          <div className="space-y-1">
+          <div className="space-y-1 p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60 backdrop-blur-sm">
             <h4 className="text-2xl sm:text-3xl font-black text-white">99.4%</h4>
             <p className="text-xs text-slate-400 font-medium">Customer Satisfaction</p>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60 backdrop-blur-sm">
             <h4 className="text-2xl sm:text-3xl font-black text-indigo-400">10M+</h4>
             <p className="text-xs text-slate-400 font-medium">Posts Auto-Published</p>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60 backdrop-blur-sm">
             <h4 className="text-2xl sm:text-3xl font-black text-emerald-400">25+ Hrs</h4>
             <p className="text-xs text-slate-400 font-medium">Saved Per Team Weekly</p>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60 backdrop-blur-sm">
             <h4 className="text-2xl sm:text-3xl font-black text-amber-400">4.9 ★</h4>
             <p className="text-xs text-slate-400 font-medium">Average Client Rating</p>
           </div>
@@ -348,9 +355,9 @@ export default function ClientReviewsSlider() {
 // ── Single Review Card Component ──
 function ReviewCard({ review }) {
   return (
-    <div className="w-[340px] sm:w-[380px] shrink-0 p-6 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-indigo-500/60 shadow-xl hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 flex flex-col justify-between space-y-4 group">
+    <div className="w-[340px] sm:w-[390px] shrink-0 p-6 rounded-2xl bg-gradient-to-br from-slate-900/95 via-slate-900/90 to-slate-950/95 border border-slate-800/90 hover:border-indigo-500/70 shadow-xl hover:shadow-[0_0_25px_rgba(99,102,241,0.2)] transition-all duration-300 transform hover:-translate-y-1 flex flex-col justify-between space-y-4 group">
       
-      {/* Card Header: Stars + Impact Badge */}
+      {/* Card Header: Rating Stars + Impact Pill */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1 text-amber-400">
           {[...Array(review.rating)].map((_, i) => (
@@ -358,34 +365,34 @@ function ReviewCard({ review }) {
           ))}
         </div>
 
-        {/* Growth/Impact Metric Pill */}
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-950/80 border border-emerald-800/80 text-[11px] font-bold text-emerald-300">
-          <TrendingUp className="w-3 h-3" />
+        {/* Impact / Growth Metric Pill */}
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-950/80 border border-emerald-800/80 text-[11px] font-bold text-emerald-300 shadow-sm">
+          <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
           {review.impact}
         </span>
       </div>
 
       {/* Quote Body */}
-      <div className="relative">
-        <Quote className="w-6 h-6 text-indigo-500/20 absolute -top-2 -left-1 pointer-events-none" />
-        <p className="text-xs sm:text-[13px] text-slate-300 font-normal leading-relaxed pl-2 group-hover:text-slate-100 transition-colors">
+      <div className="relative py-1">
+        <Quote className="w-6 h-6 text-indigo-500/25 absolute -top-2 -left-1 pointer-events-none group-hover:text-indigo-400/40 transition-colors" />
+        <p className="text-xs sm:text-[13px] text-slate-200 font-normal leading-relaxed pl-3 group-hover:text-white transition-colors">
           "{review.quote}"
         </p>
       </div>
 
-      {/* Card Footer: Reviewer Info + Channel Badges */}
-      <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3">
+      {/* Card Footer: User Avatar, Name, Role & Social Channels Tag */}
+      <div className="pt-4 border-t border-slate-800/90 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <div className="relative shrink-0">
             <img 
               src={review.avatar} 
               alt={review.name}
-              className="w-10 h-10 rounded-full object-cover ring-2 ring-indigo-500/30 group-hover:ring-indigo-500 transition-all"
+              className="w-10 h-10 rounded-full object-cover ring-2 ring-indigo-500/30 group-hover:ring-indigo-400 transition-all"
               loading="lazy"
             />
             {review.verified && (
-              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center ring-2 ring-slate-900" title="Verified Postfly Client">
-                <CheckCircle2 className="w-3 h-3 fill-emerald-500 text-slate-950" />
+              <span className="absolute -bottom-1 -right-1 w-4.5 h-4.5 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center ring-2 ring-slate-900" title="Verified Client">
+                <CheckCircle2 className="w-3.5 h-3.5 fill-emerald-500 text-slate-950" />
               </span>
             )}
           </div>
@@ -400,7 +407,7 @@ function ReviewCard({ review }) {
         </div>
 
         {/* Channels Tag */}
-        <span className="shrink-0 text-[10px] font-medium text-indigo-300 bg-indigo-950/60 border border-indigo-800/50 px-2 py-0.5 rounded-md">
+        <span className="shrink-0 text-[10px] font-semibold text-indigo-300 bg-indigo-950/80 border border-indigo-800/60 px-2.5 py-1 rounded-md">
           {review.channels}
         </span>
       </div>
