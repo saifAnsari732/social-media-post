@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { getStoredUser, getUserPlanLimits } from '@/lib/user';
+import { getStoredUser, setStoredUser, getUserPlanLimits } from '@/lib/user';
 import {
   LayoutDashboard,
   Link2,
@@ -62,8 +62,7 @@ export default function Sidebar() {
         .then(data => {
           if (data.success && data.currentPlan) {
             const updated = { ...currentUser, plan: data.currentPlan, isPaid: Boolean(data.isPaid) };
-            localStorage.setItem("socialflow_user", JSON.stringify(updated));
-            localStorage.setItem("yt_user", JSON.stringify(updated));
+            setStoredUser(updated);
             const initials = updated.name ? updated.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "SA";
             setUser({ ...updated, initials });
             setLimits(getUserPlanLimits(updated));

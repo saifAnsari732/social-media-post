@@ -24,7 +24,7 @@ import toast from "react-hot-toast";
 import ConnectModal from "@/components/modals/ConnectModal";
 import { SocialCardSkeleton } from "@/components/ui/Skeletons";
 import { PlatformIcon } from "@/components/ui/SocialIcons";
-import { getStoredUser, getUserHeaders, checkPlanAccess, getUserPlanLimits } from "@/lib/user";
+import { getStoredUser, getUserHeaders, checkPlanAccess, getUserPlanLimits, syncUserBillingStatus } from "@/lib/user";
 
 const SUPPORTED_PLATFORMS = [
   {
@@ -95,6 +95,18 @@ function AccountsContent() {
     setUser(u);
     fetchAccounts(u.userId);
 
+    // Sync live billing status from DB to ensure stored user is not stale
+    syncUserBillingStatus(u.userId).then((synced) => {
+      if (synced) setUser(synced);
+    });
+
+    const handleUserUpdate = () => {
+      setUser(getStoredUser());
+    };
+
+    window.addEventListener("user-updated", handleUserUpdate);
+    window.addEventListener("storage", handleUserUpdate);
+
     const err = searchParams?.get("error");
     const connected = searchParams?.get("connected");
 
@@ -113,6 +125,11 @@ function AccountsContent() {
       // Auto-refresh after brief delay to show newly saved accounts
       setTimeout(() => fetchAccounts(getStoredUser()?.userId), 1200);
     }
+
+    return () => {
+      window.removeEventListener("user-updated", handleUserUpdate);
+      window.removeEventListener("storage", handleUserUpdate);
+    };
   }, [searchParams]);
 
   const fetchAccounts = async (targetUserId) => {
@@ -134,7 +151,10 @@ function AccountsContent() {
     }
   };
 
-  const handleOpenConnectModal = () => {
+  const handleOpenConnectModal = async () => {
+    // Sync live billing status before checking plan permissions
+    const activeUser = (await syncUserBillingStatus(user?.userId)) || getStoredUser();
+    setUser(activeUser);
     const allowed = checkPlanAccess({
       action: "connect_channel",
       currentAccountCount: accounts.length,
@@ -146,7 +166,10 @@ function AccountsContent() {
     }
   };
 
-  const handleDirectConnect = (platformId) => {
+  const handleDirectConnect = async (platformId) => {
+    // Sync live billing status before checking plan permissions
+    const activeUser = (await syncUserBillingStatus(user?.userId)) || getStoredUser();
+    setUser(activeUser);
     const allowed = checkPlanAccess({
       action: "connect_channel",
       currentAccountCount: accounts.length,
@@ -155,7 +178,7 @@ function AccountsContent() {
     });
     if (allowed) {
       const provider = platformId === "twitter" ? "twitter" : platformId;
-      window.location.href = `/api/auth/connect/${provider}?userId=${user?.userId}`;
+      window.location.href = `/api/auth/connect/${provider}?userId=${activeUser?.userId}`;
     }
   };
 

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Bell, Search, Plus, ShieldCheck, Clock, AlertTriangle, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { getStoredUser, getUserPlanLimits } from '@/lib/user';
+import { getStoredUser, setStoredUser, getUserPlanLimits } from '@/lib/user';
 
 function TrialCountdownPill({ user }) {
   const [timeLeft, setTimeLeft] = useState({ days: 5, hours: 0, minutes: 0, seconds: 0, isExpired: false });
@@ -108,8 +108,7 @@ export default function TopNavbar() {
         .then(data => {
           if (data.success && data.currentPlan) {
             const updated = { ...currentUser, plan: data.currentPlan, isPaid: Boolean(data.isPaid) };
-            localStorage.setItem("socialflow_user", JSON.stringify(updated));
-            localStorage.setItem("yt_user", JSON.stringify(updated));
+            setStoredUser(updated);
             setUser(updated);
             setPlanLimits(getUserPlanLimits(updated));
           }
