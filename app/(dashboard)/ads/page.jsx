@@ -504,7 +504,7 @@ export default function MetaAdsPage() {
 
       {/* 🔒 ROSE ACCENT PREVIEW BANNER (NO BLACK COLOR) */}
       {!isMetaAdsUnlocked ? (
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-rose-950 via-slate-900 to-rose-900 text-white border border-rose-800/40 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="p-4 rounded-2xl bg-rose-950 text-white border border-rose-900 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-rose-600/20 border border-rose-500/30 text-rose-400 flex items-center justify-center shrink-0">
               <Lock className="w-4 h-4" />
@@ -968,7 +968,7 @@ export default function MetaAdsPage() {
       {/* 5. TAB 2: 1-CLICK POST BOOSTER */}
       {activeTab === "booster" && (
         <div className="space-y-6">
-          <div className="bg-gradient-to-r from-rose-950 via-slate-900 to-rose-900 text-white p-6 rounded-2xl space-y-2 shadow-sm border border-rose-800/40">
+          <div className="bg-rose-950 text-white p-6 rounded-2xl space-y-2 shadow-sm border border-rose-900">
             <div className="flex items-center gap-2">
               <span className="px-2 py-0.5 rounded bg-amber-400 text-slate-950 text-[10px] font-bold uppercase">
                 Instant Meta Boost
@@ -1033,7 +1033,7 @@ export default function MetaAdsPage() {
       {/* 6. TAB 3: SMART CAMPAIGN STRATEGIST (COMPASS ICON - NO AI ICON) */}
       {activeTab === "strategist" && (
         <div className="space-y-6">
-          <div className="bg-gradient-to-r from-rose-950 via-slate-900 to-indigo-950 text-white p-6 rounded-2xl space-y-3 shadow-lg border border-rose-800/40">
+          <div className="bg-rose-950 text-white p-6 rounded-2xl space-y-3 shadow-lg border border-rose-900">
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold text-[10px] uppercase border border-rose-500/30 flex items-center gap-1">
                 <Compass className="w-3.5 h-3.5" /> Campaign Strategy Engine

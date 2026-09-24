@@ -37,12 +37,12 @@ function TrialCountdownPill({ user }) {
     return (
       <Link
         href="/billing"
-        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white font-black text-xs shadow-lg shadow-rose-600/40 border-2 border-rose-300 transition-all no-underline animate-bounce cursor-pointer"
+        className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs shadow-xs border border-rose-700 transition-all no-underline cursor-pointer"
         title="Your 5-Day Trial has expired. Click to upgrade your plan."
       >
         <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0" />
-        <span className="tracking-wide">TRIAL EXPIRED — ALL ACCESS BLOCKED</span>
-        <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[11px] uppercase shadow-xs">
+        <span className="tracking-wide">TRIAL EXPIRED</span>
+        <span className="px-2.5 py-0.5 rounded-md bg-amber-400 text-slate-950 font-black text-[10.5px] uppercase">
           Upgrade Now →
         </span>
       </Link>
@@ -52,35 +52,35 @@ function TrialCountdownPill({ user }) {
   return (
     <Link
       href="/billing"
-      className="inline-flex items-center gap-2.5 px-3.5 sm:px-4 py-1 rounded-2xl bg-slate-950 text-white border-2 border-rose-500/80 shadow-md shadow-rose-950/30 hover:border-amber-400 hover:shadow-rose-600/30 transition-all no-underline group cursor-pointer"
+      className="inline-flex items-center gap-2.5 px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-white border border-slate-700 shadow-xs transition-all no-underline group cursor-pointer"
       title="Trial Countdown Timer. Click to view subscription plans."
     >
       <div className="flex items-center gap-1.5 shrink-0">
-        <span className="relative flex h-3 w-3">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-90"></span>
-          <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+        <span className="relative flex h-2.5 w-2.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
         </span>
-        <Clock className="w-4 h-4 text-rose-400 group-hover:rotate-12 transition-transform" />
+        <Clock className="w-3.5 h-3.5 text-amber-400 group-hover:rotate-12 transition-transform" />
       </div>
 
-      <span className="text-[11px] font-black tracking-wider text-rose-200 uppercase whitespace-nowrap">
+      <span className="text-[11px] font-bold tracking-wider text-slate-300 uppercase whitespace-nowrap">
         Trial Expires In:
       </span>
 
-      {/* Dynamic Digital Timer Display */}
-      <div className="font-mono font-black text-xs tracking-wider bg-rose-950/90 text-white px-2.5 py-1 rounded-xl border border-rose-500/60 shadow-inner inline-flex items-center gap-1">
-        <span className="text-amber-300 font-extrabold">{timeLeft.days}d</span>
-        <span className="text-rose-400 font-bold">:</span>
+      {/* Dynamic Digital Timer Display (Flat Solid Colors) */}
+      <div className="font-mono font-bold text-xs tracking-wider bg-slate-800 text-white px-2 py-0.5 rounded-lg border border-slate-700 inline-flex items-center gap-1">
+        <span className="text-amber-400 font-extrabold">{timeLeft.days}d</span>
+        <span className="text-slate-500 font-bold">:</span>
         <span className="text-white font-extrabold">{String(timeLeft.hours).padStart(2, '0')}h</span>
-        <span className="text-rose-400 font-bold">:</span>
+        <span className="text-slate-500 font-bold">:</span>
         <span className="text-white font-extrabold">{String(timeLeft.minutes).padStart(2, '0')}m</span>
-        <span className="text-rose-400 font-bold">:</span>
+        <span className="text-slate-500 font-bold">:</span>
         <span className="text-amber-400 font-black animate-pulse">{String(timeLeft.seconds).padStart(2, '0')}s</span>
       </div>
 
-      {/* Glowing Upgrade Pill Button */}
-      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-gradient-to-r from-rose-500 via-amber-500 to-rose-600 group-hover:from-rose-600 group-hover:to-amber-600 text-slate-950 text-[11px] font-black shadow-md shadow-rose-500/30 transition-all uppercase tracking-wider">
-        Upgrade <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />
+      {/* Flat Solid Upgrade Button (Zero Gradients) */}
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-extrabold transition-all uppercase tracking-wider shadow-2xs">
+        Upgrade <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
       </span>
     </Link>
   );
