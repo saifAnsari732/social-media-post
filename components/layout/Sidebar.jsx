@@ -231,17 +231,25 @@ export default function Sidebar() {
 
                 {/* Plan Badge Display */}
                 <Link href="/billing" className="no-underline block">
-                  <div className={`p-2 rounded-xl border text-xs font-bold flex items-center justify-between transition-all ${
+                  <div className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-between transition-all shadow-xs ${
                     limits.isExpired 
-                      ? "bg-rose-50 border-rose-300 text-rose-700 animate-pulse" 
-                      : "bg-indigo-50 border-indigo-200 text-indigo-700"
+                      ? "bg-rose-950 border-2 border-rose-500 text-rose-200 animate-pulse shadow-rose-950/40" 
+                      : "bg-gradient-to-r from-slate-900 to-indigo-950 border border-slate-700 text-indigo-200 hover:border-indigo-400"
                   }`}>
-                    <span className="flex items-center gap-1.5 truncate">
-                      {limits.isExpired ? <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" /> : <CreditCard className="w-3.5 h-3.5 text-indigo-600 shrink-0" />}
-                      <span className="truncate">{limits.isExpired ? "Plan Expired" : limits.planTitle}</span>
+                    <span className="flex items-center gap-2 truncate">
+                      {limits.isExpired ? (
+                        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 animate-bounce" />
+                      ) : (
+                        <CreditCard className="w-4 h-4 text-indigo-400 shrink-0" />
+                      )}
+                      <span className="truncate font-black text-[11.5px]">
+                        {limits.isExpired ? "TRIAL EXPIRED (LOCKED)" : limits.planTitle}
+                      </span>
                     </span>
-                    <span className="text-[10px] uppercase underline ml-1 shrink-0">
-                      {limits.isExpired ? "Purchase Plan →" : "Manage"}
+                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md shrink-0 ml-1 ${
+                      limits.isExpired ? "bg-amber-400 text-slate-950" : "bg-indigo-600 text-white"
+                    }`}>
+                      {limits.isExpired ? "Buy Plan →" : "Manage"}
                     </span>
                   </div>
                 </Link>

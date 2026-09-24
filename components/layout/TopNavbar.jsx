@@ -37,13 +37,13 @@ function TrialCountdownPill({ user }) {
     return (
       <Link
         href="/billing"
-        className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-black text-xs shadow-md shadow-rose-600/30 border border-rose-400/40 transition-all no-underline animate-pulse cursor-pointer"
+        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white font-black text-xs shadow-lg shadow-rose-600/40 border-2 border-rose-300 transition-all no-underline animate-bounce cursor-pointer"
         title="Your 5-Day Trial has expired. Click to upgrade your plan."
       >
         <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0" />
-        <span>Trial Expired (Blocked)</span>
-        <span className="px-2 py-0.5 rounded-md bg-white text-rose-700 font-extrabold text-[10.5px]">
-          Upgrade Plan
+        <span className="tracking-wide">TRIAL EXPIRED — ALL ACCESS BLOCKED</span>
+        <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[11px] uppercase shadow-xs">
+          Upgrade Now →
         </span>
       </Link>
     );
@@ -52,28 +52,35 @@ function TrialCountdownPill({ user }) {
   return (
     <Link
       href="/billing"
-      className="inline-flex items-center gap-2.5 px-3.5 sm:px-4 py-1.5 rounded-full bg-gradient-to-r from-rose-50 via-amber-50/50 to-rose-50 hover:from-rose-100 hover:to-rose-100 text-rose-800 border-2 border-rose-300 shadow-xs transition-all no-underline group cursor-pointer"
+      className="inline-flex items-center gap-2.5 px-3.5 sm:px-4 py-1 rounded-2xl bg-slate-950 text-white border-2 border-rose-500/80 shadow-md shadow-rose-950/30 hover:border-amber-400 hover:shadow-rose-600/30 transition-all no-underline group cursor-pointer"
       title="Trial Countdown Timer. Click to view subscription plans."
     >
-      <span className="relative flex h-3 w-3 shrink-0">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-80"></span>
-        <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-600"></span>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <span className="relative flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-90"></span>
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+        </span>
+        <Clock className="w-4 h-4 text-rose-400 group-hover:rotate-12 transition-transform" />
+      </div>
+
+      <span className="text-[11px] font-black tracking-wider text-rose-200 uppercase whitespace-nowrap">
+        Trial Expires In:
       </span>
-      <Clock className="w-4 h-4 text-rose-600 group-hover:rotate-12 transition-transform shrink-0" />
-      <span className="text-xs text-slate-800 font-bold whitespace-nowrap">
-        Trial Expires in:
-      </span>
-      <span className="font-mono font-black text-sm tracking-wide bg-white px-2.5 py-0.5 rounded-lg border border-rose-300 shadow-2xs inline-flex items-center gap-1">
-        <span className="text-rose-700 font-black">{timeLeft.days}d</span>
-        <span className="text-slate-400">:</span>
-        <span className="text-rose-700 font-black">{String(timeLeft.hours).padStart(2, '0')}h</span>
-        <span className="text-slate-400">:</span>
-        <span className="text-rose-700 font-black">{String(timeLeft.minutes).padStart(2, '0')}m</span>
-        <span className="text-slate-400">:</span>
-        <span className="text-red-600 font-black animate-pulse">{String(timeLeft.seconds).padStart(2, '0')}s</span>
-      </span>
-      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-rose-600 to-red-600 group-hover:from-rose-700 group-hover:to-red-700 text-white text-xs font-black shadow-xs transition-all">
-        Upgrade <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+
+      {/* Dynamic Digital Timer Display */}
+      <div className="font-mono font-black text-xs tracking-wider bg-rose-950/90 text-white px-2.5 py-1 rounded-xl border border-rose-500/60 shadow-inner inline-flex items-center gap-1">
+        <span className="text-amber-300 font-extrabold">{timeLeft.days}d</span>
+        <span className="text-rose-400 font-bold">:</span>
+        <span className="text-white font-extrabold">{String(timeLeft.hours).padStart(2, '0')}h</span>
+        <span className="text-rose-400 font-bold">:</span>
+        <span className="text-white font-extrabold">{String(timeLeft.minutes).padStart(2, '0')}m</span>
+        <span className="text-rose-400 font-bold">:</span>
+        <span className="text-amber-400 font-black animate-pulse">{String(timeLeft.seconds).padStart(2, '0')}s</span>
+      </div>
+
+      {/* Glowing Upgrade Pill Button */}
+      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-gradient-to-r from-rose-500 via-amber-500 to-rose-600 group-hover:from-rose-600 group-hover:to-amber-600 text-slate-950 text-[11px] font-black shadow-md shadow-rose-500/30 transition-all uppercase tracking-wider">
+        Upgrade <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />
       </span>
     </Link>
   );
