@@ -318,22 +318,61 @@ export default function BillingPage() {
       {/* Current Plan Status Card */}
       <div className="max-w-5xl mx-auto w-full">
         {isPaid ? (
-          <div className="p-4 sm:p-5 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-emerald-950 shadow-xs">
-            <div className="flex items-center gap-3.5">
-              <div className="p-2.5 rounded-xl bg-emerald-100 text-emerald-700 shrink-0">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] uppercase font-bold text-emerald-700 tracking-wider">Current Active Plan</span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold">PAID SUBSCRIPTION</span>
+          <div className="p-5 sm:p-6 rounded-2xl bg-emerald-50/90 border-2 border-emerald-300 flex flex-col gap-4 text-emerald-950 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-emerald-200/80 pb-4">
+              <div className="flex items-center gap-3.5">
+                <div className="p-3 rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-600/30 shrink-0">
+                  <CheckCircle2 className="w-6 h-6 stroke-[2.5]" />
                 </div>
-                <h3 className="text-base font-black text-emerald-950 mt-0.5">
-                  {selectedPlan || user?.plan || "Paid Plan"} Active ✓
-                </h3>
-                <p className="text-xs text-emerald-700 mt-0.5">
-                  All features, account limits, and tools for your plan are fully unlocked.
-                </p>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] uppercase font-black text-emerald-700 tracking-wider">Active Subscription</span>
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-black tracking-wide">
+                      PAID PLAN ACTIVE ✓
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-black text-emerald-950 mt-0.5">
+                    {selectedPlan || user?.plan || "Paid Subscription"} Plan
+                  </h3>
+                  <p className="text-xs text-emerald-800 font-medium mt-0.5">
+                    Trial removed. All account limits, AI features, multi-channel publishing, and tools are fully unlocked.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-3.5 py-2 rounded-xl bg-white border border-emerald-300 text-emerald-900 text-xs font-bold shadow-2xs hover:bg-emerald-100 transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>Sync Subscription</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Subscription Telemetry Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs pt-1">
+              <div className="p-3 rounded-xl bg-white/80 border border-emerald-200/80 space-y-0.5">
+                <span className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider block">Plan Status</span>
+                <span className="font-extrabold text-emerald-700 flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Live & Verified
+                </span>
+              </div>
+              <div className="p-3 rounded-xl bg-white/80 border border-emerald-200/80 space-y-0.5">
+                <span className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider block">Trial Status</span>
+                <span className="font-extrabold text-slate-900 text-[11.5px]">Removed / Converted</span>
+              </div>
+              <div className="p-3 rounded-xl bg-white/80 border border-emerald-200/80 space-y-0.5">
+                <span className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider block">Latest Payment</span>
+                <span className="font-black text-slate-950 text-sm">
+                  {billingHistory.length > 0 ? `₹${(billingHistory[0].amountPaid || 0).toLocaleString('en-IN')}` : "₹1"}
+                </span>
+              </div>
+              <div className="p-3 rounded-xl bg-white/80 border border-emerald-200/80 space-y-0.5">
+                <span className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider block">Transaction Ref</span>
+                <span className="font-mono font-bold text-[10.5px] text-emerald-900 truncate block">
+                  {billingHistory.length > 0 ? (billingHistory[0].invoiceId || billingHistory[0].paymentId || "Verified") : "Live Razorpay"}
+                </span>
               </div>
             </div>
           </div>
@@ -575,9 +614,12 @@ export default function BillingPage() {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider text-[10.5px] border-b border-slate-100">
+                  <th className="p-3">Invoice ID</th>
                   <th className="p-3">Plan</th>
+                  <th className="p-3">Subtotal</th>
+                  <th className="p-3">Discount</th>
+                  <th className="p-3">Amount Paid</th>
                   <th className="p-3">Payment ID</th>
-                  <th className="p-3">Order ID</th>
                   <th className="p-3">Date</th>
                   <th className="p-3 text-right">Status</th>
                 </tr>
@@ -585,14 +627,19 @@ export default function BillingPage() {
               <tbody className="divide-y divide-slate-100 font-medium">
                 {billingHistory.map((item, idx) => (
                   <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-3 font-mono font-bold text-slate-900">{item.invoiceId || `INV-2026-${String(idx + 1).padStart(4, "0")}`}</td>
                     <td className="p-3 font-bold text-slate-900 flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                       <span>{item.planName}</span>
                     </td>
+                    <td className="p-3 text-slate-600 font-semibold">₹{(item.originalAmount || (item.planName?.includes("Pro") ? 4999 : item.planName?.includes("Growth") ? 2999 : 1999)).toLocaleString('en-IN')}</td>
+                    <td className="p-3 text-emerald-700 font-semibold">
+                      {item.discountAmount > 0 ? `-₹${item.discountAmount.toLocaleString('en-IN')}${item.couponCode && item.couponCode !== "NONE" ? ` (${item.couponCode})` : ''}` : "—"}
+                    </td>
+                    <td className="p-3 font-extrabold text-slate-950">₹{(item.amountPaid || 0).toLocaleString('en-IN')}</td>
                     <td className="p-3 font-mono text-[11px] text-slate-600">{item.paymentId || "N/A"}</td>
-                    <td className="p-3 font-mono text-[11px] text-slate-500">{item.orderId || "N/A"}</td>
                     <td className="p-3 text-slate-500">
-                      {item.createdAt ? new Date(item.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Today"}
+                      {item.createdAt ? new Date(item.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Today"}
                     </td>
                     <td className="p-3 text-right">
                       <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">

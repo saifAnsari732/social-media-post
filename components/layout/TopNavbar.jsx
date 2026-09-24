@@ -107,7 +107,7 @@ export default function TopNavbar() {
         .then(res => res.json())
         .then(data => {
           if (data.success && data.currentPlan) {
-            const updated = { ...currentUser, plan: data.currentPlan };
+            const updated = { ...currentUser, plan: data.currentPlan, isPaid: Boolean(data.isPaid) };
             localStorage.setItem("socialflow_user", JSON.stringify(updated));
             localStorage.setItem("yt_user", JSON.stringify(updated));
             setUser(updated);

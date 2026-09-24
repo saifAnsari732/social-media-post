@@ -29,10 +29,28 @@ export default function ProfilePage() {
   const [connectedCount, setConnectedCount] = useState(0);
   const router = useRouter();
 
+  const [billingInfo, setBillingInfo] = useState(null);
+
   useEffect(() => {
     const activeUser = getStoredUser();
     const initials = activeUser.name ? activeUser.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "SA";
     setUser({ ...activeUser, initials });
+
+    // Load live plan & billing status from DB
+    fetch("/api/billing/status", { headers: { "x-user-id": activeUser.userId } })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setBillingInfo(data);
+          if (data.currentPlan) {
+            const updated = { ...activeUser, plan: data.currentPlan, isPaid: Boolean(data.isPaid), initials };
+            localStorage.setItem("socialflow_user", JSON.stringify(updated));
+            localStorage.setItem("yt_user", JSON.stringify(updated));
+            setUser(updated);
+          }
+        }
+      })
+      .catch(() => {});
 
     // Load account count
     fetch("/api/accounts", { headers: { "x-user-id": activeUser.userId } })
