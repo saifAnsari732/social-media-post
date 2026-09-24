@@ -17,7 +17,11 @@ import {
   FileText,
   RefreshCw,
   ExternalLink,
-  ArrowRight
+  ArrowRight,
+  Edit3,
+  Play,
+  FileVideo,
+  Image as ImageIcon
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { TableSkeleton } from "@/components/ui/Skeletons";
@@ -25,6 +29,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { PlatformIcon } from "@/components/ui/SocialIcons";
 import { useRouter } from "next/navigation";
 import { getStoredUser, checkPlanAccess } from "@/lib/user";
+import MediaPreviewModal from "@/components/modals/MediaPreviewModal";
 
 export default function PostsPage() {
   const [posts, setPosts] = useState([]);
@@ -32,6 +37,8 @@ export default function PostsPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [previewMedia, setPreviewMedia] = useState(null);
+  const router = useRouter();
 
   useEffect(() => {
     fetchPosts();
@@ -42,8 +49,9 @@ export default function PostsPage() {
       setIsRefreshing(true);
       const user = getStoredUser();
 
-      const res = await fetch("/api/post", {
-        headers: { "x-user-id": user.userId }
+      const res = await fetch(`/api/post?t=${Date.now()}`, {
+        headers: { "x-user-id": user.userId },
+        cache: "no-store"
       });
       const data = await res.json();
       setPosts(data.posts || []);
@@ -150,74 +158,10 @@ export default function PostsPage() {
         </div>
       </div>
 
-      {/* Top Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-              <Layers className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-xs font-semibold text-slate-500 block">Total Content</span>
-              <span className="text-lg font-bold text-slate-950">{posts.length} Posts</span>
-            </div>
-          </div>
-          <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-semibold">
-            All Time
-          </span>
-        </div>
-
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-              <CheckCircle2 className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-xs font-semibold text-slate-500 block">Published</span>
-              <span className="text-lg font-bold text-slate-950">{publishedCount} Live</span>
-            </div>
-          </div>
-          <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold">
-            Live
-          </span>
-        </div>
-
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-              <Calendar className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-xs font-semibold text-slate-500 block">Scheduled</span>
-              <span className="text-lg font-bold text-slate-950">{scheduledCount} Queued</span>
-            </div>
-          </div>
-          <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[11px] font-semibold">
-            Upcoming
-          </span>
-        </div>
-
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-              <FileText className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-xs font-semibold text-slate-500 block">Drafts</span>
-              <span className="text-lg font-bold text-slate-950">{draftCount} Drafts</span>
-            </div>
-          </div>
-          <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-semibold">
-            Saved
-          </span>
-        </div>
-      </div>
-
-      {/* Filter Tabs & Search Bar */}
+      {/* Tabs & Search Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        
-        {/* Status Tab Pills */}
-        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200/80 text-xs font-medium">
+        {/* Status Filter Tabs */}
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 border border-slate-200/80 overflow-x-auto">
           {["All", "Published", "Scheduled", "Draft"].map((tab) => {
             const count = getTabCount(tab);
             const isActive = activeTab === tab;
@@ -225,15 +169,15 @@ export default function PostsPage() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-2 cursor-pointer ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                   isActive 
-                    ? "bg-white text-slate-950 font-bold shadow-2xs border border-slate-200/80" 
-                    : "text-slate-600 hover:text-slate-950 hover:bg-slate-200/50 font-semibold"
+                    ? "bg-white text-slate-950 shadow-2xs border border-slate-200/80" 
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 <span>{tab}</span>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                  isActive ? "bg-indigo-50 text-indigo-700 border border-indigo-200" : "bg-slate-200/80 text-slate-600"
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                  isActive ? "bg-indigo-100 text-indigo-700" : "bg-slate-200/70 text-slate-600"
                 }`}>
                   {count}
                 </span>
@@ -242,15 +186,15 @@ export default function PostsPage() {
           })}
         </div>
 
-        {/* Search Input */}
-        <div className="flex items-center gap-2 bg-white border border-slate-300 px-3.5 py-2 rounded-xl text-xs max-w-xs w-full shadow-2xs focus-within:border-indigo-600 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
+        {/* Search Field */}
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-300 focus-within:border-indigo-600 focus-within:ring-4 focus-within:ring-indigo-100 transition-all shadow-2xs sm:w-72">
           <Search className="w-4 h-4 text-slate-400 shrink-0" />
           <input
             type="text"
             placeholder="Search posts title or caption..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full border-none bg-transparent outline-none text-slate-900 placeholder:text-slate-400 font-medium"
+            className="w-full border-none bg-transparent outline-none text-slate-900 placeholder:text-slate-400 font-medium text-xs"
           />
         </div>
       </div>
@@ -263,7 +207,7 @@ export default function PostsPage() {
           title="No posts found"
           description="You haven't created any posts matching this filter yet."
           actionText="Create Post Now"
-          onAction={() => window.location.href = "/publisher"}
+          onAction={() => router.push("/publisher")}
         />
       ) : (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
@@ -271,7 +215,7 @@ export default function PostsPage() {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200/80">
-                  <th className="py-3.5 px-6">Post Content</th>
+                  <th className="py-3.5 px-6">Post Content & Media</th>
                   <th className="py-3.5 px-4">Date & Time</th>
                   <th className="py-3.5 px-4">Target Channels</th>
                   <th className="py-3.5 px-4">Status</th>
@@ -283,16 +227,39 @@ export default function PostsPage() {
                   const postDate = post.createdAt ? new Date(post.createdAt) : new Date();
                   const formattedDate = postDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
                   const formattedTime = postDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+                  const isVideoMedia = post.mediaType === "video" || (post.mediaUrl && (post.mediaUrl.startsWith("data:video") || post.mediaUrl.match(/\.(mp4|mov|webm|avi|m4v)$/i)));
 
                   return (
                     <tr key={post._id || post.id} className="hover:bg-slate-50/70 transition-colors group">
                       
-                      {/* Post Content */}
+                      {/* Post Content & Media Thumbnail */}
                       <td className="py-4 px-6 max-w-md">
                         <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
-                            <FileText className="w-4 h-4" />
-                          </div>
+                          {post.mediaUrl ? (
+                            <div 
+                              onClick={() => setPreviewMedia({ url: post.mediaUrl, type: isVideoMedia ? "video" : "image", title: post.title, description: post.description })}
+                              className="relative w-11 h-11 rounded-xl bg-slate-900 overflow-hidden shrink-0 group/media cursor-pointer border border-slate-200 shadow-2xs hover:scale-105 transition-transform"
+                              title="Click to view full draft video/photo"
+                            >
+                              {isVideoMedia ? (
+                                <>
+                                  <video src={post.mediaUrl} className="w-full h-full object-cover opacity-80" />
+                                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover/media:bg-black/20 transition-colors">
+                                    <div className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                                      <Play className="w-3 h-3 fill-white ml-0.5" />
+                                    </div>
+                                  </div>
+                                </>
+                              ) : (
+                                <img src={post.mediaUrl} alt={post.title} className="w-full h-full object-cover" />
+                              )}
+                            </div>
+                          ) : (
+                            <div className="w-9 h-9 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
+                              <FileText className="w-4 h-4" />
+                            </div>
+                          )}
+
                           <div className="min-w-0 flex-1">
                             <h4 className="font-bold text-slate-950 text-sm truncate" title={post.title || "Untitled Post"}>
                               {post.title || "Untitled Post"}
@@ -301,6 +268,16 @@ export default function PostsPage() {
                               <p className="text-slate-500 text-xs font-normal line-clamp-1 mt-0.5">
                                 {post.description}
                               </p>
+                            )}
+                            {post.mediaUrl && (
+                              <button
+                                type="button"
+                                onClick={() => setPreviewMedia({ url: post.mediaUrl, type: isVideoMedia ? "video" : "image", title: post.title, description: post.description })}
+                                className="inline-flex items-center gap-1 text-[10.5px] font-bold text-indigo-600 hover:text-indigo-700 mt-1 cursor-pointer"
+                              >
+                                <Play className="w-3 h-3 fill-indigo-600" />
+                                <span>Watch Media</span>
+                              </button>
                             )}
                           </div>
                         </div>
@@ -355,11 +332,20 @@ export default function PostsPage() {
 
                       {/* Actions */}
                       <td className="py-4 px-6 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => router.push("/publisher")}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 font-bold text-xs transition-all cursor-pointer shadow-2xs"
+                            title="Edit post in composer"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>Edit</span>
+                          </button>
+
                           {post.status === "Draft" && (
                             <button
                               onClick={() => handlePublishDraft(post._id || post.id)}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-2xs transition-all cursor-pointer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-2xs transition-all cursor-pointer"
                               title="Publish draft now"
                             >
                               <Send className="w-3 h-3" />
@@ -371,14 +357,14 @@ export default function PostsPage() {
                               navigator.clipboard.writeText(`${post.title}\n\n${post.description || ""}`);
                               toast.success("Post title & caption copied!");
                             }} 
-                            className="p-2 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
+                            className="p-1.5 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
                             title="Copy content"
                           >
                             <Copy className="w-4 h-4" />
                           </button>
                           <button 
                             onClick={() => handleDeletePost(post._id || post.id)} 
-                            className="p-2 text-slate-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-all cursor-pointer"
+                            className="p-1.5 text-slate-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-all cursor-pointer"
                             title="Delete post"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -394,6 +380,16 @@ export default function PostsPage() {
           </div>
         </div>
       )}
+
+      {/* MEDIA PREVIEW MODAL */}
+      <MediaPreviewModal
+        isOpen={Boolean(previewMedia)}
+        onClose={() => setPreviewMedia(null)}
+        mediaUrl={previewMedia?.url}
+        mediaType={previewMedia?.type}
+        title={previewMedia?.title}
+        description={previewMedia?.description}
+      />
 
     </div>
   );

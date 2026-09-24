@@ -28,11 +28,16 @@ import {
   X,
   Layers,
   Check,
-  Plus
+  Plus,
+  Edit3,
+  Play,
+  FileVideo,
+  Image as ImageIcon
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { PlatformIcon } from "@/components/ui/SocialIcons";
 import { getStoredUser, checkPlanAccess } from "@/lib/user";
+import MediaPreviewModal from "@/components/modals/MediaPreviewModal";
 
 export default function PublisherPage() {
   const [user, setUser] = useState(null);
@@ -51,12 +56,16 @@ export default function PublisherPage() {
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("18:30");
   const [previewTab, setPreviewTab] = useState("instagram");
+  const [editingPost, setEditingPost] = useState(null);
+  const [previewMedia, setPreviewMedia] = useState(null);
   const fileInputRef = useRef(null);
   const router = useRouter();
 
   const isVideo = Boolean(
     file?.type?.startsWith("video/") || 
-    file?.name?.match(/\.(mp4|mov|webm|avi|m4v|mkv|3gp)$/i)
+    file?.name?.match(/\.(mp4|mov|webm|avi|m4v|mkv|3gp)$/i) ||
+    filePreview?.startsWith("data:video") ||
+    filePreview?.match(/\.(mp4|mov|webm|avi|m4v|mkv)$/i)
   );
 
   const [recentPosts, setRecentPosts] = useState([]);
@@ -83,6 +92,49 @@ export default function PublisherPage() {
       console.error(err);
     } finally {
       setLoadingPosts(false);
+    }
+  }
+
+  function handleStartEdit(post) {
+    setEditingPost(post);
+    setTitle(post.title || "");
+    setDescription(post.description || "");
+    setTags(Array.isArray(post.tags) ? post.tags.join(", ") : post.tags || "");
+    setSelectedIds(post.accountIds || []);
+    setPublishMode(post.status === "Draft" ? "draft" : "now");
+    if (post.mediaUrl) {
+      setFilePreview(post.mediaUrl);
+    } else {
+      setFilePreview(null);
+    }
+    toast.success(`✍️ Editing "${post.title || 'Draft'}" — Loaded into composer!`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function handleDeletePost(postId) {
+    if (!confirm("Are you sure you want to delete this draft?")) return;
+    try {
+      const activeUserId = user?.userId || getStoredUser()?.userId;
+      const res = await fetch(`/api/post?id=${postId}`, {
+        method: "DELETE",
+        headers: { "x-user-id": activeUserId }
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Draft deleted successfully!");
+        if (editingPost && (editingPost._id === postId || editingPost.id === postId)) {
+          setEditingPost(null);
+          setTitle("");
+          setDescription("");
+          setTags("");
+          setFilePreview(null);
+        }
+        await fetchRecentPosts(activeUserId);
+      } else {
+        toast.error("Failed to delete draft");
+      }
+    } catch (e) {
+      toast.error("Error deleting draft");
     }
   }
 
@@ -200,13 +252,46 @@ export default function PublisherPage() {
       toast.error("Please select at least 1 social channel!");
       return;
     }
-    if (!title && !description && !file) {
+    if (!title && !description && !file && !filePreview) {
       toast.error("Please add a title, caption, or media file before saving!");
       return;
     }
+
     setPosting(true);
     setResults(null);
     try {
+      const activeUserId = user?.userId || getStoredUser()?.userId;
+
+      // UPDATE EXISTING DRAFT / POST
+      if (editingPost) {
+        const res = await fetch("/api/post", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": activeUserId
+          },
+          body: JSON.stringify({
+            postId: editingPost._id || editingPost.id,
+            action: effectiveMode === "now" ? "publish_now" : "update_draft",
+            title: title || (effectiveMode === "draft" ? "Draft Post" : "Social Post"),
+            description: description || "",
+            tags: tags || "",
+            accountIds: selectedIds,
+            status: effectiveMode === "draft" ? "Draft" : (effectiveMode === "schedule" ? "Scheduled" : "Published"),
+            mediaUrl: filePreview || editingPost.mediaUrl || null,
+            mediaType: isVideo ? "video" : (filePreview ? "image" : editingPost.mediaType)
+          })
+        });
+        const data = await res.json();
+        if (data.success || res.ok) {
+          toast.success(effectiveMode === "draft" ? "📌 Draft updated successfully!" : "🚀 Post updated & published!");
+          setEditingPost(null);
+          await fetchRecentPosts(activeUserId);
+          return;
+        }
+      }
+
+      // CREATE NEW POST / DRAFT
       const form = new FormData();
       if (file) form.append("file", file);
       form.append("title", title || (effectiveMode === "draft" ? "Draft Post" : "Social Post"));
@@ -219,7 +304,6 @@ export default function PublisherPage() {
         form.append("scheduledAt", scheduledDateTime);
       }
       
-      const activeUserId = user?.userId || getStoredUser()?.userId;
       const res = await fetch("/api/post", {
         method: "POST",
         body: form,
@@ -267,6 +351,7 @@ export default function PublisherPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => {
+              setEditingPost(null);
               setTitle("");
               setDescription("");
               setTags("");
@@ -280,6 +365,43 @@ export default function PublisherPage() {
           </button>
         </div>
       </div>
+
+      {/* Active Edit Mode Banner */}
+      {editingPost && (
+        <div className="p-4 rounded-2xl bg-indigo-50 border-2 border-indigo-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-indigo-950 shadow-sm animate-in fade-in duration-200">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-indigo-600 text-white font-bold shrink-0">
+              <Edit3 className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 bg-indigo-200/70 px-2 py-0.5 rounded-md">
+                  Editing Mode Active
+                </span>
+                <span className="text-xs text-indigo-800 font-medium">• Changes will update this saved draft</span>
+              </div>
+              <h4 className="text-sm font-bold text-indigo-950 truncate max-w-lg mt-0.5">
+                "{editingPost.title || "Untitled Draft"}"
+              </h4>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setEditingPost(null);
+              setTitle("");
+              setDescription("");
+              setTags("");
+              setFile(null);
+              setFilePreview(null);
+              toast("Cancelled edit mode", { icon: "🧹" });
+            }}
+            className="px-3.5 py-2 rounded-xl bg-white border border-indigo-200 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-all cursor-pointer shadow-2xs shrink-0"
+          >
+            Cancel Editing
+          </button>
+        </div>
+      )}
 
       {/* 3-Column Studio Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -318,60 +440,58 @@ export default function PublisherPage() {
                 className="flex-1 h-11 px-3.5 rounded-xl bg-white border border-slate-300 text-xs font-semibold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all placeholder:text-slate-400 shadow-2xs"
               />
               <button
+                type="button"
                 onClick={() => handleGenerate()}
                 disabled={generating}
-                className="h-11 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm shadow-indigo-600/25 transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 disabled:opacity-70"
+                className="px-4 h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-xs shadow-sm transition-all cursor-pointer flex items-center gap-1.5 shrink-0 disabled:opacity-50"
               >
-                <Zap className="w-3.5 h-3.5" />
-                <span>{generating ? "Crafting..." : "Generate"}</span>
+                {generating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4 fill-white" />}
+                <span>{generating ? "Generating..." : "Generate AI"}</span>
               </button>
             </div>
 
-            {/* Quick Inspiration Chips */}
-            <div className="flex flex-wrap gap-1.5 pt-0.5">
+            {/* Topic Ideas */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[11px] font-bold text-slate-500 mr-1">Quick Ideas:</span>
               {promptIdeas.map((idea, idx) => (
                 <button
                   key={idx}
-                  onClick={() => {
-                    setTopic(idea);
-                    handleGenerate(idea);
-                  }}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-white hover:bg-indigo-600 hover:text-white text-slate-800 border border-slate-200 hover:border-indigo-600 font-semibold transition-all cursor-pointer shadow-2xs"
+                  type="button"
+                  onClick={() => { setTopic(idea); handleGenerate(idea); }}
+                  className="px-2.5 py-1 rounded-lg bg-white hover:bg-indigo-100/70 border border-slate-200 text-[11px] font-semibold text-slate-700 transition-all cursor-pointer shadow-2xs"
                 >
-                  {idea}
+                  + {idea}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Media Upload Area */}
-          <div>
-            <label className="block text-xs font-black text-slate-900 uppercase tracking-wider mb-2">
-              Media Attachment (Photo or Video)
-            </label>
-            
-            {filePreview ? (
-              <div className="relative rounded-2xl border border-slate-300 overflow-hidden bg-slate-950 p-3 flex items-center justify-between shadow-xs">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="w-14 h-14 rounded-xl bg-slate-800 overflow-hidden shrink-0 flex items-center justify-center border border-slate-700">
-                    {isVideo ? (
-                      <video src={filePreview} className="w-full h-full object-cover" muted playsInline />
-                    ) : (
-                      <img src={filePreview} alt="Uploaded Media" className="w-full h-full object-cover" />
-                    )}
-                  </div>
-                  <div className="min-w-0 pr-3">
-                    <p className="text-xs font-bold text-white truncate">{file?.name}</p>
-                    <p className="text-[11px] text-slate-300 font-medium mt-0.5">
-                      {isVideo ? "🎬 Video" : "🖼️ Image"} • {(file?.size / (1024 * 1024)).toFixed(2)} MB • Ready to publish
-                    </p>
-                  </div>
-                </div>
-
+          {/* Media File Upload Area */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-900 flex items-center justify-between">
+              <span>Media Attachment (Photo or Video)</span>
+              {filePreview && (
                 <button
+                  type="button"
                   onClick={removeFile}
-                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer mr-1"
-                  title="Remove Media"
+                  className="text-[11px] font-bold text-rose-600 hover:text-rose-700 flex items-center gap-1 cursor-pointer"
+                >
+                  <Trash2 className="w-3 h-3" /> Remove File
+                </button>
+              )}
+            </label>
+
+            {filePreview ? (
+              <div className="relative rounded-2xl overflow-hidden border-2 border-slate-200 bg-slate-900 group max-h-64 flex items-center justify-center">
+                {isVideo ? (
+                  <video src={filePreview} controls className="w-full max-h-60 object-contain" />
+                ) : (
+                  <img src={filePreview} alt="Preview" className="w-full max-h-60 object-contain" />
+                )}
+                <button
+                  type="button"
+                  onClick={removeFile}
+                  className="absolute top-3 right-3 p-1.5 rounded-full bg-slate-900/80 hover:bg-rose-600 text-white transition-all shadow-md cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -379,417 +499,264 @@ export default function PublisherPage() {
             ) : (
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="p-6 rounded-2xl border-2 border-dashed border-slate-300 hover:border-indigo-600 hover:bg-indigo-50/30 bg-slate-50/80 text-center cursor-pointer transition-all space-y-2.5 group shadow-2xs"
+                className="border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-2xl p-6 text-center bg-slate-50/50 hover:bg-indigo-50/30 transition-all cursor-pointer space-y-2 group"
               >
-                <div className="w-12 h-12 rounded-2xl bg-indigo-100 group-hover:bg-indigo-600 text-indigo-700 group-hover:text-white flex items-center justify-center mx-auto transition-all shadow-xs">
-                  <UploadCloud className="w-6 h-6" />
+                <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                  <UploadCloud className="w-6 h-6 stroke-[2]" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-950 group-hover:text-indigo-600 transition-colors">
-                    Click or drag & drop media here
-                  </p>
-                  <p className="text-xs text-slate-600 font-medium mt-1">
+                  <p className="text-xs font-bold text-slate-900">Click or drag & drop media here</p>
+                  <p className="text-[11px] text-slate-500 font-normal mt-0.5">
                     Supports MP4, MOV, PNG, JPG (High Quality up to 500MB)
                   </p>
                 </div>
-                <div className="pt-1">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white border border-slate-300 text-slate-800 font-bold text-xs shadow-2xs group-hover:border-indigo-300 group-hover:text-indigo-700">
-                    Browse Computer
-                  </span>
-                </div>
+                <button
+                  type="button"
+                  className="px-3.5 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-800 text-xs font-bold shadow-2xs group-hover:border-indigo-400 cursor-pointer"
+                >
+                  Browse Computer
+                </button>
               </div>
             )}
-
-            <input 
-              ref={fileInputRef} 
-              type="file" 
-              accept="video/*,image/*" 
-              className="hidden" 
-              onChange={handleFileChange} 
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              onChange={handleFileChange}
+              className="hidden"
             />
           </div>
 
-          {/* Title Input */}
-          <div>
-            <div className="flex justify-between items-center mb-1.5">
-              <label className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                Post Title / Headline
-              </label>
-              <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                {title.length} characters
-              </span>
+          {/* Post Title */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-900">Post Title / Headline</label>
+              <span className="text-[11px] font-medium text-slate-400">{title.length} characters</span>
             </div>
             <input
               type="text"
+              placeholder="Enter an engaging headline or video title..."
               value={title}
               onChange={e => setTitle(e.target.value)}
-              placeholder="Enter an engaging headline or video title..."
-              className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-950 focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all placeholder:text-slate-400 shadow-2xs"
+              className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all shadow-2xs placeholder:text-slate-400"
             />
           </div>
 
-          {/* Caption / Description */}
-          <div>
-            <div className="flex justify-between items-center mb-1.5">
-              <label className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                Caption & Content
-              </label>
-              <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                {description.length} / 2,200
-              </span>
+          {/* Caption & Content */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-900">Caption & Content</label>
+              <span className="text-[11px] font-medium text-slate-400">{description.length}/2,200</span>
             </div>
             <textarea
               rows={5}
+              placeholder="Write your post caption, hook, details, and call to action..."
               value={description}
               onChange={e => setDescription(e.target.value)}
-              placeholder="Write your post caption, hook, details, and call to action..."
-              className="w-full p-3.5 rounded-xl border border-slate-300 bg-white text-xs font-medium text-slate-950 focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all resize-y placeholder:text-slate-400 leading-relaxed shadow-2xs min-h-[130px]"
+              className="w-full p-3.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all shadow-2xs placeholder:text-slate-400 resize-none leading-relaxed"
             />
           </div>
 
           {/* Hashtags */}
-          <div>
-            <label className="block text-xs font-black text-slate-900 uppercase tracking-wider mb-1.5">
-              Hashtags & Tags
-            </label>
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-900">Hashtags & Tags</label>
             <input
               type="text"
+              placeholder="e.g. socialgrowth, contentcreator, viralpost"
               value={tags}
               onChange={e => setTags(e.target.value)}
-              placeholder="e.g. socialgrowth, contentcreator, viralpost"
-              className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-950 focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all placeholder:text-slate-400 shadow-2xs"
+              className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all shadow-2xs placeholder:text-slate-400"
             />
           </div>
 
         </div>
 
-        {/* COLUMN 2: REALISTIC LIVE FEED PREVIEW (4 cols) */}
+        {/* COLUMN 2: LIVE PREVIEW STUDIO (4 cols) */}
         <div className="lg:col-span-4 rounded-2xl border border-slate-200 bg-white p-5 lg:p-6 shadow-2xs space-y-4">
           
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h2 className="text-sm font-bold text-slate-950">
-              2. Live Platform Preview
-            </h2>
-
-            {/* Platform Selector Tabs */}
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
-              {[
-                { id: "instagram", label: "Instagram" },
-                { id: "facebook", label: "Facebook" },
-                { id: "youtube", label: "YouTube" }
-              ].map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => setPreviewTab(p.id)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    previewTab === p.id 
-                      ? "bg-white text-indigo-600 shadow-2xs" 
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  <PlatformIcon platform={p.id} className="w-3.5 h-3.5" />
-                  <span>{p.label}</span>
-                </button>
-              ))}
-            </div>
+            <h2 className="text-sm font-bold text-slate-950">2. Live Channel Preview</h2>
+            <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-200">
+              Real-time Rendering
+            </span>
           </div>
 
-          {/* Realistic Instagram Feed Preview Mockup */}
-          {previewTab === "instagram" && (
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
-              {/* Instagram Header */}
-              <div className="p-3 flex items-center justify-between border-b border-slate-100">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 p-[2px]">
-                    <div className="w-full h-full rounded-full bg-white flex items-center justify-center font-bold text-xs text-slate-800">
-                      {user?.name ? user.name.slice(0, 2).toUpperCase() : "SA"}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-900 block leading-tight">
-                      {user?.name ? user.name.toLowerCase().replace(/\s+/g, '.') : "saif.ansari"}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-normal">Original Audio</span>
-                  </div>
+          {/* Platform Switcher Tabs */}
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 border border-slate-200/80 overflow-x-auto">
+            {["instagram", "facebook", "youtube", "linkedin"].map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPreviewTab(p)}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap capitalize ${
+                  previewTab === p
+                    ? "bg-white text-slate-900 shadow-2xs border border-slate-200/80"
+                    : "text-slate-500 hover:text-slate-900"
+                }`}
+              >
+                <PlatformIcon platform={p} className="w-3.5 h-3.5" />
+                <span className="capitalize">{p}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Phone Frame Live Mockup */}
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3 shadow-inner">
+            
+            {/* Header: User Profile Avatar */}
+            <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                  {user?.name ? user.name.slice(0, 2).toUpperCase() : "PF"}
                 </div>
-                <MoreHorizontal className="w-4 h-4 text-slate-400" />
-              </div>
-
-              {/* Instagram Media Window */}
-              <div className="aspect-square bg-slate-900 flex items-center justify-center overflow-hidden relative">
-                {filePreview ? (
-                  isVideo ? (
-                    <video
-                      src={filePreview}
-                      controls
-                      playsInline
-                      autoPlay
-                      muted
-                      loop
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <img src={filePreview} alt="Instagram Media" className="w-full h-full object-cover" />
-                  )
-                ) : (
-                  <div className="text-center p-6 space-y-2">
-                    <PlatformIcon platform="instagram" className="w-12 h-12 mx-auto opacity-70" />
-                    <p className="text-xs text-slate-400 font-medium">Add media to preview on Instagram</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Instagram Action Bar */}
-              <div className="p-3 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3.5 text-slate-800">
-                    <Heart className="w-5 h-5 hover:text-rose-500 transition-colors cursor-pointer" />
-                    <MessageCircle className="w-5 h-5 hover:text-indigo-600 transition-colors cursor-pointer" />
-                    <Share2 className="w-5 h-5 hover:text-indigo-600 transition-colors cursor-pointer" />
-                  </div>
-                  <Bookmark className="w-5 h-5 text-slate-800 cursor-pointer" />
-                </div>
-
-                <div className="text-xs text-slate-900 space-y-1">
-                  <p className="font-bold">1,482 likes</p>
-                  <p className="text-xs leading-relaxed text-slate-800">
-                    <span className="font-bold mr-1.5">{user?.name ? user.name.toLowerCase().replace(/\s+/g, '.') : "saif.ansari"}</span>
-                    {title && <span className="font-bold block my-0.5">{title}</span>}
-                    <span className="whitespace-pre-line font-normal">{description || "Your live caption will appear here..."}</span>
-                  </p>
-                  {tags && (
-                    <p className="text-xs text-indigo-600 font-medium pt-1">
-                      {tags.split(',').map(t => `#${t.trim()}`).join(' ')}
-                    </p>
-                  )}
+                <div className="min-w-0">
+                  <h4 className="text-xs font-bold text-slate-900 truncate">{user?.name || "Postfly Creator"}</h4>
+                  <p className="text-[10px] text-slate-400 capitalize truncate">{previewTab} Feed • Just Now</p>
                 </div>
               </div>
+              <MoreHorizontal className="w-4 h-4 text-slate-400" />
             </div>
-          )}
 
-          {/* Realistic Facebook Feed Preview Mockup */}
-          {previewTab === "facebook" && (
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-xs p-4 space-y-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full bg-[#1877F2] text-white flex items-center justify-center font-bold text-xs shadow-2xs">
-                  {user?.name ? user.name.slice(0, 2).toUpperCase() : "SA"}
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-900">{user?.name || "Saif Ansari"}</h4>
-                  <div className="flex items-center gap-1 text-[10px] text-slate-400">
-                    <span>Just now</span>
-                    <span>•</span>
-                    <Globe className="w-3 h-3" />
-                  </div>
-                </div>
-              </div>
-
-              {title && <h5 className="text-xs font-bold text-slate-900">{title}</h5>}
-              <p className="text-xs text-slate-800 font-normal leading-relaxed whitespace-pre-line">
-                {description || "Your live Facebook post copy will appear here..."}
-              </p>
-
+            {/* Mockup Media Frame */}
+            <div className="rounded-xl overflow-hidden bg-slate-900 border border-slate-200/90 aspect-square flex items-center justify-center relative group">
               {filePreview ? (
-                <div className="aspect-video bg-slate-900 rounded-xl overflow-hidden">
-                  {isVideo ? (
-                    <video
-                      src={filePreview}
-                      controls
-                      playsInline
-                      autoPlay
-                      muted
-                      loop
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <img src={filePreview} alt="Facebook Media" className="w-full h-full object-cover" />
-                  )}
-                </div>
+                isVideo ? (
+                  <video src={filePreview} controls className="w-full h-full object-cover" />
+                ) : (
+                  <img src={filePreview} alt="Live Preview" className="w-full h-full object-cover" />
+                )
               ) : (
-                <div className="aspect-video bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-center">
-                  <PlatformIcon platform="facebook" className="w-10 h-10 opacity-70" />
+                <div className="text-center p-6 space-y-2 text-slate-400">
+                  <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center mx-auto text-indigo-400">
+                    <PlatformIcon platform={previewTab} className="w-6 h-6" />
+                  </div>
+                  <p className="text-xs font-medium text-slate-300">Add media to preview on {previewTab}</p>
                 </div>
               )}
-
-              {/* Facebook Reactions */}
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-around text-xs font-semibold text-slate-600">
-                <span className="flex items-center gap-1.5 hover:text-blue-600 cursor-pointer">
-                  <ThumbsUp className="w-4 h-4" /> Like
-                </span>
-                <span className="flex items-center gap-1.5 hover:text-blue-600 cursor-pointer">
-                  <MessageCircle className="w-4 h-4" /> Comment
-                </span>
-                <span className="flex items-center gap-1.5 hover:text-blue-600 cursor-pointer">
-                  <Share2 className="w-4 h-4" /> Share
-                </span>
-              </div>
             </div>
-          )}
 
-          {/* Realistic YouTube Feed Preview Mockup */}
-          {previewTab === "youtube" && (
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-xs p-4 space-y-3">
-              <div className="aspect-video bg-slate-900 rounded-xl overflow-hidden relative flex items-center justify-center">
-                {filePreview ? (
-                  isVideo ? (
-                    <video
-                      src={filePreview}
-                      controls
-                      playsInline
-                      autoPlay
-                      muted
-                      loop
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <img src={filePreview} alt="YouTube Video Thumbnail" className="w-full h-full object-cover" />
-                  )
+            {/* Interaction Icons Bar */}
+            <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs space-y-2">
+              <div className="flex items-center justify-between text-slate-700">
+                <div className="flex items-center gap-3">
+                  <Heart className="w-4 h-4 hover:text-rose-500 cursor-pointer transition-colors" />
+                  <MessageCircle className="w-4 h-4 hover:text-indigo-600 cursor-pointer transition-colors" />
+                  <Share2 className="w-4 h-4 hover:text-indigo-600 cursor-pointer transition-colors" />
+                </div>
+                <Bookmark className="w-4 h-4 hover:text-amber-500 cursor-pointer transition-colors" />
+              </div>
+
+              <div className="text-[11px] font-bold text-slate-900">1,482 likes</div>
+
+              {/* Caption Render */}
+              <div className="text-xs text-slate-800 leading-relaxed font-normal">
+                <span className="font-bold mr-1.5 text-slate-900">{user?.name ? user.name.toLowerCase().replace(/\s+/g, '') : "creator"}</span>
+                {description ? (
+                  <span>{description}</span>
                 ) : (
-                  <div className="text-center p-4">
-                    <PlatformIcon platform="youtube" className="w-12 h-12 mx-auto mb-2" />
-                    <span className="text-xs text-slate-400 font-medium">Video / Shorts Preview</span>
-                  </div>
-                )}
-                {!isVideo && (
-                  <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/80 text-white text-[10px] font-bold">
-                    0:45
-                  </span>
+                  <span className="text-slate-400 italic">Your live caption will appear here...</span>
                 )}
               </div>
 
-              <div className="flex items-start gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-                  <PlatformIcon platform="youtube" className="w-4 h-4 text-white" />
+              {tags && (
+                <div className="text-[11px] font-semibold text-indigo-600">
+                  {tags.split(",").map(t => `#${t.trim().replace(/^#/, '')}`).join(" ")}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h5 className="text-xs font-bold text-slate-900 line-clamp-2">
-                    {title || "Your Engaging YouTube Video Title Appears Here"}
-                  </h5>
-                  <p className="text-[11px] text-slate-500 font-normal mt-0.5">
-                    {user?.name || "Saif Ansari"} • 14K views • Just now
-                  </p>
-                </div>
-              </div>
+              )}
             </div>
-          )}
+
+          </div>
 
         </div>
 
-        {/* COLUMN 3: TARGET CHANNELS & SCHEDULING (3 cols) */}
+        {/* COLUMN 3: CHANNEL SELECTION & PUBLISH (3 cols) */}
         <div className="lg:col-span-3 rounded-2xl border border-slate-200 bg-white p-5 lg:p-6 shadow-2xs space-y-5">
           
-          <div className="border-b border-slate-100 pb-3">
-            <h2 className="text-sm font-bold text-slate-950">
-              3. Target Channels & Timing
-            </h2>
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h2 className="text-sm font-bold text-slate-950">3. Target Channels</h2>
+            <span className="text-[11px] font-bold text-indigo-600">
+              {selectedIds.length} Selected
+            </span>
           </div>
 
-          {/* Channels Multi-Select */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                Select Channels ({selectedIds.length})
-              </label>
-              
-              <button
-                type="button"
-                onClick={() => {
-                  if (selectedIds.length === accounts.length) {
-                    setSelectedIds([]);
-                  } else {
-                    setSelectedIds(accounts.map(a => a._id));
-                  }
-                }}
-                className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 cursor-pointer"
-              >
-                {selectedIds.length === accounts.length ? "Deselect All" : "Select All"}
-              </button>
-            </div>
-
-            {/* Accounts List */}
+          {/* Account List Checkboxes */}
+          <div className="space-y-2 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
             {accounts.length === 0 ? (
-              <div className="p-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/80 text-center space-y-2">
-                <p className="text-xs text-slate-600 font-medium">No social channels connected yet.</p>
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-medium space-y-2 text-center">
+                <p>No connected channels found.</p>
                 <Link
                   href="/accounts"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-all shadow-xs"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-700 underline"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Connect Channels Now</span>
+                  + Connect Social Channels
                 </Link>
               </div>
             ) : (
-              <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar pr-1">
-                {accounts.map((acc) => {
-                  const isSelected = selectedIds.includes(acc._id);
-                  return (
-                    <div
-                      key={acc._id}
-                      onClick={() => toggleSelect(acc._id)}
-                      className={`p-3 rounded-xl border transition-all flex items-center justify-between cursor-pointer ${
-                        isSelected 
-                          ? "border-indigo-600 bg-indigo-50/70 shadow-2xs ring-1 ring-indigo-600/30" 
-                          : "border-slate-200 hover:border-slate-300 bg-white opacity-70"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                        <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 shadow-2xs">
-                          <PlatformIcon platform={acc.platform} className="w-8 h-8" />
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="text-xs font-bold text-slate-950 truncate leading-tight">
-                            {acc.name}
-                          </h4>
-                          <span className="text-[10px] text-slate-500 font-normal capitalize">
-                            {acc.platform}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className={`w-5 h-5 rounded-md flex items-center justify-center transition-all ${
-                        isSelected ? "bg-indigo-600 text-white" : "border border-slate-300 bg-white"
-                      }`}>
-                        {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+              accounts.map((acc) => {
+                const isSelected = selectedIds.includes(acc._id);
+                return (
+                  <div
+                    key={acc._id}
+                    onClick={() => toggleSelect(acc._id)}
+                    className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2.5 ${
+                      isSelected
+                        ? "bg-indigo-50/80 border-indigo-500 shadow-2xs"
+                        : "bg-slate-50/70 border-slate-200/80 hover:bg-slate-100"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <PlatformIcon platform={acc.platform} className="w-5 h-5 shrink-0" />
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-bold text-slate-900 truncate">
+                          {acc.name || acc.accountName}
+                        </h4>
+                        <p className="text-[10.5px] text-slate-500 capitalize truncate">
+                          {acc.platform}
+                        </p>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+
+                    <div className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 ${
+                      isSelected ? "bg-indigo-600 border-indigo-600 text-white" : "border-slate-300 bg-white"
+                    }`}>
+                      {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
 
-          {/* Publishing Mode */}
-          <div className="space-y-2.5 pt-2 border-t border-slate-100">
-            <label className="block text-xs font-black text-slate-900 uppercase tracking-wider">
-              Publishing Mode
-            </label>
-
-            <div className="grid grid-cols-3 gap-1.5 bg-slate-100 p-1.5 rounded-xl text-xs font-bold border border-slate-200">
+          {/* Publishing Mode Radio Tabs */}
+          <div className="space-y-2 pt-2 border-t border-slate-100">
+            <label className="text-xs font-bold text-slate-900">PUBLISHING MODE</label>
+            <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-slate-100 border border-slate-200/80 text-xs font-bold">
               {[
-                { id: "now", label: "Publish Now", color: "bg-indigo-600 text-white" },
-                { id: "schedule", label: "Schedule", color: "bg-indigo-600 text-white" },
-                { id: "draft", label: "Draft", color: "bg-amber-500 text-white" }
-              ].map(mode => (
+                { id: "now", label: "Publish Now" },
+                { id: "schedule", label: "Schedule" },
+                { id: "draft", label: "Draft" }
+              ].map((m) => (
                 <button
-                  key={mode.id}
-                  onClick={() => setPublishMode(mode.id)}
-                  className={`py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    publishMode === mode.id 
-                      ? `${mode.color} shadow-xs` 
-                      : "text-slate-700 hover:text-slate-950 hover:bg-slate-200/60"
+                  key={m.id}
+                  type="button"
+                  onClick={() => setPublishMode(m.id)}
+                  className={`py-2 rounded-lg transition-all text-center ${
+                    publishMode === m.id
+                      ? "bg-indigo-600 text-white shadow-2xs"
+                      : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
-                  {mode.label}
+                  {m.label}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Schedule Picker Details */}
+          {/* Schedule Date & Time Pickers */}
           {publishMode === "schedule" && (
-            <div className="p-3.5 rounded-xl bg-indigo-50/40 border border-indigo-200/80 space-y-3">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-800 mb-1">Release Date</label>
+            <div className="space-y-3 p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-200/80 animate-in fade-in duration-200">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-indigo-950">Schedule Date</label>
                 <input
                   type="date"
                   value={scheduleDate}
@@ -798,10 +765,10 @@ export default function PublisherPage() {
                 />
               </div>
 
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-[11px] font-bold text-slate-800">Release Time</label>
-                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200">
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-indigo-950">Schedule Time</label>
+                  <span className="text-[10px] font-bold text-indigo-600 bg-white px-1.5 py-0.5 rounded border border-indigo-200">
                     Peak: 6:30 PM
                   </span>
                 </div>
@@ -834,6 +801,8 @@ export default function PublisherPage() {
               <span>
                 {posting 
                   ? "Processing..." 
+                  : editingPost
+                  ? (publishMode === "draft" ? "Update Draft" : "Update & Publish Now")
                   : publishMode === "schedule" 
                   ? `Schedule Post for ${selectedIds.length} Channel(s)` 
                   : publishMode === "draft"
@@ -851,7 +820,7 @@ export default function PublisherPage() {
                 className="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-black text-xs shadow-md shadow-amber-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer active:scale-[0.98]"
               >
                 <Bookmark className="w-4 h-4 fill-white text-white" />
-                <span>Save as Draft (Don't Publish)</span>
+                <span>{editingPost ? "Update Saved Draft" : "Save as Draft (Don't Publish)"}</span>
               </button>
             )}
           </div>
@@ -878,7 +847,7 @@ export default function PublisherPage() {
 
       </div>
 
-      {/* RECENT POSTS & DRAFTS LIST SECTION */}
+      {/* RECENT POSTS & DRAFTS LIST SECTION WITH VIDEO PREVIEW & ADVANCED EDIT BUTTON */}
       <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-2xs space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div>
@@ -886,7 +855,7 @@ export default function PublisherPage() {
               Recent Posts & Saved Drafts ({recentPosts.length})
             </h3>
             <p className="text-xs text-slate-500 font-normal">
-              Posts and drafts saved from this composer. You can publish drafts directly with one click.
+              Posts and drafts saved from this composer. Click any video/media thumbnail to watch or click "Edit" to modify content.
             </p>
           </div>
 
@@ -914,32 +883,78 @@ export default function PublisherPage() {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/70 text-slate-500 font-bold uppercase tracking-wider text-[10.5px]">
-                  <th className="py-2.5 px-4">Content</th>
+                  <th className="py-2.5 px-4">Content & Media</th>
                   <th className="py-2.5 px-3">Date / Time</th>
                   <th className="py-2.5 px-3">Channels</th>
                   <th className="py-2.5 px-3">Status</th>
-                  <th className="py-2.5 px-4 text-right">Action</th>
+                  <th className="py-2.5 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                {recentPosts.slice(0, 6).map(post => {
+                {recentPosts.slice(0, 8).map(post => {
                   const isDraft = post.status === "Draft";
                   const isScheduled = post.status === "Scheduled";
                   const dateObj = post.scheduledAt ? new Date(post.scheduledAt) : new Date(post.createdAt);
                   const formattedDate = dateObj.toLocaleDateString(undefined, { month: "short", day: "numeric" });
                   const formattedTime = dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                  const isVideoMedia = post.mediaType === "video" || (post.mediaUrl && (post.mediaUrl.startsWith("data:video") || post.mediaUrl.match(/\.(mp4|mov|webm|avi|m4v)$/i)));
 
                   return (
                     <tr key={post._id || post.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3 px-4 max-w-xs">
-                        <span className="font-bold text-slate-900 block truncate">{post.title || "Untitled Post"}</span>
-                        {post.description && (
-                          <span className="text-slate-500 text-[11px] block truncate">{post.description}</span>
-                        )}
+                      
+                      {/* Content Column with Video/Photo Preview Thumbnail */}
+                      <td className="py-3 px-4 max-w-sm">
+                        <div className="flex items-center gap-3">
+                          {post.mediaUrl ? (
+                            <div 
+                              onClick={() => setPreviewMedia({ url: post.mediaUrl, type: isVideoMedia ? "video" : "image", title: post.title, description: post.description })}
+                              className="relative w-11 h-11 rounded-xl bg-slate-900 overflow-hidden shrink-0 group/media cursor-pointer border border-slate-200 shadow-2xs hover:scale-105 transition-transform"
+                              title="Click to view full draft video/photo"
+                            >
+                              {isVideoMedia ? (
+                                <>
+                                  <video src={post.mediaUrl} className="w-full h-full object-cover opacity-80" />
+                                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover/media:bg-black/20 transition-colors">
+                                    <div className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                                      <Play className="w-3 h-3 fill-white ml-0.5" />
+                                    </div>
+                                  </div>
+                                </>
+                              ) : (
+                                <img src={post.mediaUrl} alt={post.title} className="w-full h-full object-cover" />
+                              )}
+                            </div>
+                          ) : (
+                            <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200/80 text-slate-500 flex items-center justify-center shrink-0">
+                              <FileText className="w-5 h-5" />
+                            </div>
+                          )}
+
+                          <div className="min-w-0 flex-1">
+                            <span className="font-bold text-slate-900 text-xs block truncate">{post.title || "Untitled Post"}</span>
+                            {post.description && (
+                              <span className="text-slate-500 text-[11px] block truncate">{post.description}</span>
+                            )}
+                            {post.mediaUrl && (
+                              <button
+                                type="button"
+                                onClick={() => setPreviewMedia({ url: post.mediaUrl, type: isVideoMedia ? "video" : "image", title: post.title, description: post.description })}
+                                className="inline-flex items-center gap-1 text-[10.5px] font-bold text-indigo-600 hover:text-indigo-700 mt-0.5 cursor-pointer"
+                              >
+                                <Play className="w-3 h-3 fill-indigo-600" />
+                                <span>Watch Draft Video</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </td>
+
+                      {/* Date / Time */}
                       <td className="py-3 px-3 text-slate-500 whitespace-nowrap">
                         {formattedDate} • {formattedTime}
                       </td>
+
+                      {/* Channels */}
                       <td className="py-3 px-3">
                         <div className="flex flex-wrap gap-1">
                           {post.channelDetails && post.channelDetails.length > 0 ? (
@@ -957,6 +972,8 @@ export default function PublisherPage() {
                           )}
                         </div>
                       </td>
+
+                      {/* Status Pill */}
                       <td className="py-3 px-3 whitespace-nowrap">
                         {isDraft ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold text-[10.5px] border border-amber-300">
@@ -972,18 +989,41 @@ export default function PublisherPage() {
                           </span>
                         )}
                       </td>
+
+                      {/* Actions Column: Edit, Publish Now, Delete */}
                       <td className="py-3 px-4 text-right whitespace-nowrap">
-                        {isDraft ? (
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* EDIT BUTTON */}
                           <button
-                            onClick={() => handlePublishDraft(post._id || post.id)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-2xs transition-all cursor-pointer"
+                            onClick={() => handleStartEdit(post)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 font-bold text-xs transition-all cursor-pointer shadow-2xs"
+                            title="Edit draft content in composer"
                           >
-                            <Send className="w-3 h-3" />
-                            <span>Publish Now</span>
+                            <Edit3 className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>Edit</span>
                           </button>
-                        ) : (
-                          <span className="text-[11px] text-slate-400 font-medium">Live</span>
-                        )}
+
+                          {/* PUBLISH NOW BUTTON */}
+                          {isDraft && (
+                            <button
+                              onClick={() => handlePublishDraft(post._id || post.id)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-2xs transition-all cursor-pointer"
+                              title="Publish draft now"
+                            >
+                              <Send className="w-3 h-3" />
+                              <span>Publish Now</span>
+                            </button>
+                          )}
+
+                          {/* DELETE BUTTON */}
+                          <button
+                            onClick={() => handleDeletePost(post._id || post.id)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
+                            title="Delete draft"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -993,6 +1033,16 @@ export default function PublisherPage() {
           </div>
         )}
       </div>
+
+      {/* MEDIA PREVIEW MODAL */}
+      <MediaPreviewModal
+        isOpen={Boolean(previewMedia)}
+        onClose={() => setPreviewMedia(null)}
+        mediaUrl={previewMedia?.url}
+        mediaType={previewMedia?.type}
+        title={previewMedia?.title}
+        description={previewMedia?.description}
+      />
 
     </div>
   );

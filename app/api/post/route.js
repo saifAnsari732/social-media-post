@@ -160,6 +160,21 @@ export async function POST(req) {
   const accounts = await getAccounts(userId);
   const results = {};
 
+  let mediaUrl = null;
+  let mediaType = null;
+  if (file && typeof file === "object" && file.size > 0) {
+    const isVideoFile = file.type?.startsWith("video") || file.name?.match(/\.(mp4|mov|webm|avi|m4v|mkv)$/i);
+    mediaType = isVideoFile ? "video" : "image";
+    try {
+      const arrayBuf = await file.arrayBuffer();
+      const base64 = Buffer.from(arrayBuf).toString("base64");
+      const mime = file.type || (isVideoFile ? "video/mp4" : "image/jpeg");
+      mediaUrl = `data:${mime};base64,${base64}`;
+    } catch (e) {
+      console.error("Media preview conversion error:", e);
+    }
+  }
+
   // If user is saving as draft or scheduling for future
   if (publishMode === "schedule" || publishMode === "draft") {
     for (const accountId of selectedAccountIds) {
@@ -176,6 +191,9 @@ export async function POST(req) {
       userId,
       title,
       description,
+      tags,
+      mediaUrl,
+      mediaType,
       accountIds: selectedAccountIds,
       status: publishMode === "schedule" ? "Scheduled" : "Draft",
       scheduledAt: scheduledAt || new Date().toISOString(),
@@ -386,8 +404,31 @@ export async function PUT(req) {
       });
 
       // Invalidate cache immediately on post status change
-      serverCache.revalidateTag(`user:${userId}`);
-      serverCache.revalidateTag("posts");
+      try {
+        serverCache.delete(`posts:${userId || 'all'}`);
+        serverCache.invalidateTag("posts");
+      } catch (e) {}
+
+      return NextResponse.json({ success: true, post: updated });
+    }
+
+    if (action === "update_draft") {
+      const updatePayload = {
+        updatedAt: new Date().toISOString()
+      };
+      if (body.title !== undefined) updatePayload.title = body.title;
+      if (body.description !== undefined) updatePayload.description = body.description;
+      if (body.tags !== undefined) updatePayload.tags = body.tags;
+      if (body.accountIds !== undefined) updatePayload.accountIds = body.accountIds;
+      if (body.status !== undefined) updatePayload.status = body.status;
+      if (body.mediaUrl !== undefined) updatePayload.mediaUrl = body.mediaUrl;
+      if (body.mediaType !== undefined) updatePayload.mediaType = body.mediaType;
+
+      const updated = await updatePost(postId, updatePayload);
+      try {
+        serverCache.delete(`posts:${userId || 'all'}`);
+        serverCache.invalidateTag("posts");
+      } catch (e) {}
 
       return NextResponse.json({ success: true, post: updated });
     }
