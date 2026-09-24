@@ -96,8 +96,8 @@ export default function BillingPage() {
   const plans = [
     {
       name: "Starter",
-      monthlyPrice: 999,
-      priceLabel: yearly ? "₹899" : "₹999",
+      monthlyPrice: 1999,
+      priceLabel: yearly ? "₹1,799" : "₹1,999",
       description: "For solopreneurs & small creators starting out",
       features: [
         "3 Connected Social Accounts",
@@ -115,8 +115,8 @@ export default function BillingPage() {
     },
     {
       name: "Growth",
-      monthlyPrice: 1999,
-      priceLabel: yearly ? "₹1,799" : "₹1,999",
+      monthlyPrice: 2999,
+      priceLabel: yearly ? "₹2,699" : "₹2,999",
       description: "For growing brands, creators & active teams",
       features: [
         "6 Connected Social Accounts",
@@ -137,8 +137,8 @@ export default function BillingPage() {
     },
     {
       name: "Pro Unlimited",
-      monthlyPrice: 3999,
-      priceLabel: yearly ? "₹3,599" : "₹3,999",
+      monthlyPrice: 4999,
+      priceLabel: yearly ? "₹4,499" : "₹4,999",
       description: "For power marketers, brands & agencies needing all capabilities",
       features: [
         "Unlimited Connected Social Accounts",
@@ -189,7 +189,9 @@ export default function BillingPage() {
 
     try {
       const pricing = getPlanPricing(plan);
+      const fullOriginalPrice = yearly ? (plan.monthlyPrice * 12) : plan.monthlyPrice;
       const finalPrice = yearly ? (pricing.rawAmount * 12) : pricing.rawAmount;
+      const calculatedDiscount = Math.max(0, fullOriginalPrice - finalPrice);
       const currentUserId = user?.userId || "user_123";
 
       const res = await fetch("/api/razorpay/order", {
@@ -226,7 +228,11 @@ export default function BillingPage() {
               razorpay_signature: response.razorpay_signature,
               planName: plan.name,
               userId: currentUserId,
-              couponCode: appliedCoupon ? appliedCoupon.code : undefined
+              couponCode: appliedCoupon ? appliedCoupon.code : undefined,
+              originalAmount: fullOriginalPrice,
+              discountAmount: calculatedDiscount,
+              amountPaid: finalPrice,
+              billingCycle: yearly ? "yearly" : "monthly"
             })
           });
 

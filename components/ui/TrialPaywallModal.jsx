@@ -64,7 +64,7 @@ export default function TrialPaywallModal() {
           {/* Starter */}
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2">
             <h4 className="font-bold text-slate-900 text-xs">Starter</h4>
-            <div className="text-lg font-black text-slate-950">₹999<span className="text-[10px] text-slate-500 font-normal">/mo</span></div>
+            <div className="text-lg font-black text-slate-950">₹1,999<span className="text-[10px] text-slate-500 font-normal">/mo</span></div>
             <ul className="text-[11px] text-slate-600 space-y-1 font-medium">
               <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-600" /> 3 Social Accounts</li>
               <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-600" /> Multi-post publish</li>
@@ -77,7 +77,7 @@ export default function TrialPaywallModal() {
               Most Popular
             </span>
             <h4 className="font-bold text-indigo-950 text-xs">Growth</h4>
-            <div className="text-lg font-black text-slate-950">₹1,999<span className="text-[10px] text-slate-500 font-normal">/mo</span></div>
+            <div className="text-lg font-black text-slate-950">₹2,999<span className="text-[10px] text-slate-500 font-normal">/mo</span></div>
             <ul className="text-[11px] text-slate-700 space-y-1 font-medium">
               <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-600" /> 6 Social Accounts</li>
               <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-indigo-600" /> Smart AI Assistant</li>
@@ -88,7 +88,7 @@ export default function TrialPaywallModal() {
           {/* Pro Unlimited */}
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2">
             <h4 className="font-bold text-slate-900 text-xs">Pro Unlimited</h4>
-            <div className="text-lg font-black text-slate-950">₹3,999<span className="text-[10px] text-slate-500 font-normal">/mo</span></div>
+            <div className="text-lg font-black text-slate-950">₹4,999<span className="text-[10px] text-slate-500 font-normal">/mo</span></div>
             <ul className="text-[11px] text-slate-600 space-y-1 font-medium">
               <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-600" /> Unlimited Channels</li>
               <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-600" /> Auto-Reply Bot Rules</li>

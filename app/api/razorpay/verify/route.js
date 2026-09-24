@@ -6,7 +6,18 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req) {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, planName, userId, couponCode } = await req.json();
+    const { 
+      razorpay_order_id, 
+      razorpay_payment_id, 
+      razorpay_signature, 
+      planName, 
+      userId, 
+      couponCode,
+      originalAmount,
+      discountAmount,
+      amountPaid,
+      billingCycle
+    } = await req.json();
 
     const key_secret = process.env.RAZORPAY_KEY_SECRET || "5GO0yjbVCTn58B1FDUocEjyb";
 
@@ -26,6 +37,10 @@ export async function POST(req) {
           paymentId: razorpay_payment_id,
           signature: razorpay_signature,
           couponCode: couponCode || null,
+          originalAmount: Number(originalAmount) || 0,
+          discountAmount: Number(discountAmount) || 0,
+          amountPaid: Number(amountPaid) || 0,
+          billingCycle: billingCycle || "monthly",
           status: "paid"
         });
       }
