@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Bell, Search, Plus, ShieldCheck, Clock, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Bell, Search, Plus, ShieldCheck, Clock, AlertTriangle, ArrowRight, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { getStoredUser, setStoredUser, getUserPlanLimits } from '@/lib/user';
 
 function TrialCountdownPill({ user }) {
   const [timeLeft, setTimeLeft] = useState({ days: 5, hours: 0, minutes: 0, seconds: 0, isExpired: false });
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     const calculateTime = () => {
@@ -33,56 +34,93 @@ function TrialCountdownPill({ user }) {
     return () => clearInterval(interval);
   }, [user]);
 
+  if (dismissed) return null;
+
   if (timeLeft.isExpired) {
     return (
-      <Link
-        href="/billing"
-        className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs shadow-xs border border-rose-700 transition-all no-underline cursor-pointer"
-        title="Your 5-Day Trial has expired. Click to upgrade your plan."
-      >
-        <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0" />
-        <span className="tracking-wide">TRIAL EXPIRED</span>
-        <span className="px-2.5 py-0.5 rounded-md bg-amber-400 text-slate-950 font-black text-[10.5px] uppercase">
-          Upgrade Now →
-        </span>
-      </Link>
+      <div className="w-full bg-rose-600 text-white px-4 py-2 flex items-center justify-between text-xs font-semibold shadow-xs animate-in fade-in duration-200 font-sans">
+        <div className="flex items-center gap-2.5">
+          <div className="w-6 h-6 rounded-full bg-white/20 border border-white/30 flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />
+          </div>
+          <span className="px-2.5 py-0.5 rounded bg-white/20 text-white font-black text-[10px] uppercase border border-white/30">
+            5-DAY FREE TRIAL ENDED
+          </span>
+          <span className="text-white font-medium hidden sm:inline">
+            Your 5-day free trial has completed. Upgrade your plan to unlock all features.
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0">
+          <Link
+            href="/billing"
+            className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-700 font-extrabold text-xs shadow-xs transition-all no-underline flex items-center gap-1.5 cursor-pointer active:scale-95"
+          >
+            <span>Upgrade Plan</span>
+            <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+          </Link>
+          <button
+            onClick={() => setDismissed(true)}
+            className="text-white/80 hover:text-white font-bold p-1 cursor-pointer"
+            title="Dismiss banner"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Link
-      href="/billing"
-      className="inline-flex items-center gap-2.5 px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-white border border-slate-700 shadow-xs transition-all no-underline group cursor-pointer"
-      title="Trial Countdown Timer. Click to view subscription plans."
-    >
-      <div className="flex items-center gap-1.5 shrink-0">
-        <span className="relative flex h-2.5 w-2.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+    <div className="w-full bg-rose-600 text-white px-4 lg:px-8 py-2 flex items-center justify-between text-xs font-semibold shadow-xs animate-in fade-in duration-200 font-sans">
+      <div className="flex items-center gap-3">
+        <div className="w-6 h-6 rounded-full bg-white/20 border border-white/30 flex items-center justify-center shrink-0">
+          <Clock className="w-3.5 h-3.5 text-amber-300" />
+        </div>
+
+        <span className="px-2.5 py-0.5 rounded bg-rose-950/40 text-white font-black text-[10px] uppercase border border-rose-400/30">
+          5-DAY FREE TRIAL
         </span>
-        <Clock className="w-3.5 h-3.5 text-amber-400 group-hover:rotate-12 transition-transform" />
+
+        <div className="flex items-center gap-2">
+          <span className="text-rose-100 font-medium hidden sm:inline">Time Remaining:</span>
+          <div className="flex items-center gap-1 font-mono text-xs font-extrabold">
+            <span className="px-2 py-0.5 rounded bg-rose-950/60 text-amber-300 border border-rose-400/30">
+              {timeLeft.days}<span className="text-[10px] font-normal text-rose-200 ml-0.5">d</span>
+            </span>
+            <span className="text-rose-200 font-bold">:</span>
+            <span className="px-2 py-0.5 rounded bg-rose-950/60 text-white border border-rose-400/30">
+              {String(timeLeft.hours).padStart(2, "0")}<span className="text-[10px] font-normal text-rose-200 ml-0.5">h</span>
+            </span>
+            <span className="text-rose-200 font-bold">:</span>
+            <span className="px-2 py-0.5 rounded bg-rose-950/60 text-white border border-rose-400/30">
+              {String(timeLeft.minutes).padStart(2, "0")}<span className="text-[10px] font-normal text-rose-200 ml-0.5">m</span>
+            </span>
+            <span className="text-rose-200 font-bold">:</span>
+            <span className="px-2 py-0.5 rounded bg-rose-950/60 text-amber-300 border border-rose-400/30 animate-pulse">
+              {String(timeLeft.seconds).padStart(2, "0")}<span className="text-[10px] font-normal text-rose-200 ml-0.5">s</span>
+            </span>
+          </div>
+        </div>
       </div>
 
-      <span className="text-[11px] font-bold tracking-wider text-slate-300 uppercase whitespace-nowrap">
-        Trial Expires In:
-      </span>
-
-      {/* Dynamic Digital Timer Display (Flat Solid Colors) */}
-      <div className="font-mono font-bold text-xs tracking-wider bg-slate-800 text-white px-2 py-0.5 rounded-lg border border-slate-700 inline-flex items-center gap-1">
-        <span className="text-amber-400 font-extrabold">{timeLeft.days}d</span>
-        <span className="text-slate-500 font-bold">:</span>
-        <span className="text-white font-extrabold">{String(timeLeft.hours).padStart(2, '0')}h</span>
-        <span className="text-slate-500 font-bold">:</span>
-        <span className="text-white font-extrabold">{String(timeLeft.minutes).padStart(2, '0')}m</span>
-        <span className="text-slate-500 font-bold">:</span>
-        <span className="text-amber-400 font-black animate-pulse">{String(timeLeft.seconds).padStart(2, '0')}s</span>
+      <div className="flex items-center gap-3 shrink-0">
+        <Link
+          href="/billing"
+          className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-700 font-extrabold text-xs shadow-xs transition-all no-underline flex items-center gap-1.5 cursor-pointer active:scale-95"
+        >
+          <span>Upgrade Plan</span>
+          <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+        </Link>
+        <button
+          onClick={() => setDismissed(true)}
+          className="text-white/80 hover:text-white font-bold p-1 cursor-pointer"
+          title="Dismiss banner"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
-
-      {/* Flat Solid Upgrade Button (Zero Gradients) */}
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-extrabold transition-all uppercase tracking-wider shadow-2xs">
-        Upgrade <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
-      </span>
-    </Link>
+    </div>
   );
 }
 
@@ -134,6 +172,7 @@ export default function TopNavbar() {
     if (pathname === '/inbox') return 'Unified Inbox';
     if (pathname === '/comments') return 'Comments Manager';
     if (pathname === '/analytics') return 'Performance Analytics';
+    if (pathname === '/ads') return 'Meta Ads Hub';
     if (pathname === '/media') return 'Media Assets';
     if (pathname === '/templates') return 'Post Templates';
     if (pathname === '/rules') return 'Automation Rules';
@@ -152,110 +191,103 @@ export default function TopNavbar() {
   const isTrialUser = !isAdminUser && !planLimits.isPaid;
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/90 bg-white/95 px-4 lg:px-8 backdrop-blur-md transition-all shadow-[0_1px_3px_rgba(0,0,0,0.03)] font-sans">
-      
-      {/* Left Breadcrumb & Status */}
-      <div className="flex items-center gap-3">
-        <h1 className="text-base font-bold text-slate-950 tracking-tight shrink-0">
-          {getBreadcrumb()}
-        </h1>
+    <div className="w-full">
+      {isTrialUser && <TrialCountdownPill user={user} />}
 
-        {isAdminUser ? (
-          <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50/90 text-indigo-950 border border-indigo-200/90 text-[11px] font-bold tracking-wide shadow-2xs">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
-            </span>
-            <span className="text-indigo-700 font-black">ROOT ADMIN</span>
-            <span className="text-slate-500 font-semibold">| 99.98% Live</span>
-          </div>
-        ) : isTrialUser ? (
-          <div className="hidden md:block">
-            <TrialCountdownPill user={user} />
-          </div>
-        ) : (
-          <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/90 text-[11px] font-semibold tracking-wide">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            Meta API Active
-          </div>
-        )}
-      </div>
-
-      {/* Center Search / Mobile Trial Banner */}
-      <div className="flex-1 max-w-md mx-4 hidden md:flex items-center justify-between rounded-xl border border-slate-200/90 bg-slate-50/90 px-3.5 py-2 text-xs text-slate-600 focus-within:border-indigo-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100 transition-all shadow-2xs">
-        <div className="flex items-center gap-2.5 flex-1">
-          <Search className="h-4 w-4 text-slate-400 shrink-0" />
-          <input
-            type="text"
-            placeholder={isAdminUser ? "Search tenants, accounts, transactions..." : "Search posts, channels, or rules..."}
-            className="w-full border-none bg-transparent text-xs text-slate-900 font-medium outline-none placeholder:text-slate-400 focus:ring-0"
-          />
-        </div>
-        <kbd className="hidden lg:inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold text-slate-500 bg-white border border-slate-200 shadow-2xs">
-          ⌘K
-        </kbd>
-      </div>
-
-      {/* Right Actions & User Profile */}
-      <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/90 bg-white/95 px-4 lg:px-8 backdrop-blur-md transition-all shadow-[0_1px_3px_rgba(0,0,0,0.03)] font-sans">
         
-        {/* Visible Trial Pill for smaller screens if trial user */}
-        {isTrialUser && (
-          <div className="md:hidden">
-            <TrialCountdownPill user={user} />
-          </div>
-        )}
+        {/* Left Breadcrumb & Status */}
+        <div className="flex items-center gap-3">
+          <h1 className="text-base font-bold text-slate-950 tracking-tight shrink-0">
+            {getBreadcrumb()}
+          </h1>
 
-        {isAdminUser && (
+          {isAdminUser ? (
+            <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50/90 text-indigo-950 border border-indigo-200/90 text-[11px] font-bold tracking-wide shadow-2xs">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+              </span>
+              <span className="text-indigo-700 font-black">ROOT ADMIN</span>
+              <span className="text-slate-500 font-semibold">| 99.98% Live</span>
+            </div>
+          ) : (
+            <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/90 text-[11px] font-semibold tracking-wide">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              Meta API Active
+            </div>
+          )}
+        </div>
+
+        {/* Center Search */}
+        <div className="flex-1 max-w-md mx-4 hidden md:flex items-center justify-between rounded-xl border border-slate-200/90 bg-slate-50/90 px-3.5 py-2 text-xs text-slate-600 focus-within:border-indigo-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100 transition-all shadow-2xs">
+          <div className="flex items-center gap-2.5 flex-1">
+            <Search className="h-4 w-4 text-slate-400 shrink-0" />
+            <input
+              type="text"
+              placeholder={isAdminUser ? "Search tenants, accounts, transactions..." : "Search posts, channels, or rules..."}
+              className="w-full border-none bg-transparent text-xs text-slate-900 font-medium outline-none placeholder:text-slate-400 focus:ring-0"
+            />
+          </div>
+          <kbd className="hidden lg:inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold text-slate-500 bg-white border border-slate-200 shadow-2xs">
+            ⌘K
+          </kbd>
+        </div>
+
+        {/* Right Actions & User Profile */}
+        <div className="flex items-center gap-3">
+
+          {isAdminUser && (
+            <Link
+              href="/admin"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 px-3.5 py-2 text-xs font-bold text-indigo-700 transition-all no-underline shadow-2xs"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              <span>Manage Tenants</span>
+            </Link>
+          )}
+
+          {/* + Create Post Button */}
           <Link
-            href="/admin"
-            className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 px-3.5 py-2 text-xs font-bold text-indigo-700 transition-all no-underline shadow-2xs"
+            href="/publisher"
+            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-4 py-2 text-xs font-bold text-white shadow-xs shadow-indigo-600/20 hover:shadow-indigo-600/35 transition-all no-underline cursor-pointer active:scale-[0.98]"
           >
-            <ShieldCheck className="h-4 w-4" />
-            <span>Manage Tenants</span>
+            <Plus className="h-4 w-4 stroke-[2.5]" />
+            <span>New Post</span>
           </Link>
-        )}
 
-        {/* + Create Post Button */}
-        <Link
-          href="/publisher"
-          className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-4 py-2 text-xs font-bold text-white shadow-xs shadow-indigo-600/20 hover:shadow-indigo-600/35 transition-all no-underline cursor-pointer active:scale-[0.98]"
-        >
-          <Plus className="h-4 w-4 stroke-[2.5]" />
-          <span>New Post</span>
-        </Link>
+          {/* Notifications */}
+          <button 
+            className="relative rounded-xl border border-slate-200/90 bg-white p-2 text-slate-600 hover:text-slate-950 hover:border-slate-300 hover:bg-slate-50 transition-all shadow-2xs cursor-pointer"
+            title="Notifications"
+          >
+            <Bell className="h-4 w-4" />
+            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-indigo-600 ring-2 ring-white" />
+          </button>
 
-        {/* Notifications */}
-        <button 
-          className="relative rounded-xl border border-slate-200/90 bg-white p-2 text-slate-600 hover:text-slate-950 hover:border-slate-300 hover:bg-slate-50 transition-all shadow-2xs cursor-pointer"
-          title="Notifications"
-        >
-          <Bell className="h-4 w-4" />
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-indigo-600 ring-2 ring-white" />
-        </button>
+          {/* User Profile Avatar */}
+          <Link 
+            href="/profile" 
+            className="flex items-center gap-2.5 pl-3 border-l border-slate-200/90 no-underline group"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-xs font-bold text-white shadow-xs group-hover:ring-2 group-hover:ring-indigo-300 transition-all">
+              {user.name ? user.name.slice(0, 2).toUpperCase() : "SA"}
+            </div>
+            <div className="hidden lg:block text-left">
+              <span className="block text-xs font-bold text-slate-900 leading-snug truncate max-w-[120px] group-hover:text-indigo-600 transition-colors">
+                {user.name || "Saif Ansari"}
+              </span>
+              <span className="block text-[10.5px] text-slate-500 font-medium truncate max-w-[120px]">
+                {isAdminUser ? "Super Administrator" : (planLimits.planTitle || "5-Day Trial")}
+              </span>
+            </div>
+          </Link>
+        </div>
 
-        {/* User Profile Avatar */}
-        <Link 
-          href="/profile" 
-          className="flex items-center gap-2.5 pl-3 border-l border-slate-200/90 no-underline group"
-        >
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-xs font-bold text-white shadow-xs group-hover:ring-2 group-hover:ring-indigo-300 transition-all">
-            {user.name ? user.name.slice(0, 2).toUpperCase() : "SA"}
-          </div>
-          <div className="hidden lg:block text-left">
-            <span className="block text-xs font-bold text-slate-900 leading-snug truncate max-w-[120px] group-hover:text-indigo-600 transition-colors">
-              {user.name || "Saif Ansari"}
-            </span>
-            <span className="block text-[10.5px] text-slate-500 font-medium truncate max-w-[120px]">
-              {isAdminUser ? "Super Administrator" : (planLimits.planTitle || "5-Day Trial")}
-            </span>
-          </div>
-        </Link>
-      </div>
-
-    </header>
+      </header>
+    </div>
   );
 }
