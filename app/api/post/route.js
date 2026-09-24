@@ -141,6 +141,10 @@ export async function POST(req) {
     selectedAccountIds = json.accountIds || json.platforms || [];
     publishMode = json.publishMode || (json.scheduledAt ? "schedule" : "draft");
     scheduledAt = json.scheduledAt || null;
+    if (json.mediaUrl) {
+      mediaUrl = json.mediaUrl;
+      mediaType = json.mediaType || (json.mediaUrl.includes("video") ? "video" : "image");
+    }
   } else {
     const formData = await req.formData();
     file = formData.get("file");
@@ -153,15 +157,19 @@ export async function POST(req) {
     } catch {
       selectedAccountIds = [];
     }
+    const mediaUrlFromForm = formData.get("mediaUrl") || "";
+    const mediaTypeFromForm = formData.get("mediaType") || "";
     publishMode = formData.get("publishMode") || "now";
     scheduledAt = formData.get("scheduledAt") || null;
+    if (!file && mediaUrlFromForm) {
+      mediaUrl = mediaUrlFromForm;
+      mediaType = mediaTypeFromForm || (mediaUrlFromForm.includes("video") ? "video" : "image");
+    }
   }
 
   const accounts = await getAccounts(userId);
   const results = {};
 
-  let mediaUrl = null;
-  let mediaType = null;
   if (file && typeof file === "object" && file.size > 0) {
     const isVideoFile = file.type?.startsWith("video") || file.name?.match(/\.(mp4|mov|webm|avi|m4v|mkv)$/i);
     mediaType = isVideoFile ? "video" : "image";

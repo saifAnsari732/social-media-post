@@ -334,7 +334,10 @@ export default function PostsPage() {
                       <td className="py-4 px-6 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
-                            onClick={() => router.push("/publisher")}
+                            onClick={() => {
+                              localStorage.setItem("edit_post", JSON.stringify(post));
+                              router.push("/publisher");
+                            }}
                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 font-bold text-xs transition-all cursor-pointer shadow-2xs"
                             title="Edit post in composer"
                           >

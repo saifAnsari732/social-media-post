@@ -65,7 +65,9 @@ export default function PublisherPage() {
     file?.type?.startsWith("video/") || 
     file?.name?.match(/\.(mp4|mov|webm|avi|m4v|mkv|3gp)$/i) ||
     filePreview?.startsWith("data:video") ||
-    filePreview?.match(/\.(mp4|mov|webm|avi|m4v|mkv)$/i)
+    filePreview?.includes("video") ||
+    filePreview?.match(/\.(mp4|mov|webm|avi|m4v|mkv)$/i) ||
+    editingPost?.mediaType === "video"
   );
 
   const [recentPosts, setRecentPosts] = useState([]);
@@ -76,6 +78,17 @@ export default function PublisherPage() {
     setUser(activeUser);
     fetchAccounts(activeUser.userId);
     fetchRecentPosts(activeUser.userId);
+
+    const storedEdit = localStorage.getItem("edit_post");
+    if (storedEdit) {
+      try {
+        const postToEdit = JSON.parse(storedEdit);
+        localStorage.removeItem("edit_post");
+        if (postToEdit) {
+          handleStartEdit(postToEdit);
+        }
+      } catch (e) {}
+    }
   }, []);
 
   async function fetchRecentPosts(userId) {
@@ -102,6 +115,7 @@ export default function PublisherPage() {
     setTags(Array.isArray(post.tags) ? post.tags.join(", ") : post.tags || "");
     setSelectedIds(post.accountIds || []);
     setPublishMode(post.status === "Draft" ? "draft" : "now");
+    setFile(null);
     if (post.mediaUrl) {
       setFilePreview(post.mediaUrl);
     } else {
@@ -262,6 +276,28 @@ export default function PublisherPage() {
     try {
       const activeUserId = user?.userId || getStoredUser()?.userId;
 
+      // Determine final mediaUrl and mediaType
+      let finalMediaUrl = filePreview || editingPost?.mediaUrl || null;
+      let finalMediaType = isVideo ? "video" : (filePreview ? "image" : (editingPost?.mediaType || null));
+
+      // Convert local file object to persistent base64 if user uploaded a file
+      if (file) {
+        try {
+          const base64Str = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target?.result);
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(file);
+          });
+          if (base64Str) {
+            finalMediaUrl = base64Str;
+            finalMediaType = file.type?.startsWith("video") ? "video" : "image";
+          }
+        } catch (e) {
+          console.error("FileReader conversion error:", e);
+        }
+      }
+
       // UPDATE EXISTING DRAFT / POST
       if (editingPost) {
         const res = await fetch("/api/post", {
@@ -278,8 +314,8 @@ export default function PublisherPage() {
             tags: tags || "",
             accountIds: selectedIds,
             status: effectiveMode === "draft" ? "Draft" : (effectiveMode === "schedule" ? "Scheduled" : "Published"),
-            mediaUrl: filePreview || editingPost.mediaUrl || null,
-            mediaType: isVideo ? "video" : (filePreview ? "image" : editingPost.mediaType)
+            mediaUrl: finalMediaUrl,
+            mediaType: finalMediaType
           })
         });
         const data = await res.json();
@@ -294,6 +330,9 @@ export default function PublisherPage() {
       // CREATE NEW POST / DRAFT
       const form = new FormData();
       if (file) form.append("file", file);
+      if (finalMediaUrl) form.append("mediaUrl", finalMediaUrl);
+      if (finalMediaType) form.append("mediaType", finalMediaType);
+
       form.append("title", title || (effectiveMode === "draft" ? "Draft Post" : "Social Post"));
       form.append("description", description || "");
       form.append("tags", tags || "");
