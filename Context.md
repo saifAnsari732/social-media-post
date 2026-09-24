@@ -227,6 +227,7 @@ GET    /api/accounts                  # Get all connected channels for active us
 DELETE /api/accounts                  # Disconnect a connected channel
 POST   /api/post                      # Multi-channel instant publishing & scheduling
 GET    /api/post                      # Fetch post feed and history
+POST   /api/ads/chat                  # Meta Ads Copilot intelligent contextual chat API
 POST   /api/generate-content          # Gemini AI caption & hashtag generator
 GET    /api/rules                     # Fetch automation rules
 POST   /api/rules                     # Create new bot rule
@@ -247,13 +248,16 @@ POST   /api/admin/system              # System health & reset actions
   - Feature listed explicitly across Pricing cards on Landing Page, Billing Page, and Trial Paywall Modal.
 
 * **UI Theme & Visual Guidelines:**
+  - **Full-Width Edge Coverage:** Main dashboard container spans 100% full width to the right edge (`w-full`) for high-density analytics.
   - **Rose Color Theme:** Clean solid rose accents (`rose-600`, `rose-950`, `rose-50`, `border-rose-200`).
-  - **Design Constraints:** Zero gradient background colors, zero black background cards, zero playful AI sparkles/magic wand icons.
-  - **Corporate Icons:** Clean, professional Lucide icons (`Target`, `Zap`, `Compass`, `Users`, `FileText`, `PieChart`, `SlidersHorizontal`).
-  - **Top Header Action:** Top-right header fixed placement for 1-Click "Connect Ad Account" button, Ad Account switcher, and Real vs Demo Preview Data mode toggle.
+  - **Design Constraints:** Zero gradient background colors, zero black background cards, zero playful AI robot/sparkle icons.
+  - **Corporate Icons:** Clean, professional Lucide icons (`Compass`, `Target`, `Zap`, `Users`, `FileText`, `PieChart`, `SlidersHorizontal`).
+  - **Sticky Left Panel Meta Ads Copilot:** Sticky AI Chatbot sidebar with live Meta context, quick command chips (⚡ Audit ROAS, 💰 Budget Split, 🎯 Audience, ✍️ Write Copy), real-time Gemini generation, and intelligent contextual fallback engine.
+  - **Top Header Action:** Top-right header fixed placement for 1-Click "Connect Ad Account" button, Ad Account switcher, and Create Campaign modal.
 
 * **Advanced Gemini AI Capabilities:**
-  - 🤖 **AI Campaign Copilot & ROAS Strategist:** Performs live campaign performance audits, provides budget reallocation suggestions, CTR/ROAS improvement tactics, and visual performance scorecards.
+  - 🧭 **Meta Ads Copilot Chat (`/api/ads/chat`):** Interactive AI strategist with live account context (Total spend, impressions, clicks, CTR, conversions, active campaigns). Supports quick one-click commands and custom questions.
+  - 📊 **AI Campaign Copilot & ROAS Strategist:** Performs live campaign performance audits, provides budget reallocation suggestions, CTR/ROAS improvement tactics, and visual performance scorecards.
   - 🎯 **AI Audience Blueprint Generator:** Automatically generates high-converting target audience specifications (Demographics, Behaviors, Interests, Exclusions, Lookalike recommendations) tailored to specific industry niches.
   - ✍️ **Multi-Framework AI Ad Copy Studio:** Instantly generates ad copy across proven marketing frameworks including PAS (Problem-Agitate-Solution), AIDA (Attention-Interest-Desire-Action), Social Proof, and Urgency/FOMO.
   - ⚡ **1-Click Post Booster with Viral Predictor:** Evaluates organic posts with an AI Viral Predictor Score before converting them into high-ROI sponsored Meta Ad campaigns.

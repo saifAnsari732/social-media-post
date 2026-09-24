@@ -50,7 +50,6 @@ import {
   Users,
   BrainCircuit,
   Send,
-  Bot,
   MessageSquare
 } from "lucide-react";
 import { PlatformIcon } from "@/components/ui/SocialIcons";
@@ -68,7 +67,7 @@ export default function MetaAdsPage() {
   const [chatMessages, setChatMessages] = useState([
     {
       sender: "ai",
-      text: "👋 Hi! I am your Meta Ads AI Co-Pilot. I have live context of your connected Meta Ad accounts, active campaigns, ROAS, CTR, and target budget split. Ask me anything or click a quick action below!"
+      text: "👋 Hi! I am your Meta Ads Copilot. I have live context of your connected Meta Ad accounts, active campaigns, ROAS, CTR, and target budget split. Ask me anything or click a quick command below!"
     }
   ]);
   const [chatInput, setChatInput] = useState("");
@@ -337,7 +336,7 @@ export default function MetaAdsPage() {
     const query = presetText || chatInput;
     if (!query.trim()) return;
 
-    if (!checkPlanActive("Use Meta Ads AI Bot")) return;
+    if (!checkPlanActive("Use Meta Ads Copilot")) return;
 
     const userMsg = { sender: "user", text: query };
     setChatMessages((prev) => [...prev, userMsg]);
@@ -350,37 +349,42 @@ export default function MetaAdsPage() {
       const totalClicksCalc = realCampaigns.reduce((acc, curr) => acc + (curr.clicks || 0), 0);
       const totalPurchasesCalc = realCampaigns.reduce((acc, curr) => acc + (curr.purchases || 0), 0);
 
-      const promptPayload = `You are the specialized Meta Ads AI Assistant for Postfly SaaS.
-Account Context:
-- Connected Ad Account ID: ${selectedAccount}
-- Active Campaigns: ${realCampaigns.length} (${realCampaigns.map(c => c.name).join(", ")})
-- Metrics: Total Spend ₹${totalSpendCalc.toLocaleString()}, Impressions ${totalImpressionsCalc.toLocaleString()}, Clicks ${totalClicksCalc.toLocaleString()}, Conversions ${totalPurchasesCalc}
-
-User Request: "${query}"
-
-Provide a concise, expert Meta Ads response in 2-4 sentences with clear bullet points.`;
-
-      const res = await fetch("/api/generate-content", {
+      const res = await fetch("/api/ads/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "x-user-id": user?.userId || "guest"
         },
         body: JSON.stringify({
-          topic: promptPayload,
-          platform: "facebook"
+          query,
+          selectedAccount,
+          campaigns: realCampaigns,
+          metrics: {
+            totalSpend: totalSpendCalc,
+            totalImpressions: totalImpressionsCalc,
+            totalClicks: totalClicksCalc,
+            totalPurchases: totalPurchasesCalc
+          }
         })
       });
 
       const data = await res.json();
-      if (data?.content) {
-        setChatMessages((prev) => [...prev, { sender: "ai", text: data.content }]);
+      if (data?.text) {
+        setChatMessages((prev) => [...prev, { sender: "ai", text: data.text }]);
+      } else if (data?.description || data?.title) {
+        const text = [data.title ? `📌 **${data.title}**\n` : "", data.description].filter(Boolean).join("\n");
+        setChatMessages((prev) => [...prev, { sender: "ai", text }]);
+      } else if (data?.content) {
+        const text = typeof data.content === "string" ? data.content : JSON.stringify(data.content);
+        setChatMessages((prev) => [...prev, { sender: "ai", text }]);
+      } else if (data?.error) {
+        setChatMessages((prev) => [...prev, { sender: "ai", text: `⚠️ ${data.error}` }]);
       } else {
         setChatMessages((prev) => [
           ...prev,
           {
             sender: "ai",
-            text: `🎯 **Meta Ads Co-Pilot Analysis:**\n• Spend ₹${totalSpendCalc.toLocaleString()} across ${realCampaigns.length} campaigns.\n• Average CTR is ${((totalClicksCalc / (totalImpressionsCalc || 1)) * 100).toFixed(2)}% with ${totalPurchasesCalc} conversions.\n• Recommendation: Scale budget by +20% on top converting retargeting campaign.`
+            text: `🎯 **Meta Ads Copilot Analysis:**\n• Spend ₹${totalSpendCalc.toLocaleString()} across ${realCampaigns.length} campaigns.\n• Average CTR is ${((totalClicksCalc / (totalImpressionsCalc || 1)) * 100).toFixed(2)}% with ${totalPurchasesCalc} conversions.\n• Recommendation: Scale budget by +20% on top converting retargeting campaign.`
           }
         ]);
       }
@@ -862,10 +866,10 @@ Provide a concise, expert Meta Ads response in 2-4 sentences with clear bullet p
             <div className="flex items-center justify-between border-b border-rose-100 pb-3">
               <div className="flex items-center gap-2">
                 <span className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold shadow-xs">
-                  <Bot className="w-4 h-4" />
+                  <Compass className="w-4 h-4" />
                 </span>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">Meta Ads AI Bot</h3>
+                  <h3 className="text-sm font-bold text-slate-900">Meta Ads Copilot</h3>
                   <span className="text-[10px] text-rose-600 font-semibold flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     Live Meta Context
@@ -916,7 +920,7 @@ Provide a concise, expert Meta Ads response in 2-4 sentences with clear bullet p
                   className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}
                 >
                   <div
-                    className={`max-w-[90%] p-3 rounded-2xl text-xs leading-relaxed ${
+                    className={`max-w-[90%] p-3 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap ${
                       msg.sender === "user"
                         ? "bg-rose-600 text-white rounded-br-none shadow-xs font-medium"
                         : "bg-white text-slate-800 border border-rose-100 shadow-2xs rounded-bl-none font-normal"
