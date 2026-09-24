@@ -27,7 +27,8 @@ import {
   MoreHorizontal,
   X,
   Layers,
-  Check
+  Check,
+  Plus
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { PlatformIcon } from "@/components/ui/SocialIcons";
@@ -118,23 +119,12 @@ export default function PublisherPage() {
         setAccounts(data.accounts);
         setSelectedIds(data.accounts.map(a => a._id));
       } else {
-        const defaultAccounts = [
-          { _id: "acc_fb_1", name: "Newcretae", platform: "facebook", handle: "@newcretae" },
-          { _id: "acc_ig_1", name: "Mr chini shorts", platform: "instagram", handle: "@mrchinishorts" },
-          { _id: "acc_yt_1", name: "US_shorts24", platform: "youtube", handle: "@us_shorts24" },
-          { _id: "acc_li_1", name: "Saifuddin Ansari", platform: "linkedin", handle: "saif-ansari" }
-        ];
-        setAccounts(defaultAccounts);
-        setSelectedIds(["acc_fb_1", "acc_ig_1", "acc_yt_1"]);
+        setAccounts([]);
+        setSelectedIds([]);
       }
     } catch (e) {
-      const defaultAccounts = [
-        { _id: "acc_fb_1", name: "Newcretae", platform: "facebook", handle: "@newcretae" },
-        { _id: "acc_ig_1", name: "Mr chini shorts", platform: "instagram", handle: "@mrchinishorts" },
-        { _id: "acc_yt_1", name: "US_shorts24", platform: "youtube", handle: "@us_shorts24" }
-      ];
-      setAccounts(defaultAccounts);
-      setSelectedIds(["acc_fb_1", "acc_ig_1"]);
+      setAccounts([]);
+      setSelectedIds([]);
     }
   }
 
@@ -712,42 +702,55 @@ export default function PublisherPage() {
             </div>
 
             {/* Accounts List */}
-            <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar pr-1">
-              {accounts.map((acc) => {
-                const isSelected = selectedIds.includes(acc._id);
-                return (
-                  <div
-                    key={acc._id}
-                    onClick={() => toggleSelect(acc._id)}
-                    className={`p-3 rounded-xl border transition-all flex items-center justify-between cursor-pointer ${
-                      isSelected 
-                        ? "border-indigo-600 bg-indigo-50/70 shadow-2xs ring-1 ring-indigo-600/30" 
-                        : "border-slate-200 hover:border-slate-300 bg-white opacity-70"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                      <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 shadow-2xs">
-                        <PlatformIcon platform={acc.platform} className="w-8 h-8" />
+            {accounts.length === 0 ? (
+              <div className="p-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/80 text-center space-y-2">
+                <p className="text-xs text-slate-600 font-medium">No social channels connected yet.</p>
+                <Link
+                  href="/accounts"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-all shadow-xs"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Connect Channels Now</span>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar pr-1">
+                {accounts.map((acc) => {
+                  const isSelected = selectedIds.includes(acc._id);
+                  return (
+                    <div
+                      key={acc._id}
+                      onClick={() => toggleSelect(acc._id)}
+                      className={`p-3 rounded-xl border transition-all flex items-center justify-between cursor-pointer ${
+                        isSelected 
+                          ? "border-indigo-600 bg-indigo-50/70 shadow-2xs ring-1 ring-indigo-600/30" 
+                          : "border-slate-200 hover:border-slate-300 bg-white opacity-70"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                        <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 shadow-2xs">
+                          <PlatformIcon platform={acc.platform} className="w-8 h-8" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-bold text-slate-950 truncate leading-tight">
+                            {acc.name}
+                          </h4>
+                          <span className="text-[10px] text-slate-500 font-normal capitalize">
+                            {acc.platform}
+                          </span>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <h4 className="text-xs font-bold text-slate-950 truncate leading-tight">
-                          {acc.name}
-                        </h4>
-                        <span className="text-[10px] text-slate-500 font-normal capitalize">
-                          {acc.platform}
-                        </span>
-                      </div>
-                    </div>
 
-                    <div className={`w-5 h-5 rounded-md flex items-center justify-center transition-all ${
-                      isSelected ? "bg-indigo-600 text-white" : "border border-slate-300 bg-white"
-                    }`}>
-                      {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                      <div className={`w-5 h-5 rounded-md flex items-center justify-center transition-all ${
+                        isSelected ? "bg-indigo-600 text-white" : "border border-slate-300 bg-white"
+                      }`}>
+                        {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Publishing Mode */}

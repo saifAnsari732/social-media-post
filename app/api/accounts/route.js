@@ -43,7 +43,7 @@ export async function GET(req) {
       a.raw?.name || 
       a.raw?.page?.name || 
       a.raw?.snippet?.title || 
-      (a.platform === "instagram" ? "Mr chini shorts" : a.platform === "facebook" ? "Newcretae" : a.platform === "youtube" ? "US_shorts24" : `${a.platform} Channel`);
+      (a.platform ? `${a.platform.charAt(0).toUpperCase() + a.platform.slice(1)} Channel` : "Social Channel");
 
     const rawHandle = 
       a.handle || 
