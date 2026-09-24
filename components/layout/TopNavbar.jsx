@@ -85,9 +85,37 @@ export default function TopNavbar() {
   const [planLimits, setPlanLimits] = useState({ isPaid: true, isExpired: false });
 
   useEffect(() => {
-    const activeUser = getStoredUser();
-    setUser(activeUser);
-    setPlanLimits(getUserPlanLimits(activeUser));
+    const syncUser = () => {
+      const activeUser = getStoredUser();
+      setUser(activeUser);
+      setPlanLimits(getUserPlanLimits(activeUser));
+    };
+
+    syncUser();
+
+    // Fetch live plan status from DB to ensure local storage isn't stale
+    const currentUser = getStoredUser();
+    if (currentUser?.userId) {
+      fetch("/api/billing/status", { headers: { "x-user-id": currentUser.userId } })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.currentPlan) {
+            const updated = { ...currentUser, plan: data.currentPlan };
+            localStorage.setItem("socialflow_user", JSON.stringify(updated));
+            localStorage.setItem("yt_user", JSON.stringify(updated));
+            setUser(updated);
+            setPlanLimits(getUserPlanLimits(updated));
+          }
+        })
+        .catch(() => {});
+    }
+
+    window.addEventListener("user-updated", syncUser);
+    window.addEventListener("storage", syncUser);
+    return () => {
+      window.removeEventListener("user-updated", syncUser);
+      window.removeEventListener("storage", syncUser);
+    };
   }, [pathname]);
 
   const getBreadcrumb = () => {

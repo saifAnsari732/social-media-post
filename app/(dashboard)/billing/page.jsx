@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { CheckCircle2, Zap, Building2, CreditCard, Layers, ShieldCheck, X, Tag, Check, ArrowRight } from "lucide-react";
 import toast from "react-hot-toast";
 
-import { getStoredUser, getUserPlanLimits } from "@/lib/user";
+import { getStoredUser, setStoredUser, getUserPlanLimits } from "@/lib/user";
 
 export default function BillingPage() {
   const [loading, setLoading] = useState(false);
@@ -35,6 +35,12 @@ export default function BillingPage() {
           if (data.isPaid && data.currentPlan && !data.currentPlan.toLowerCase().includes("trial")) {
             setSelectedPlan(data.currentPlan);
             setIsPaid(true);
+            // Sync with local storage so navbar and sidebar update immediately!
+            if (currentUser) {
+              const updated = { ...currentUser, plan: data.currentPlan };
+              setStoredUser(updated);
+              setUser(updated);
+            }
           } else {
             setSelectedPlan(null);
             setIsPaid(false);
@@ -232,8 +238,7 @@ export default function BillingPage() {
             // Update user in local storage so all pages reflect active plan immediately
             if (user) {
               const updated = { ...user, plan: plan.name, isPaid: true };
-              localStorage.setItem("yt_user", JSON.stringify(updated));
-              localStorage.setItem("socialflow_user", JSON.stringify(updated));
+              setStoredUser(updated);
               setUser(updated);
             }
 

@@ -42,12 +42,42 @@ export default function Sidebar() {
   const [viewMode, setViewMode] = useState("admin");
 
   useEffect(() => {
-    const u = getStoredUser();
-    const initials = u.name ? u.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "SA";
-    setUser({ ...u, initials });
-    setLimits(getUserPlanLimits(u));
+    const syncUser = () => {
+      const u = getStoredUser();
+      const initials = u.name ? u.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "SA";
+      setUser({ ...u, initials });
+      setLimits(getUserPlanLimits(u));
+    };
+
+    syncUser();
+
     const savedMode = localStorage.getItem("postfly_view_mode");
     if (savedMode) setViewMode(savedMode);
+
+    // Fetch live plan status from DB to ensure local storage isn't stale
+    const currentUser = getStoredUser();
+    if (currentUser?.userId) {
+      fetch("/api/billing/status", { headers: { "x-user-id": currentUser.userId } })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.currentPlan) {
+            const updated = { ...currentUser, plan: data.currentPlan };
+            localStorage.setItem("socialflow_user", JSON.stringify(updated));
+            localStorage.setItem("yt_user", JSON.stringify(updated));
+            const initials = updated.name ? updated.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "SA";
+            setUser({ ...updated, initials });
+            setLimits(getUserPlanLimits(updated));
+          }
+        })
+        .catch(() => {});
+    }
+
+    window.addEventListener("user-updated", syncUser);
+    window.addEventListener("storage", syncUser);
+    return () => {
+      window.removeEventListener("user-updated", syncUser);
+      window.removeEventListener("storage", syncUser);
+    };
   }, []);
 
   const handleLogout = () => {
