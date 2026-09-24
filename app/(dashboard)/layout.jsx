@@ -10,7 +10,7 @@ export default function DashboardLayout({ children }) {
       <Sidebar />
       <div className="pl-[275px] flex min-h-screen flex-col transition-all duration-300">
         <TopNavbar />
-        <main className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full">
+        <main className="flex-1 p-4 lg:p-6 w-full">
           {children}
         </main>
       </div>

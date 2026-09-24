@@ -540,11 +540,7 @@ Provide a concise, expert Meta Ads response in 2-4 sentences with clear bullet p
         purchases: 0,
         roas: "0.0x"
       };
-      if (dataMode === "real") {
-        setRealCampaigns([newCamp, ...realCampaigns]);
-      } else {
-        setDemoCampaigns([newCamp, ...demoCampaigns]);
-      }
+      setRealCampaigns([newCamp, ...realCampaigns]);
       setCreatingCampaign(false);
       setCreateModalOpen(false);
       setNewCampaignName("");
@@ -588,11 +584,7 @@ Provide a concise, expert Meta Ads response in 2-4 sentences with clear bullet p
     setTimeout(() => {
       const updater = (list) =>
         list.map((c) => (c.id === editCampaignData.id ? { ...editCampaignData } : c));
-      if (dataMode === "real") {
-        setRealCampaigns(updater(realCampaigns));
-      } else {
-        setDemoCampaigns(updater(demoCampaigns));
-      }
+      setRealCampaigns(updater(realCampaigns));
       setUpdatingCampaign(false);
       setEditModalOpen(false);
     }, 800);
@@ -605,11 +597,7 @@ Provide a concise, expert Meta Ads response in 2-4 sentences with clear bullet p
       list.map((c) =>
         c.id === id ? { ...c, status: c.status === "ACTIVE" ? "PAUSED" : "ACTIVE" } : c
       );
-    if (dataMode === "real") {
-      setRealCampaigns(toggler(realCampaigns));
-    } else {
-      setDemoCampaigns(toggler(demoCampaigns));
-    }
+    setRealCampaigns(toggler(realCampaigns));
   };
 
   const handleOpenDeleteModal = (campaign, e) => {
@@ -622,11 +610,7 @@ Provide a concise, expert Meta Ads response in 2-4 sentences with clear bullet p
   const handleConfirmDelete = () => {
     if (!campaignToDelete) return;
     const filterOut = (list) => list.filter((c) => c.id !== campaignToDelete.id);
-    if (dataMode === "real") {
-      setRealCampaigns(filterOut(realCampaigns));
-    } else {
-      setDemoCampaigns(filterOut(demoCampaigns));
-    }
+    setRealCampaigns(filterOut(realCampaigns));
     setDeleteModalOpen(false);
     setCampaignToDelete(null);
   };
@@ -736,165 +720,55 @@ Provide a concise, expert Meta Ads response in 2-4 sentences with clear bullet p
         </div>
       )}
 
-      {/* 2-COLUMN SPLIT LAYOUT: LEFT AI CHATBOT + RIGHT MAIN ADS HUB */}
-      <div className="flex flex-col xl:flex-row items-start gap-6 w-full">
-
-        {/* LEFT SIDEBAR: META ADS AI CHAT BOT */}
-        <div className="w-full xl:w-80 shrink-0 space-y-4">
-          <div className="bg-white rounded-3xl border border-rose-200/80 shadow-md p-4 space-y-4 sticky top-6">
-            <div className="flex items-center justify-between border-b border-rose-100 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold shadow-xs">
-                  <Bot className="w-4 h-4" />
-                </span>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">Meta Ads AI Bot</h3>
-                  <span className="text-[10px] text-rose-600 font-semibold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Live Meta Context
-                  </span>
-                </div>
-              </div>
-              <span className="text-[10px] font-bold bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full border border-rose-200">
-                Gemini 1.5
-              </span>
-            </div>
-
-            {/* Quick Action Chips */}
-            <div className="space-y-1.5">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick Commands</p>
-              <div className="flex flex-wrap gap-1.5">
-                <button
-                  onClick={() => handleSendChatMessage("Audit all active campaigns & ROAS")}
-                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
-                >
-                  ⚡ Audit ROAS
-                </button>
-                <button
-                  onClick={() => handleSendChatMessage("Suggest optimal daily budget allocation")}
-                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
-                >
-                  💰 Budget Split
-                </button>
-                <button
-                  onClick={() => handleSendChatMessage("Generate high-converting audience targeting keywords")}
-                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
-                >
-                  🎯 Audience
-                </button>
-                <button
-                  onClick={() => handleSendChatMessage("Write high-converting PAS ad copy")}
-                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
-                >
-                  ✍️ Write Copy
-                </button>
-              </div>
-            </div>
-
-            {/* Chat History Container */}
-            <div className="h-80 overflow-y-auto space-y-3 p-3 bg-slate-50/80 rounded-xl border border-slate-200/70 text-xs font-normal scrollbar-thin">
-              {chatMessages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}
-                >
-                  <div
-                    className={`max-w-[90%] p-3 rounded-2xl text-xs leading-relaxed ${
-                      msg.sender === "user"
-                        ? "bg-rose-600 text-white rounded-br-none shadow-xs font-medium"
-                        : "bg-white text-slate-800 border border-rose-100 shadow-2xs rounded-bl-none font-normal"
-                    }`}
-                  >
-                    {msg.text}
-                  </div>
-                </div>
-              ))}
-              {isChatLoading && (
-                <div className="flex items-center gap-2 text-rose-600 font-semibold text-xs p-2">
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Analyzing Meta Ads Context...</span>
-                </div>
-              )}
-            </div>
-
-            {/* Input & Send Form */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSendChatMessage();
-              }}
-              className="flex items-center gap-2"
-            >
-              <input
-                type="text"
-                placeholder="Ask AI about your Meta ads..."
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                className="flex-1 p-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none text-slate-900 bg-white"
-              />
-              <button
-                type="submit"
-                disabled={isChatLoading || !chatInput.trim()}
-                className="p-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-40 text-white font-bold transition-all cursor-pointer shadow-xs"
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            </form>
+      {/* 1. Header Section & Top Connect Ad Account Button (FULL WIDTH) */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/90 shadow-2xs">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 text-[11px] font-bold border border-rose-200 flex items-center gap-1">
+              <Globe className="w-3.5 h-3.5" /> Meta Graph API v20.0
+            </span>
           </div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+            <Megaphone className="w-7 h-7 text-rose-600 shrink-0" /> Meta Ads Command Hub
+          </h1>
+          <p className="text-slate-500 text-xs md:text-sm font-normal">
+            Manage Facebook & Instagram ad campaigns, inspect ROAS, boost organic posts, and generate ad copy.
+          </p>
         </div>
 
-        {/* RIGHT MAIN PANEL: META ADS COMMAND HUB */}
-        <div className="flex-1 w-full space-y-6 min-w-0">
+        {/* TOP HEADER ACTION BUTTONS */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 p-2 rounded-xl border border-slate-200 bg-white text-slate-900 text-xs font-medium shadow-2xs">
+            <Building2 className="w-4 h-4 text-slate-500 ml-1 shrink-0" />
+            <select
+              value={selectedAccount}
+              onChange={(e) => {
+                if (checkPlanActive("Switch Meta Ad Account")) {
+                  setSelectedAccount(e.target.value);
+                }
+              }}
+              className="bg-transparent text-slate-900 font-semibold text-xs focus:outline-none cursor-pointer pr-2"
+            >
+              {adAccounts.map((acc) => (
+                <option key={acc.id} value={acc.id}>
+                  {acc.name} ({acc.id})
+                </option>
+              ))}
+            </select>
+          </div>
 
-          {/* 1. Header Section & Top Connect Ad Account Button */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/90 shadow-2xs">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 text-[11px] font-bold border border-rose-200 flex items-center gap-1">
-                  <Globe className="w-3.5 h-3.5" /> Meta Graph API v20.0
-                </span>
-              </div>
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-                <Megaphone className="w-7 h-7 text-rose-600 shrink-0" /> Meta Ads Command Hub
-              </h1>
-              <p className="text-slate-500 text-xs md:text-sm font-normal">
-                Manage Facebook & Instagram ad campaigns, inspect ROAS, boost organic posts, and generate ad copy.
-              </p>
-            </div>
-
-            {/* TOP HEADER ACTION BUTTONS */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
-              <div className="flex items-center gap-2 p-2 rounded-xl border border-slate-200 bg-white text-slate-900 text-xs font-medium shadow-2xs">
-                <Building2 className="w-4 h-4 text-slate-500 ml-1 shrink-0" />
-                <select
-                  value={selectedAccount}
-                  onChange={(e) => {
-                    if (checkPlanActive("Switch Meta Ad Account")) {
-                      setSelectedAccount(e.target.value);
-                    }
-                  }}
-                  className="bg-transparent text-slate-900 font-semibold text-xs focus:outline-none cursor-pointer pr-2"
-                >
-                  {adAccounts.map((acc) => (
-                    <option key={acc.id} value={acc.id}>
-                      {acc.name} ({acc.id})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* TOP CONNECT AD ACCOUNT BUTTON */}
-              <button
-                onClick={() => {
-                  if (checkPlanActive("Connect Meta Ad Account")) {
-                    setConnectAdAccountModalOpen(true);
-                  }
-                }}
-                className="px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold text-xs border border-rose-200 shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-              >
-                <Link2 className="w-4 h-4 text-rose-600" />
-                <span>Connect Ad Account</span>
-              </button>
+          {/* TOP CONNECT AD ACCOUNT BUTTON */}
+          <button
+            onClick={() => {
+              if (checkPlanActive("Connect Meta Ad Account")) {
+                setConnectAdAccountModalOpen(true);
+              }
+            }}
+            className="px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold text-xs border border-rose-200 shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+          >
+            <Link2 className="w-4 h-4 text-rose-600" />
+            <span>Connect Ad Account</span>
+          </button>
 
           <button
             onClick={() => {
@@ -910,7 +784,7 @@ Provide a concise, expert Meta Ads response in 2-4 sentences with clear bullet p
         </div>
       </div>
 
-      {/* 2. Key Performance Indicators (KPI Summary Cards) */}
+      {/* 2. Key Performance Indicators (KPI Summary Cards - FULL WIDTH) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Ad Spend */}
         <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-2">
@@ -922,7 +796,7 @@ Provide a concise, expert Meta Ads response in 2-4 sentences with clear bullet p
           </div>
           <div className="text-2xl font-extrabold text-slate-900">₹{totalSpend.toLocaleString("en-IN")}</div>
           <div className="text-[11px] font-medium text-emerald-600 flex items-center gap-1">
-            <TrendingUp className="w-3.5 h-3.5" /> {dataMode === "real" && totalSpend === 0 ? "No active spend" : "+14.2% vs last period"}
+            <TrendingUp className="w-3.5 h-3.5" /> {totalSpend === 0 ? "No active spend" : "+14.2% vs last period"}
           </div>
         </div>
 
@@ -978,6 +852,116 @@ Provide a concise, expert Meta Ads response in 2-4 sentences with clear bullet p
           </div>
         </div>
       </div>
+
+      {/* 3. 2-COLUMN WORKSPACE: LEFT AI CHATBOT + RIGHT TABS & TOOLS */}
+      <div className="flex flex-col xl:flex-row items-start gap-6 w-full">
+
+        {/* LEFT SIDEBAR: META ADS AI CHAT BOT */}
+        <div className="w-full xl:w-80 shrink-0 space-y-4">
+          <div className="bg-white rounded-3xl border border-rose-200/80 shadow-md p-4 space-y-4 sticky top-6">
+            <div className="flex items-center justify-between border-b border-rose-100 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold shadow-xs">
+                  <Bot className="w-4 h-4" />
+                </span>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Meta Ads AI Bot</h3>
+                  <span className="text-[10px] text-rose-600 font-semibold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Live Meta Context
+                  </span>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full border border-rose-200">
+                Gemini 1.5
+              </span>
+            </div>
+
+            {/* Quick Action Chips */}
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick Commands</p>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => handleSendChatMessage("Audit all active campaigns & ROAS")}
+                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
+                >
+                  ⚡ Audit ROAS
+                </button>
+                <button
+                  onClick={() => handleSendChatMessage("Suggest optimal daily budget allocation")}
+                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
+                >
+                  💰 Budget Split
+                </button>
+                <button
+                  onClick={() => handleSendChatMessage("Generate high-converting audience targeting keywords")}
+                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
+                >
+                  🎯 Audience
+                </button>
+                <button
+                  onClick={() => handleSendChatMessage("Write high-converting PAS ad copy")}
+                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
+                >
+                  ✍️ Write Copy
+                </button>
+              </div>
+            </div>
+
+            {/* Chat History Container */}
+            <div className="h-96 overflow-y-auto space-y-3 p-3 bg-slate-50/80 rounded-xl border border-slate-200/70 text-xs font-normal scrollbar-thin">
+              {chatMessages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}
+                >
+                  <div
+                    className={`max-w-[90%] p-3 rounded-2xl text-xs leading-relaxed ${
+                      msg.sender === "user"
+                        ? "bg-rose-600 text-white rounded-br-none shadow-xs font-medium"
+                        : "bg-white text-slate-800 border border-rose-100 shadow-2xs rounded-bl-none font-normal"
+                    }`}
+                  >
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+              {isChatLoading && (
+                <div className="flex items-center gap-2 text-rose-600 font-semibold text-xs p-2">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Analyzing Meta Ads Context...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Input & Send Form */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSendChatMessage();
+              }}
+              className="flex items-center gap-2"
+            >
+              <input
+                type="text"
+                placeholder="Ask AI about your Meta ads..."
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                className="flex-1 p-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none text-slate-900 bg-white"
+              />
+              <button
+                type="submit"
+                disabled={isChatLoading || !chatInput.trim()}
+                className="p-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-40 text-white font-bold transition-all cursor-pointer shadow-xs"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* RIGHT WORKSPACE PANEL: TABS & CONTENT */}
+        <div className="flex-1 w-full space-y-6 min-w-0">
 
       {/* 3. 🌹 ELEGANT ROSE ACCENT TAB NAVIGATION BUTTONS (NO BLACK, NO AI ICONS) */}
       <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto pb-2 pt-1 custom-scrollbar">
@@ -1148,9 +1132,7 @@ Provide a concise, expert Meta Ads response in 2-4 sentences with clear bullet p
               <div className="space-y-1">
                 <h3 className="text-base font-bold text-slate-900">No Meta Ad Campaigns Found</h3>
                 <p className="text-xs text-slate-500 max-w-md mx-auto">
-                  {dataMode === "real"
-                    ? `Ad account (${selectedAccount}) me abhi koi campaigns nahi hain. Click Create Campaign to launch your first ad.`
-                    : "No demo campaigns match your search query."}
+                  {`Ad account (${selectedAccount}) me abhi koi campaigns nahi hain. Click Create Campaign to launch your first ad.`}
                 </p>
               </div>
               <button
