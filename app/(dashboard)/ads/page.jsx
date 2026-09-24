@@ -6,7 +6,6 @@ import { getStoredUser, getUserPlanLimits } from "@/lib/user";
 import {
   Megaphone,
   Lock,
-  BrainCircuit,
   TrendingUp,
   DollarSign,
   Eye,
@@ -42,8 +41,6 @@ import {
   Trash2,
   Edit3,
   Info,
-  Sparkles,
-  Bot,
   Link2,
   ArrowRight,
   Lightbulb,
@@ -64,7 +61,7 @@ export default function MetaAdsPage() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [attemptedAction, setAttemptedAction] = useState("");
 
-  // Active Tab: 'campaigns' | 'booster' | 'ai-strategist' | 'ai-studio' | 'analytics' | 'settings'
+  // Active Tab: 'campaigns' | 'booster' | 'strategist' | 'ai-studio' | 'analytics' | 'settings'
   const [activeTab, setActiveTab] = useState("campaigns");
 
   // Accounts List
@@ -88,11 +85,11 @@ export default function MetaAdsPage() {
   const [newCampaignPlatform, setNewCampaignPlatform] = useState("instagram");
   const [creatingCampaign, setCreatingCampaign] = useState(false);
 
-  // 2. Read / Inspect & AI Summarize Campaign
+  // 2. Read / Inspect Campaign
   const [inspectModalOpen, setInspectModalOpen] = useState(false);
   const [inspectCampaign, setInspectCampaign] = useState(null);
-  const [aiAuditLoading, setAiAuditLoading] = useState(false);
-  const [aiAuditResult, setAiAuditResult] = useState(null);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditResult, setAuditResult] = useState(null);
 
   // 3. Update Campaign
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -117,7 +114,7 @@ export default function MetaAdsPage() {
   const [boostLaunching, setBoostLaunching] = useState(false);
   const [boostSuccess, setBoostSuccess] = useState(false);
 
-  // Gemini AI Strategist Tab State
+  // Smart Strategist Tab State
   const [strategistGoal, setStrategistGoal] = useState("Maximize E-Commerce Sales & ROAS");
   const [strategistBudget, setStrategistBudget] = useState("5000");
   const [runningStrategist, setRunningStrategist] = useState(false);
@@ -251,13 +248,12 @@ export default function MetaAdsPage() {
   const currentCampaignsList = dataMode === "demo" ? demoCampaigns : realCampaigns;
 
   // --------------------------------------------------------------------------
-  // GEMINI AI STRATEGIST FUNCTION
+  // SMART STRATEGIST FUNCTION (NO AI ICONS)
   // --------------------------------------------------------------------------
-  const handleRunGeminiStrategist = async () => {
-    if (!checkPlanActive("Run Gemini AI Ad Strategist")) return;
+  const handleRunSmartStrategist = async () => {
+    if (!checkPlanActive("Run Smart Campaign Strategist")) return;
     setRunningStrategist(true);
     try {
-      // Call /api/generate-content or generate smart strategic advice
       const res = await fetch("/api/generate-content", {
         method: "POST",
         headers: {
@@ -272,12 +268,12 @@ export default function MetaAdsPage() {
       const data = await res.json();
       
       setStrategistReport({
-        strategyTitle: data.title || `Gemini Strategy: ${strategistGoal}`,
-        score: "96/100 (Optimal Growth Blueprint)",
+        strategyTitle: data.title || `Campaign Strategy: ${strategistGoal}`,
+        score: "96/100 (High Performance Blueprint)",
         executiveSummary: data.description || `Based on Meta Graph API benchmarks, allocating ₹${strategistBudget}/day across Instagram Reels & Facebook Lookalike audiences will maximize ROAS up to 4.5x.`,
         suggestedBudgetSplit: [
-          { segment: "Instagram Reels UGC Video Ads", percent: "50%", amount: `₹${Math.round(Number(strategistBudget) * 0.5)}/day` },
-          { segment: "Retargeting Cart Abandoners", percent: "30%", amount: `₹${Math.round(Number(strategistBudget) * 0.3)}/day` },
+          { segment: "Instagram Reels Video Ads", percent: "50%", amount: `₹${Math.round(Number(strategistBudget) * 0.5)}/day` },
+          { segment: "Retargeting Abandoned Clicks", percent: "30%", amount: `₹${Math.round(Number(strategistBudget) * 0.3)}/day` },
           { segment: "Broad Interest Testing", percent: "20%", amount: `₹${Math.round(Number(strategistBudget) * 0.2)}/day` }
         ],
         actionItems: [
@@ -287,10 +283,9 @@ export default function MetaAdsPage() {
         ]
       });
     } catch (err) {
-      // Fallback structured strategy
       setStrategistReport({
-        strategyTitle: `Gemini AI Strategy: ${strategistGoal}`,
-        score: "94/100 (Optimal Growth Blueprint)",
+        strategyTitle: `Campaign Strategy: ${strategistGoal}`,
+        score: "94/100 (Optimal Blueprint)",
         executiveSummary: `Targeting high-intent buyers with ₹${strategistBudget}/day daily budget is predicted to yield 4.2x - 4.8x ROAS on Meta Ads.`,
         suggestedBudgetSplit: [
           { segment: "Instagram Reels Video Ads", percent: "50%", amount: `₹${Math.round(Number(strategistBudget) * 0.5)}/day` },
@@ -343,16 +338,16 @@ export default function MetaAdsPage() {
 
   const handleInspectCampaign = (campaign) => {
     setInspectCampaign(campaign);
-    setAiAuditResult(null);
+    setAuditResult(null);
     setInspectModalOpen(true);
   };
 
-  const handleRunAiAudit = () => {
+  const handleRunAudit = () => {
     if (!inspectCampaign) return;
-    if (!checkPlanActive("Run Gemini AI Campaign Audit")) return;
-    setAiAuditLoading(true);
+    if (!checkPlanActive("Run Performance Audit")) return;
+    setAuditLoading(true);
     setTimeout(() => {
-      setAiAuditResult({
+      setAuditResult({
         performanceScore: inspectCampaign.spent > 10000 ? "92/100 (High Performer)" : "85/100 (Good Health)",
         summary: `Campaign '${inspectCampaign.name}' is driving engagement on ${inspectCampaign.platform}. CTR stands at ${inspectCampaign.ctr || "4.50%"}.`,
         recommendations: [
@@ -361,7 +356,7 @@ export default function MetaAdsPage() {
           "⚡ Bidding Strategy: Keep Cost Cap at ₹15 per conversion for optimal ROAS."
         ]
       });
-      setAiAuditLoading(false);
+      setAuditLoading(false);
     }, 1200);
   };
 
@@ -483,7 +478,7 @@ export default function MetaAdsPage() {
     return (
       <div className="p-8 flex items-center justify-center min-h-[60vh]">
         <div className="flex items-center gap-3 text-slate-700 font-semibold text-sm">
-          <RefreshCw className="w-5 h-5 animate-spin text-blue-600" />
+          <RefreshCw className="w-5 h-5 animate-spin text-rose-600" />
           <span>Loading Meta Ads Manager...</span>
         </div>
       </div>
@@ -507,31 +502,31 @@ export default function MetaAdsPage() {
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
 
-      {/* 🔒 TOP STATUS BAR */}
+      {/* 🔒 ROSE ACCENT PREVIEW BANNER (NO BLACK COLOR) */}
       {!isMetaAdsUnlocked ? (
-        <div className="p-4 rounded-2xl bg-slate-900 text-white border border-slate-800 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-rose-950 via-slate-900 to-rose-900 text-white border border-rose-800/40 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-rose-600/20 border border-rose-500/30 text-rose-400 flex items-center justify-center shrink-0">
               <Lock className="w-4 h-4" />
             </div>
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold text-[10px] uppercase border border-blue-500/30">
+                <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold text-[10px] uppercase border border-rose-500/30">
                   Preview Mode
                 </span>
-                <span className="text-xs text-slate-400 font-medium">
+                <span className="text-xs text-slate-300 font-medium">
                   Active Plan: {limits?.planTitle || "Starter / Growth / Trial"}
                 </span>
               </div>
-              <p className="text-xs text-slate-300 font-normal">
-                Meta Ads Manager is locked on your current tier. Upgrade to <span className="text-white font-bold">Pro Unlimited</span> to manage live ad campaigns.
+              <p className="text-xs text-slate-200 font-normal">
+                Meta Ads Manager is locked on your current tier. Upgrade to <span className="text-white font-extrabold">Pro Unlimited</span> to manage live ad campaigns.
               </p>
             </div>
           </div>
 
           <button
             onClick={() => checkPlanActive("Upgrade Plan")}
-            className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm transition-all flex items-center gap-2 shrink-0 cursor-pointer active:scale-95"
+            className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/30 transition-all flex items-center gap-2 shrink-0 cursor-pointer active:scale-95"
           >
             <span>Upgrade to Pro Unlimited (₹4,999/mo)</span>
             <ArrowUpRight className="w-4 h-4" />
@@ -553,12 +548,12 @@ export default function MetaAdsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/90 shadow-2xs">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-bold border border-blue-200 flex items-center gap-1">
+            <span className="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 text-[11px] font-bold border border-rose-200 flex items-center gap-1">
               <Globe className="w-3.5 h-3.5" /> Meta Graph API v20.0
             </span>
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Megaphone className="w-7 h-7 text-blue-600 shrink-0" /> Meta Ads Command Hub
+            <Megaphone className="w-7 h-7 text-rose-600 shrink-0" /> Meta Ads Command Hub
           </h1>
           <p className="text-slate-500 text-xs md:text-sm font-normal">
             Manage Facebook & Instagram ad campaigns, inspect ROAS, boost organic posts, and generate ad copy.
@@ -573,7 +568,7 @@ export default function MetaAdsPage() {
               onClick={() => setDataMode("real")}
               className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                 dataMode === "real"
-                  ? "bg-white text-slate-900 font-bold shadow-xs"
+                  ? "bg-rose-600 text-white font-bold shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -583,7 +578,7 @@ export default function MetaAdsPage() {
               onClick={() => setDataMode("demo")}
               className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                 dataMode === "demo"
-                  ? "bg-white text-slate-900 font-bold shadow-xs"
+                  ? "bg-rose-600 text-white font-bold shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -612,11 +607,23 @@ export default function MetaAdsPage() {
 
           <button
             onClick={() => {
+              if (checkPlanActive("Connect Meta Ad Account")) {
+                setConnectAdAccountModalOpen(true);
+              }
+            }}
+            className="px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold text-xs border border-rose-200 shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+          >
+            <Link2 className="w-4 h-4 text-rose-600" />
+            <span>Connect Ad Account</span>
+          </button>
+
+          <button
+            onClick={() => {
               if (checkPlanActive("Create Meta Campaign")) {
                 setCreateModalOpen(true);
               }
             }}
-            className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+            className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
           >
             <Plus className="w-4 h-4" />
             <span>Create Campaign</span>
@@ -630,7 +637,7 @@ export default function MetaAdsPage() {
         <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-2">
           <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
             <span>Total Ad Spend</span>
-            <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold">
+            <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
               <DollarSign className="w-4 h-4" />
             </div>
           </div>
@@ -674,44 +681,44 @@ export default function MetaAdsPage() {
         </div>
 
         {/* Card 4: Conversions & ROAS */}
-        <div className="p-5 rounded-2xl border border-blue-200 bg-blue-50/40 shadow-2xs space-y-2">
-          <div className="flex items-center justify-between text-blue-900 text-xs font-semibold">
+        <div className="p-5 rounded-2xl border border-rose-200 bg-rose-50/40 shadow-2xs space-y-2">
+          <div className="flex items-center justify-between text-rose-900 text-xs font-semibold">
             <span>Conversions & ROAS</span>
-            <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-xs">
+            <div className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold shadow-xs">
               <ShoppingBag className="w-4 h-4" />
             </div>
           </div>
           <div className="text-2xl font-extrabold text-slate-900">
             {totalPurchases} Sales{" "}
-            <span className="text-xs font-bold text-blue-700 bg-blue-100 px-2.5 py-0.5 rounded-md border border-blue-200">
+            <span className="text-xs font-bold text-rose-700 bg-rose-100 px-2.5 py-0.5 rounded-md border border-rose-200">
               {totalPurchases > 0 ? "4.2x ROAS" : "0.0x ROAS"}
             </span>
           </div>
-          <div className="text-[11px] font-semibold text-blue-900">
+          <div className="text-[11px] font-semibold text-rose-900">
             Revenue Generated: <span className="font-extrabold text-emerald-700">₹{totalPurchases > 0 ? "2,02,650" : "0"}</span>
           </div>
         </div>
       </div>
 
-      {/* 3. 🌟 ULTRA-MODERN TAB NAVIGATION BUTTONS WITH ICON BADGES */}
+      {/* 3. 🌹 ELEGANT ROSE ACCENT TAB NAVIGATION BUTTONS (NO BLACK, NO AI ICONS) */}
       <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto pb-2 pt-1 custom-scrollbar">
         {/* Tab 1: Ad Campaigns */}
         <button
           onClick={() => setActiveTab("campaigns")}
           className={`group px-4 py-2.5 rounded-2xl font-extrabold text-xs transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
             activeTab === "campaigns"
-              ? "bg-slate-950 text-white shadow-md ring-2 ring-blue-500/50 scale-[1.01]"
+              ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 ring-2 ring-rose-400/50 scale-[1.01]"
               : "bg-white text-slate-700 border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50"
           }`}
         >
           <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
-            activeTab === "campaigns" ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-600 group-hover:bg-blue-100"
+            activeTab === "campaigns" ? "bg-white text-rose-600 font-bold" : "bg-rose-50 text-rose-600 group-hover:bg-rose-100"
           }`}>
             <Target className="w-4 h-4" />
           </div>
           <span>Ad Campaigns</span>
           <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-            activeTab === "campaigns" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
+            activeTab === "campaigns" ? "bg-rose-800 text-white" : "bg-slate-100 text-slate-700"
           }`}>
             {currentCampaignsList.length}
           </span>
@@ -722,51 +729,46 @@ export default function MetaAdsPage() {
           onClick={() => setActiveTab("booster")}
           className={`group px-4 py-2.5 rounded-2xl font-extrabold text-xs transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
             activeTab === "booster"
-              ? "bg-slate-950 text-white shadow-md ring-2 ring-amber-500/50 scale-[1.01]"
+              ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 ring-2 ring-amber-400/50 scale-[1.01]"
               : "bg-white text-slate-700 border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50"
           }`}
         >
           <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
-            activeTab === "booster" ? "bg-amber-500 text-white" : "bg-amber-50 text-amber-600 group-hover:bg-amber-100"
+            activeTab === "booster" ? "bg-amber-400 text-slate-950 font-bold" : "bg-amber-50 text-amber-600 group-hover:bg-amber-100"
           }`}>
             <Zap className="w-4 h-4 fill-current" />
           </div>
           <span>1-Click Post Booster</span>
         </button>
 
-        {/* Tab 3: ✨ Gemini AI Ad Strategist (NEW DEDICATED GEMINI TAB) */}
+        {/* Tab 3: Smart Campaign Strategist (COMPASS ICON - NO AI ICON) */}
         <button
-          onClick={() => setActiveTab("ai-strategist")}
+          onClick={() => setActiveTab("strategist")}
           className={`group px-4 py-2.5 rounded-2xl font-extrabold text-xs transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
-            activeTab === "ai-strategist"
-              ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md ring-2 ring-purple-500/50 scale-[1.01]"
-              : "bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-900 border border-indigo-200/90 hover:border-indigo-300 hover:bg-indigo-100/60"
-          }`}
-        >
-          <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
-            activeTab === "ai-strategist" ? "bg-white text-indigo-700" : "bg-indigo-600 text-white"
-          }`}>
-            <BrainCircuit className="w-4 h-4" />
-          </div>
-          <span className="flex items-center gap-1">
-            <span>✨ Gemini AI Strategist</span>
-            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-purple-200 text-purple-900 border border-purple-300">
-              AI PRO
-            </span>
-          </span>
-        </button>
-
-        {/* Tab 4: Smart Ad Copy Studio */}
-        <button
-          onClick={() => setActiveTab("ai-studio")}
-          className={`group px-4 py-2.5 rounded-2xl font-extrabold text-xs transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
-            activeTab === "ai-studio"
-              ? "bg-slate-950 text-white shadow-md ring-2 ring-indigo-500/50 scale-[1.01]"
+            activeTab === "strategist"
+              ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 ring-2 ring-indigo-400/50 scale-[1.01]"
               : "bg-white text-slate-700 border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50"
           }`}
         >
           <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
-            activeTab === "ai-studio" ? "bg-indigo-600 text-white" : "bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100"
+            activeTab === "strategist" ? "bg-white text-indigo-700 font-bold" : "bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100"
+          }`}>
+            <Compass className="w-4 h-4" />
+          </div>
+          <span>Smart Campaign Strategist</span>
+        </button>
+
+        {/* Tab 4: Ad Copy Studio */}
+        <button
+          onClick={() => setActiveTab("ai-studio")}
+          className={`group px-4 py-2.5 rounded-2xl font-extrabold text-xs transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
+            activeTab === "ai-studio"
+              ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 ring-2 ring-rose-400/50 scale-[1.01]"
+              : "bg-white text-slate-700 border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50"
+          }`}
+        >
+          <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
+            activeTab === "ai-studio" ? "bg-white text-rose-600 font-bold" : "bg-rose-50 text-rose-600 group-hover:bg-rose-100"
           }`}>
             <FileText className="w-4 h-4" />
           </div>
@@ -778,12 +780,12 @@ export default function MetaAdsPage() {
           onClick={() => setActiveTab("analytics")}
           className={`group px-4 py-2.5 rounded-2xl font-extrabold text-xs transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
             activeTab === "analytics"
-              ? "bg-slate-950 text-white shadow-md ring-2 ring-emerald-500/50 scale-[1.01]"
+              ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 ring-2 ring-emerald-400/50 scale-[1.01]"
               : "bg-white text-slate-700 border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50"
           }`}
         >
           <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
-            activeTab === "analytics" ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100"
+            activeTab === "analytics" ? "bg-white text-emerald-600 font-bold" : "bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100"
           }`}>
             <PieChart className="w-4 h-4" />
           </div>
@@ -795,12 +797,12 @@ export default function MetaAdsPage() {
           onClick={() => setActiveTab("settings")}
           className={`group px-4 py-2.5 rounded-2xl font-extrabold text-xs transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
             activeTab === "settings"
-              ? "bg-slate-950 text-white shadow-md ring-2 ring-slate-500/50 scale-[1.01]"
+              ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 ring-2 ring-slate-400/50 scale-[1.01]"
               : "bg-white text-slate-700 border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50"
           }`}
         >
           <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
-            activeTab === "settings" ? "bg-slate-700 text-white" : "bg-slate-100 text-slate-700 group-hover:bg-slate-200"
+            activeTab === "settings" ? "bg-white text-slate-700 font-bold" : "bg-slate-100 text-slate-700 group-hover:bg-slate-200"
           }`}>
             <SlidersHorizontal className="w-4 h-4" />
           </div>
@@ -820,7 +822,7 @@ export default function MetaAdsPage() {
                 placeholder="Search campaigns by name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-slate-400"
+                className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-rose-400"
               />
             </div>
 
@@ -832,7 +834,7 @@ export default function MetaAdsPage() {
                   onClick={() => setStatusFilter(st)}
                   className={`px-3 py-1 rounded-lg text-xs font-semibold capitalize transition-all cursor-pointer ${
                     statusFilter === st
-                      ? "bg-slate-900 text-white"
+                      ? "bg-rose-600 text-white shadow-xs"
                       : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
                   }`}
                 >
@@ -844,7 +846,7 @@ export default function MetaAdsPage() {
 
           {filteredCampaigns.length === 0 ? (
             <div className="p-12 rounded-2xl border border-dashed border-slate-300 bg-white text-center space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center mx-auto">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
                 <Target className="w-6 h-6" />
               </div>
               <div className="space-y-1">
@@ -861,7 +863,7 @@ export default function MetaAdsPage() {
                     setCreateModalOpen(true);
                   }
                 }}
-                className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs inline-flex items-center gap-2 cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs shadow-xs inline-flex items-center gap-2 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span>Create First Meta Campaign</span>
@@ -903,7 +905,7 @@ export default function MetaAdsPage() {
                             <span>{cam.platform}</span>
                           </div>
                         </td>
-                        <td className="p-4 font-semibold text-blue-700">{cam.objective}</td>
+                        <td className="p-4 font-semibold text-rose-700">{cam.objective}</td>
                         <td className="p-4">
                           <span
                             className={`px-2.5 py-1 rounded-full text-[10.5px] font-bold uppercase tracking-wider flex items-center gap-1.5 w-fit ${
@@ -921,7 +923,7 @@ export default function MetaAdsPage() {
                           <div className="font-bold text-slate-900">{cam.clicks.toLocaleString("en-IN")}</div>
                           <div className="text-[10px] font-bold text-emerald-600">{cam.ctr}</div>
                         </td>
-                        <td className="p-4 font-bold text-blue-700 text-sm">{cam.roas}</td>
+                        <td className="p-4 font-bold text-rose-700 text-sm">{cam.roas}</td>
                         <td className="p-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
@@ -930,7 +932,7 @@ export default function MetaAdsPage() {
                               className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                                 cam.status === "ACTIVE"
                                   ? "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                                  : "bg-blue-50 text-blue-700 hover:bg-blue-100"
+                                  : "bg-rose-50 text-rose-700 hover:bg-rose-100"
                               }`}
                             >
                               {cam.status === "ACTIVE" ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
@@ -966,16 +968,16 @@ export default function MetaAdsPage() {
       {/* 5. TAB 2: 1-CLICK POST BOOSTER */}
       {activeTab === "booster" && (
         <div className="space-y-6">
-          <div className="bg-slate-900 text-white p-6 rounded-2xl space-y-2 shadow-sm border border-slate-800">
+          <div className="bg-gradient-to-r from-rose-950 via-slate-900 to-rose-900 text-white p-6 rounded-2xl space-y-2 shadow-sm border border-rose-800/40">
             <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded bg-blue-500 text-white text-[10px] font-bold uppercase">
+              <span className="px-2 py-0.5 rounded bg-amber-400 text-slate-950 text-[10px] font-bold uppercase">
                 Instant Meta Boost
               </span>
             </div>
             <h2 className="text-xl font-bold tracking-tight">
               Boost Organic Instagram & Facebook Posts in 1-Click
             </h2>
-            <p className="text-slate-300 text-xs md:text-sm max-w-2xl font-normal">
+            <p className="text-rose-200 text-xs md:text-sm max-w-2xl font-normal">
               Select your top-performing organic posts below, specify target audience and budget, and launch a sponsored campaign directly to Meta Graph API.
             </p>
           </div>
@@ -1010,14 +1012,14 @@ export default function MetaAdsPage() {
                     </div>
                     <div>
                       <div className="text-slate-400 text-[10px]">Comments</div>
-                      <div className="font-bold text-blue-600">💬 {post.organicComments}</div>
+                      <div className="font-bold text-rose-600">💬 {post.organicComments}</div>
                     </div>
                   </div>
                 </div>
 
                 <button
                   onClick={() => handleOpenBoostModal(post)}
-                  className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.99]"
+                  className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.99]"
                 >
                   <Zap className="w-4 h-4 text-amber-300 fill-current" />
                   <span>Boost Post Now</span>
@@ -1028,20 +1030,20 @@ export default function MetaAdsPage() {
         </div>
       )}
 
-      {/* 6. TAB 3: ✨ GEMINI AI AD STRATEGIST (NEW GEMINI AI TAB) */}
-      {activeTab === "ai-strategist" && (
+      {/* 6. TAB 3: SMART CAMPAIGN STRATEGIST (COMPASS ICON - NO AI ICON) */}
+      {activeTab === "strategist" && (
         <div className="space-y-6">
-          <div className="bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-950 text-white p-6 rounded-2xl space-y-3 shadow-lg border border-purple-800/40">
+          <div className="bg-gradient-to-r from-rose-950 via-slate-900 to-indigo-950 text-white p-6 rounded-2xl space-y-3 shadow-lg border border-rose-800/40">
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full bg-purple-400/20 text-purple-300 font-bold text-[10px] uppercase border border-purple-400/30 flex items-center gap-1">
-                <BrainCircuit className="w-3.5 h-3.5" /> Powered by Google Gemini AI
+              <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold text-[10px] uppercase border border-rose-500/30 flex items-center gap-1">
+                <Compass className="w-3.5 h-3.5" /> Campaign Strategy Engine
               </span>
             </div>
             <h2 className="text-xl md:text-2xl font-extrabold tracking-tight flex items-center gap-2">
-              Gemini AI Meta Ad Campaign Strategist
+              Smart Meta Ad Campaign Strategist
             </h2>
-            <p className="text-indigo-200 text-xs md:text-sm max-w-2xl font-normal leading-relaxed">
-              Enter your campaign goals & budget below. Gemini AI will analyze Meta Graph benchmarks, construct audience targeting blueprints, and recommend optimal daily budget splits for maximum ROAS.
+            <p className="text-rose-200 text-xs md:text-sm max-w-2xl font-normal leading-relaxed">
+              Enter your campaign goals & budget below to analyze Meta Graph benchmarks, construct audience targeting blueprints, and calculate optimal daily budget splits for maximum ROAS.
             </p>
           </div>
 
@@ -1050,9 +1052,9 @@ export default function MetaAdsPage() {
             <div className="p-6 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-5 lg:col-span-1">
               <div className="space-y-1 border-b border-slate-100 pb-3">
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Compass className="w-5 h-5 text-indigo-600" /> Strategy Parameters
+                  <Compass className="w-5 h-5 text-rose-600" /> Strategy Parameters
                 </h3>
-                <p className="text-slate-500 text-xs">Configure your marketing objective for Gemini AI analysis.</p>
+                <p className="text-slate-500 text-xs">Configure your marketing objective for strategy analysis.</p>
               </div>
 
               <div className="space-y-1.5">
@@ -1062,7 +1064,7 @@ export default function MetaAdsPage() {
                   value={strategistGoal}
                   onChange={(e) => setStrategistGoal(e.target.value)}
                   placeholder="e.g. Maximize E-Commerce Sales & ROAS"
-                  className="w-full p-3 rounded-xl border border-slate-200 font-semibold text-slate-900 text-xs focus:outline-none focus:border-indigo-600"
+                  className="w-full p-3 rounded-xl border border-slate-200 font-semibold text-slate-900 text-xs focus:outline-none focus:border-rose-600"
                 />
               </div>
 
@@ -1072,54 +1074,54 @@ export default function MetaAdsPage() {
                   type="number"
                   value={strategistBudget}
                   onChange={(e) => setStrategistBudget(e.target.value)}
-                  className="w-full p-3 rounded-xl border border-slate-200 font-semibold text-slate-900 text-xs focus:outline-none focus:border-indigo-600"
+                  className="w-full p-3 rounded-xl border border-slate-200 font-semibold text-slate-900 text-xs focus:outline-none focus:border-rose-600"
                 />
               </div>
 
               <button
-                onClick={handleRunGeminiStrategist}
+                onClick={handleRunSmartStrategist}
                 disabled={runningStrategist}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold text-xs shadow-md shadow-purple-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                className="w-full py-3.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
               >
                 {runningStrategist ? (
                   <>
-                    <RefreshCw className="w-4 h-4 animate-spin text-purple-200" />
-                    <span>Gemini AI Analyzing Graph API Benchmarks...</span>
+                    <RefreshCw className="w-4 h-4 animate-spin text-rose-200" />
+                    <span>Analyzing Meta Graph Benchmarks...</span>
                   </>
                 ) : (
                   <>
-                    <BrainCircuit className="w-4 h-4" />
-                    <span>Generate Gemini AI Campaign Blueprint</span>
+                    <Compass className="w-4 h-4" />
+                    <span>Generate Campaign Blueprint</span>
                   </>
                 )}
               </button>
             </div>
 
-            {/* AI Report Output */}
+            {/* Strategy Report Output */}
             <div className="lg:col-span-2 space-y-4">
               {!strategistReport ? (
                 <div className="p-12 rounded-2xl border border-dashed border-slate-300 bg-white text-center space-y-3">
-                  <BrainCircuit className="w-10 h-10 text-indigo-400 mx-auto" />
+                  <Compass className="w-10 h-10 text-rose-400 mx-auto" />
                   <div className="space-y-1">
-                    <h4 className="text-sm font-bold text-slate-900">No AI Strategy Generated Yet</h4>
+                    <h4 className="text-sm font-bold text-slate-900">No Campaign Strategy Generated Yet</h4>
                     <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                      Click <strong>"Generate Gemini AI Campaign Blueprint"</strong> on the left to receive a custom budget allocation report!
+                      Click <strong>"Generate Campaign Blueprint"</strong> on the left to receive a custom budget allocation report!
                     </p>
                   </div>
                 </div>
               ) : (
-                <div className="p-6 rounded-2xl border border-purple-200 bg-white shadow-2xs space-y-5 animate-in fade-in duration-200">
-                  <div className="flex items-center justify-between border-b border-purple-100 pb-3">
+                <div className="p-6 rounded-2xl border border-rose-200 bg-white shadow-2xs space-y-5 animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between border-b border-rose-100 pb-3">
                     <div className="space-y-0.5">
-                      <span className="text-[10px] font-extrabold text-purple-700 uppercase tracking-wider">Gemini AI Growth Strategy</span>
+                      <span className="text-[10px] font-extrabold text-rose-700 uppercase tracking-wider">Growth Strategy</span>
                       <h4 className="text-base font-extrabold text-slate-950">{strategistReport.strategyTitle}</h4>
                     </div>
-                    <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-900 text-xs font-black border border-purple-200">
+                    <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-900 text-xs font-black border border-rose-200">
                       {strategistReport.score}
                     </span>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-purple-50/60 border border-purple-100 text-xs text-purple-950 leading-relaxed font-medium">
+                  <div className="p-4 rounded-xl bg-rose-50/60 border border-rose-100 text-xs text-rose-950 leading-relaxed font-medium">
                     {strategistReport.executiveSummary}
                   </div>
 
@@ -1131,7 +1133,7 @@ export default function MetaAdsPage() {
                         <div key={i} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 space-y-1">
                           <div className="text-[11px] font-semibold text-slate-500 truncate">{split.segment}</div>
                           <div className="text-sm font-black text-slate-900">{split.amount}</div>
-                          <div className="text-[10px] font-bold text-indigo-600">{split.percent} of Total Budget</div>
+                          <div className="text-[10px] font-bold text-rose-600">{split.percent} of Total Budget</div>
                         </div>
                       ))}
                     </div>
@@ -1139,7 +1141,7 @@ export default function MetaAdsPage() {
 
                   {/* Actionable Steps */}
                   <div className="space-y-2 pt-2 border-t border-slate-100">
-                    <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider">AI Execution Roadmap</h5>
+                    <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Execution Roadmap</h5>
                     <ul className="space-y-2 text-xs font-medium text-slate-700">
                       {strategistReport.actionItems.map((item, idx) => (
                         <li key={idx} className="flex items-start gap-2">
@@ -1163,7 +1165,7 @@ export default function MetaAdsPage() {
           <div className="p-6 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-5">
             <div className="space-y-1 border-b border-slate-100 pb-3">
               <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <BrainCircuit className="w-5 h-5 text-blue-600" /> Gemini AI Ad Copy Studio
+                <FileText className="w-5 h-5 text-rose-600" /> Smart Ad Copy Studio
               </h2>
               <p className="text-slate-500 text-xs font-normal">
                 Generate high-converting Facebook & Instagram ad headlines, body copy, and call-to-action buttons.
@@ -1179,7 +1181,7 @@ export default function MetaAdsPage() {
                 value={productPrompt}
                 onChange={(e) => setProductPrompt(e.target.value)}
                 placeholder="e.g. Organic Herbal Hair Oil with 50% discount. Free shipping nationwide across India."
-                className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 text-xs text-slate-900 font-medium placeholder-slate-400 outline-none transition-all"
+                className="w-full p-3 rounded-xl border border-slate-200 focus:border-rose-600 focus:ring-1 focus:ring-rose-600 text-xs text-slate-900 font-medium placeholder-slate-400 outline-none transition-all"
               />
             </div>
 
@@ -1199,7 +1201,7 @@ export default function MetaAdsPage() {
                     onClick={() => setAdTone(tone.id)}
                     className={`p-2.5 rounded-xl border text-xs font-medium text-left transition-all cursor-pointer ${
                       adTone === tone.id
-                        ? "border-blue-600 bg-blue-50 text-blue-900 font-bold"
+                        ? "border-rose-600 bg-rose-50 text-rose-900 font-bold"
                         : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                     }`}
                   >
@@ -1212,7 +1214,7 @@ export default function MetaAdsPage() {
             <button
               onClick={handleGenerateAICopy}
               disabled={generatingCopy || !productPrompt.trim()}
-              className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-semibold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               {generatingCopy ? (
                 <>
@@ -1221,7 +1223,7 @@ export default function MetaAdsPage() {
                 </>
               ) : (
                 <>
-                  <BrainCircuit className="w-4 h-4" />
+                  <FileText className="w-4 h-4" />
                   <span>Generate Meta Ad Copy Variations</span>
                 </>
               )}
@@ -1245,7 +1247,7 @@ export default function MetaAdsPage() {
               generatedCopies.map((copy, idx) => (
                 <div key={idx} className="p-5 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-3 relative">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                    <span className="text-xs font-bold text-blue-700 uppercase">Variation #{idx + 1}</span>
+                    <span className="text-xs font-bold text-rose-700 uppercase">Variation #{idx + 1}</span>
                     <button
                       onClick={() => alert("Copied to clipboard!")}
                       className="text-[11px] font-semibold text-slate-600 hover:text-slate-900 cursor-pointer"
@@ -1271,7 +1273,7 @@ export default function MetaAdsPage() {
                     </div>
                     <div>
                       <span className="text-[10px] font-bold text-slate-400 uppercase">CTA Button</span>
-                      <div className="font-bold text-blue-700">{copy.cta}</div>
+                      <div className="font-bold text-rose-700">{copy.cta}</div>
                     </div>
                   </div>
                 </div>
@@ -1286,7 +1288,7 @@ export default function MetaAdsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="p-6 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-4">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <Smartphone className="w-4 h-4 text-blue-600" /> Device Impression Share
+              <Smartphone className="w-4 h-4 text-rose-600" /> Device Impression Share
             </h3>
             <div className="space-y-3">
               <div>
@@ -1295,7 +1297,7 @@ export default function MetaAdsPage() {
                   <span className="font-bold">84.5% (2,07,700)</span>
                 </div>
                 <div className="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden">
-                  <div className="h-full bg-blue-600 rounded-full" style={{ width: "84.5%" }}></div>
+                  <div className="h-full bg-rose-600 rounded-full" style={{ width: "84.5%" }}></div>
                 </div>
               </div>
 
@@ -1317,9 +1319,9 @@ export default function MetaAdsPage() {
             </h3>
             <div className="space-y-3">
               {[
-                { name: "Instagram Reels & Video Feed", share: "45%", color: "bg-purple-600" },
+                { name: "Instagram Reels & Video Feed", share: "45%", color: "bg-rose-600" },
                 { name: "Instagram Stories", share: "32%", color: "bg-pink-500" },
-                { name: "Facebook Main Feed", share: "18%", color: "bg-blue-600" },
+                { name: "Facebook Main Feed", share: "18%", color: "bg-indigo-600" },
                 { name: "Audience Network & Messenger", share: "5%", color: "bg-slate-400" }
               ].map((pl, i) => (
                 <div key={i}>
@@ -1344,7 +1346,7 @@ export default function MetaAdsPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
               <div className="space-y-1">
                 <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <SlidersHorizontal className="w-5 h-5 text-blue-600" /> Meta Business & Ad Account Settings
+                  <SlidersHorizontal className="w-5 h-5 text-rose-600" /> Meta Business & Ad Account Settings
                 </h2>
                 <p className="text-slate-500 text-xs font-normal">
                   Manage connected Facebook Business Accounts, Meta Ad Account IDs, and Graph OAuth token permissions.
@@ -1353,7 +1355,7 @@ export default function MetaAdsPage() {
 
               <button
                 onClick={() => setConnectAdAccountModalOpen(true)}
-                className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
               >
                 <Plus className="w-4 h-4" />
                 <span>Link New Meta Ad Account</span>
@@ -1361,15 +1363,15 @@ export default function MetaAdsPage() {
             </div>
 
             {/* Step-by-step Connection Guide Banner */}
-            <div className="p-4 rounded-xl bg-blue-50/60 border border-blue-200 space-y-3 text-xs">
-              <div className="font-bold text-blue-900 text-sm flex items-center gap-2">
-                <Info className="w-4 h-4 text-blue-600" /> How to Connect Your Meta Ad Account (Step-by-Step)
+            <div className="p-4 rounded-xl bg-rose-50/60 border border-rose-200 space-y-3 text-xs">
+              <div className="font-bold text-rose-900 text-sm flex items-center gap-2">
+                <Info className="w-4 h-4 text-rose-600" /> How to Connect Your Meta Ad Account (Step-by-Step)
               </div>
               <ol className="list-decimal list-inside space-y-1.5 text-slate-700 font-medium leading-relaxed">
                 <li>Click <strong>"Link New Meta Ad Account"</strong> or launch 1-Click Meta OAuth re-authentication.</li>
                 <li>Log in to Facebook and select your <strong>Meta Business Manager</strong>.</li>
                 <li>Grant permissions for <strong>`ads_management`</strong>, <strong>`ads_read`</strong>, and <strong>`business_management`</strong>.</li>
-                <li>Select your default Meta Ad Account ID (<code className="bg-blue-100 px-1 py-0.5 rounded text-blue-900">act_XXXXXXXXX</code>).</li>
+                <li>Select your default Meta Ad Account ID (<code className="bg-rose-100 px-1 py-0.5 rounded text-rose-900">act_XXXXXXXXX</code>).</li>
                 <li>Your Meta ad campaigns, budget tools, and post booster will populate automatically.</li>
               </ol>
             </div>
@@ -1384,7 +1386,7 @@ export default function MetaAdsPage() {
                 {adAccounts.map((acc) => (
                   <div key={acc.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold shrink-0">
                         f
                       </div>
                       <div>
@@ -1422,7 +1424,7 @@ export default function MetaAdsPage() {
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-6 shadow-2xl relative border border-slate-200">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Plus className="w-5 h-5 text-blue-600" /> Create New Meta Ad Campaign
+                <Plus className="w-5 h-5 text-rose-600" /> Create New Meta Ad Campaign
               </h3>
               <button
                 onClick={() => setCreateModalOpen(false)}
@@ -1440,7 +1442,7 @@ export default function MetaAdsPage() {
                   placeholder="e.g. Festive Retargeting Campaign 2026"
                   value={newCampaignName}
                   onChange={(e) => setNewCampaignName(e.target.value)}
-                  className="w-full p-3 rounded-xl border border-slate-200 font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
+                  className="w-full p-3 rounded-xl border border-slate-200 font-semibold text-slate-900 focus:outline-none focus:border-rose-600"
                 />
               </div>
 
@@ -1478,7 +1480,7 @@ export default function MetaAdsPage() {
                   type="number"
                   value={newCampaignBudget}
                   onChange={(e) => setNewCampaignBudget(e.target.value)}
-                  className="w-full p-3 rounded-xl border border-slate-200 font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
+                  className="w-full p-3 rounded-xl border border-slate-200 font-semibold text-slate-900 focus:outline-none focus:border-rose-600"
                 />
               </div>
             </div>
@@ -1486,7 +1488,7 @@ export default function MetaAdsPage() {
             <button
               onClick={handleCreateCampaignSubmit}
               disabled={creatingCampaign || !newCampaignName.trim()}
-              className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-semibold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               {creatingCampaign ? (
                 <>
@@ -1504,13 +1506,13 @@ export default function MetaAdsPage() {
         </div>
       )}
 
-      {/* INSPECT & GEMINI AUDIT MODAL */}
+      {/* INSPECT CAMPAIGN MODAL */}
       {inspectModalOpen && inspectCampaign && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl max-w-xl w-full p-6 space-y-6 shadow-2xl relative border border-slate-200 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="space-y-0.5">
-                <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Campaign Inspection</div>
+                <div className="text-[10px] font-bold text-rose-600 uppercase tracking-wider">Campaign Inspection</div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   {inspectCampaign.name}
                 </h3>
@@ -1538,50 +1540,50 @@ export default function MetaAdsPage() {
               </div>
               <div>
                 <div className="text-slate-400 text-[10px] font-medium">ROAS</div>
-                <div className="font-bold text-blue-700">{inspectCampaign.roas || "0.0x"}</div>
+                <div className="font-bold text-rose-700">{inspectCampaign.roas || "0.0x"}</div>
               </div>
             </div>
 
-            <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200 space-y-3">
+            <div className="p-4 rounded-xl bg-rose-50/70 border border-rose-200 space-y-3">
               <div className="flex items-center justify-between">
-                <div className="font-bold text-blue-900 text-xs flex items-center gap-2">
-                  <BrainCircuit className="w-4 h-4 text-blue-600" /> Gemini AI Campaign Auditor
+                <div className="font-bold text-rose-900 text-xs flex items-center gap-2">
+                  <Compass className="w-4 h-4 text-rose-600" /> Campaign Auditor
                 </div>
 
-                {!aiAuditResult && (
+                {!auditResult && (
                   <button
-                    onClick={handleRunAiAudit}
-                    disabled={aiAuditLoading}
-                    className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[11px] transition-all cursor-pointer flex items-center gap-1.5"
+                    onClick={handleRunAudit}
+                    disabled={auditLoading}
+                    className="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold text-[11px] transition-all cursor-pointer flex items-center gap-1.5"
                   >
-                    {aiAuditLoading ? (
+                    {auditLoading ? (
                       <>
                         <RefreshCw className="w-3 h-3 animate-spin" /> Auditing...
                       </>
                     ) : (
-                      <>Run AI Audit</>
+                      <>Run Performance Audit</>
                     )}
                   </button>
                 )}
               </div>
 
-              {!aiAuditResult ? (
+              {!auditResult ? (
                 <p className="text-xs text-slate-600 font-medium">
-                  Click "Run AI Audit" to evaluate campaign ROAS, audience fatigue, and budget optimization recommendations using Gemini AI.
+                  Click "Run Performance Audit" to evaluate campaign ROAS, audience fatigue, and budget optimization recommendations.
                 </p>
               ) : (
                 <div className="space-y-2 text-xs text-slate-800">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-slate-700">Health Score:</span>
                     <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[11px]">
-                      {aiAuditResult.performanceScore}
+                      {auditResult.performanceScore}
                     </span>
                   </div>
-                  <p className="text-slate-700 font-medium leading-relaxed">{aiAuditResult.summary}</p>
+                  <p className="text-slate-700 font-medium leading-relaxed">{auditResult.summary}</p>
                   <div className="space-y-1 pt-1">
-                    <div className="font-bold text-blue-950 uppercase text-[10px] tracking-wider">AI Recommendations:</div>
+                    <div className="font-bold text-rose-950 uppercase text-[10px] tracking-wider">Recommendations:</div>
                     <ul className="space-y-1 text-slate-700 font-medium">
-                      {aiAuditResult.recommendations.map((rec, idx) => (
+                      {auditResult.recommendations.map((rec, idx) => (
                         <li key={idx}>{rec}</li>
                       ))}
                     </ul>
@@ -1608,7 +1610,7 @@ export default function MetaAdsPage() {
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-6 shadow-2xl relative border border-slate-200">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Edit3 className="w-5 h-5 text-blue-600" /> Edit Meta Campaign
+                <Edit3 className="w-5 h-5 text-rose-600" /> Edit Meta Campaign
               </h3>
               <button
                 onClick={() => setEditModalOpen(false)}
@@ -1659,7 +1661,7 @@ export default function MetaAdsPage() {
             <button
               onClick={handleUpdateCampaignSubmit}
               disabled={updatingCampaign}
-              className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               {updatingCampaign ? (
                 <>
@@ -1717,7 +1719,7 @@ export default function MetaAdsPage() {
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-6 shadow-2xl relative border border-slate-200">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Link2 className="w-5 h-5 text-blue-600" /> Link Meta Ad Account
+                <Link2 className="w-5 h-5 text-rose-600" /> Link Meta Ad Account
               </h3>
               <button
                 onClick={() => setConnectAdAccountModalOpen(false)}
@@ -1728,7 +1730,7 @@ export default function MetaAdsPage() {
             </div>
 
             <div className="space-y-4 text-xs font-medium">
-              <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-xs font-medium">
+              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs font-medium">
                 Enter your Meta Ad Account ID below or launch 1-Click Meta OAuth authorization.
               </div>
 
@@ -1759,7 +1761,7 @@ export default function MetaAdsPage() {
               <button
                 onClick={handleAddAdAccountSubmit}
                 disabled={!newAdAccountIdInput.trim()}
-                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-semibold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Check className="w-4 h-4" />
                 <span>Link Ad Account ID</span>
@@ -1767,7 +1769,7 @@ export default function MetaAdsPage() {
               
               <Link
                 href="/api/auth/connect/facebook"
-                className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-all flex items-center justify-center gap-2 no-underline cursor-pointer"
+                className="w-full py-2.5 rounded-xl bg-rose-950 hover:bg-rose-900 text-white font-semibold text-xs transition-all flex items-center justify-center gap-2 no-underline cursor-pointer"
               >
                 <Globe className="w-4 h-4" />
                 <span>Launch 1-Click Meta OAuth Dialog</span>
@@ -1848,7 +1850,7 @@ export default function MetaAdsPage() {
                 <button
                   onClick={handleLaunchBoost}
                   disabled={boostLaunching}
-                  className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                  className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                 >
                   {boostLaunching ? (
                     <>
@@ -1880,11 +1882,11 @@ export default function MetaAdsPage() {
             </button>
 
             <div className="text-center space-y-3 pt-2">
-              <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center mx-auto">
+              <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto">
                 <Lock className="w-7 h-7" />
               </div>
               <div className="space-y-1">
-                <span className="px-2.5 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] font-bold uppercase tracking-wider">
+                <span className="px-2.5 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-bold uppercase tracking-wider">
                   PRO UNLIMITED EXCLUSIVE
                 </span>
                 <h3 className="text-xl font-bold text-slate-900 tracking-tight">
@@ -1914,7 +1916,7 @@ export default function MetaAdsPage() {
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Gemini AI Campaign Auditor & Ad Copy Studio</span>
+                  <span>Smart Campaign Strategist & Ad Copy Studio</span>
                 </li>
               </ul>
             </div>
@@ -1922,7 +1924,7 @@ export default function MetaAdsPage() {
             <div className="space-y-2">
               <Link
                 href="/billing"
-                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs transition-all flex items-center justify-center gap-2 no-underline cursor-pointer active:scale-95"
+                className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs shadow-xs transition-all flex items-center justify-center gap-2 no-underline cursor-pointer active:scale-95"
               >
                 <span>Upgrade to Pro Unlimited (₹4,999)</span>
                 <ArrowUpRight className="w-4 h-4" />
