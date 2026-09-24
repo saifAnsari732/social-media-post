@@ -72,8 +72,10 @@ export default function PublisherPage() {
   async function fetchRecentPosts(userId) {
     try {
       setLoadingPosts(true);
-      const res = await fetch("/api/post", {
-        headers: { "x-user-id": userId }
+      const targetUserId = userId || user?.userId || getStoredUser()?.userId;
+      const res = await fetch(`/api/post?t=${Date.now()}`, {
+        headers: { "x-user-id": targetUserId },
+        cache: "no-store"
       });
       const data = await res.json();
       setRecentPosts(data.posts || []);
@@ -193,12 +195,13 @@ export default function PublisherPage() {
     const allowed = checkPlanAccess({ action: "publish_post", router, toast });
     if (!allowed) return;
     const effectiveMode = overrideMode || publishMode;
-    if (selectedIds.length === 0) {
+
+    if (effectiveMode !== "draft" && selectedIds.length === 0) {
       toast.error("Please select at least 1 social channel!");
       return;
     }
     if (!title && !description && !file) {
-      toast.error("Please add a title, caption, or media file before publishing!");
+      toast.error("Please add a title, caption, or media file before saving!");
       return;
     }
     setPosting(true);
@@ -206,9 +209,9 @@ export default function PublisherPage() {
     try {
       const form = new FormData();
       if (file) form.append("file", file);
-      form.append("title", title || "Social Post");
-      form.append("description", description);
-      form.append("tags", tags);
+      form.append("title", title || (effectiveMode === "draft" ? "Draft Post" : "Social Post"));
+      form.append("description", description || "");
+      form.append("tags", tags || "");
       form.append("accountIds", JSON.stringify(selectedIds));
       form.append("publishMode", effectiveMode);
       if (effectiveMode === "schedule") {
@@ -216,21 +219,23 @@ export default function PublisherPage() {
         form.append("scheduledAt", scheduledDateTime);
       }
       
+      const activeUserId = user?.userId || getStoredUser()?.userId;
       const res = await fetch("/api/post", {
         method: "POST",
         body: form,
-        headers: { "x-user-id": user.userId }
+        headers: { "x-user-id": activeUserId }
       });
       const data = await res.json();
       setResults(data.results);
       if (effectiveMode === "schedule") {
-        toast.success("Post scheduled successfully for " + scheduleDate);
+        toast.success("📅 Post scheduled successfully for " + scheduleDate);
       } else if (effectiveMode === "draft") {
-        toast.success("Post saved to drafts successfully!");
+        toast.success("📌 Post saved to drafts successfully!");
       } else {
-        toast.success("Post published successfully!");
+        toast.success("🚀 Post published successfully!");
       }
-      fetchRecentPosts(user.userId);
+      // Instant update bottom list
+      await fetchRecentPosts(activeUserId);
     } catch (err) {
       toast.error("Failed to publish or save post.");
     } finally {
@@ -814,7 +819,7 @@ export default function PublisherPage() {
           <div className="pt-2 space-y-2.5">
             <button
               onClick={() => handlePost()}
-              disabled={posting || selectedIds.length === 0}
+              disabled={posting || (publishMode !== "draft" && selectedIds.length === 0)}
               className={`w-full py-3.5 px-4 rounded-xl text-white font-black text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50 ${
                 publishMode === "draft"
                   ? "bg-amber-500 hover:bg-amber-600 active:bg-amber-700 shadow-amber-500/25"
@@ -842,7 +847,7 @@ export default function PublisherPage() {
               <button
                 type="button"
                 onClick={() => handlePost("draft")}
-                disabled={posting || selectedIds.length === 0}
+                disabled={posting}
                 className="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-black text-xs shadow-md shadow-amber-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer active:scale-[0.98]"
               >
                 <Bookmark className="w-4 h-4 fill-white text-white" />

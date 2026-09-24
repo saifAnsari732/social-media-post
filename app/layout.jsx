@@ -1,4 +1,5 @@
 import "./globals.css";
+import ToastProvider from "@/components/providers/ToastProvider";
 
 export const metadata = {
   title: "Postfly — AI Social Media Automation & Publisher",
@@ -26,6 +27,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="font-sans antialiased text-slate-900 bg-[#F8FAFC] min-h-screen">
+        <ToastProvider />
         {children}
       </body>
     </html>

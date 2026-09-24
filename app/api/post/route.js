@@ -21,15 +21,20 @@ export async function GET(req) {
       userId = null;
     }
 
+    const url = new URL(req.url);
+    const forceFresh = url.searchParams.has("t") || url.searchParams.has("fresh");
     const cacheKey = `posts:${userId || 'all'}`;
-    const cachedPosts = serverCache.get(cacheKey);
-    if (cachedPosts) {
-      return NextResponse.json(cachedPosts, {
-        headers: {
-          "Cache-Control": "private, no-cache, no-store, must-revalidate",
-          "X-Cache-Status": "HIT"
-        }
-      });
+
+    if (!forceFresh) {
+      const cachedPosts = serverCache.get(cacheKey);
+      if (cachedPosts) {
+        return NextResponse.json(cachedPosts, {
+          headers: {
+            "Cache-Control": "private, no-cache, no-store, must-revalidate",
+            "X-Cache-Status": "HIT"
+          }
+        });
+      }
     }
 
     const [posts, accounts] = await Promise.all([
@@ -177,6 +182,12 @@ export async function POST(req) {
       results,
       createdAt: new Date().toISOString()
     });
+
+    // Invalidate server cache so GET /api/post returns new post/draft instantly
+    try {
+      serverCache.delete(`posts:${userId || 'all'}`);
+      serverCache.invalidateTag("posts");
+    } catch (e) {}
 
     return NextResponse.json({ success: true, post: newPost, results });
   }
