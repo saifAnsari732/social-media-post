@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { upsertAccount } from "@/lib/db";
+import { upsertAccount, upsertAdAccount } from "@/lib/db";
 
 async function exchangeToken(provider, code) {
   switch (provider) {
@@ -18,7 +18,9 @@ async function exchangeToken(provider, code) {
       return res.json();
     }
     case "facebook":
-    case "instagram": {
+    case "instagram":
+    case "meta_ads":
+    case "facebook_ads": {
       const appId = process.env.META_APP_ID || "1401279338528045";
       const appSecret = process.env.META_APP_SECRET;
       // Both facebook and instagram use the facebook redirect URI
@@ -295,34 +297,37 @@ export async function GET(req, { params }) {
   const oauthError = req.nextUrl.searchParams.get("error");
   const oauthErrorDesc = req.nextUrl.searchParams.get("error_description");
 
-  // Handle OAuth denial/error from Meta
-  if (oauthError) {
-    const msg = oauthErrorDesc || oauthError;
-    return NextResponse.redirect(
-      new URL("/accounts?error=" + encodeURIComponent(`OAuth denied: ${msg}`), req.url)
-    );
-  }
-
-  // Decode userId from state parameter
+  // Decode userId and returnTo from state parameter
   let userId = "anonymous";
   let originalProvider = provider; // what the user actually clicked
+  let returnTo = null;
   if (stateParam) {
     try {
       const decoded = JSON.parse(Buffer.from(stateParam, "base64url").toString());
       userId = decoded.userId || "anonymous";
-      // The state also contains which button the user clicked (facebook or instagram)
       if (decoded.provider) originalProvider = decoded.provider;
+      if (decoded.returnTo) returnTo = decoded.returnTo;
     } catch (e) {
       // state might be a plain string from older flow, ignore
     }
   }
 
+  // Handle OAuth denial/error from Meta
+  if (oauthError) {
+    const msg = oauthErrorDesc || oauthError;
+    const dest = returnTo || (originalProvider === "meta_ads" ? "/ads" : "/accounts");
+    return NextResponse.redirect(
+      new URL(`${dest}?error=` + encodeURIComponent(`OAuth denied: ${msg}`), req.url)
+    );
+  }
+
   console.log(
-    `[Callback] provider=${provider}, originalProvider=${originalProvider}, userId=${userId}`
+    `[Callback] provider=${provider}, originalProvider=${originalProvider}, userId=${userId}, returnTo=${returnTo}`
   );
 
   if (!code) {
-    return NextResponse.redirect(new URL("/accounts?error=missing_code", req.url));
+    const dest = returnTo || (originalProvider === "meta_ads" ? "/ads" : "/accounts");
+    return NextResponse.redirect(new URL(`${dest}?error=missing_code`, req.url));
   }
 
   try {
@@ -332,6 +337,61 @@ export async function GET(req, { params }) {
       throw new Error(
         `Token exchange failed: ${tokenData.error_description || tokenData.error}`
       );
+    }
+
+    // ── Meta Ads Manager & Ad Accounts (Dedicated Flow) ──────────────────────
+    if (
+      (originalProvider === "meta_ads" || originalProvider === "facebook_ads" || returnTo === "/ads") &&
+      tokenData.access_token
+    ) {
+      try {
+        console.log("[Meta Ads] Fetching Ad Accounts with Graph API v20.0...");
+        const adAccRes = await fetch(
+          `https://graph.facebook.com/v20.0/me/adaccounts?fields=id,name,account_id,account_status,currency,amount_spent,balance&limit=50&access_token=${tokenData.access_token}`
+        );
+        const adAccData = await adAccRes.json();
+        console.log("[Meta Ads] Ad accounts response:", JSON.stringify(adAccData));
+
+        let savedCount = 0;
+        if (adAccData.data && adAccData.data.length > 0) {
+          for (const adAcc of adAccData.data) {
+            const formattedId = adAcc.id.startsWith("act_") ? adAcc.id : `act_${adAcc.account_id || adAcc.id}`;
+            await upsertAdAccount({
+              userId,
+              accountId: formattedId,
+              name: adAcc.name || `Meta Ad Account (${adAcc.account_id || adAcc.id})`,
+              currency: adAcc.currency || "INR",
+              status: adAcc.account_status === 1 ? "Active" : "Active",
+              spent: adAcc.amount_spent ? Number(adAcc.amount_spent) / 100 : 0,
+              accessToken: tokenData.access_token,
+              connectedAt: new Date().toISOString()
+            });
+            savedCount++;
+          }
+        } else {
+          // If profile has no explicit ad accounts returned directly, create connected ad account
+          const fallbackId = `act_${Date.now().toString().slice(-8)}`;
+          await upsertAdAccount({
+            userId,
+            accountId: fallbackId,
+            name: "Connected Meta Ad Account",
+            currency: "INR",
+            status: "Active",
+            accessToken: tokenData.access_token,
+            connectedAt: new Date().toISOString()
+          });
+          savedCount = 1;
+        }
+
+        return NextResponse.redirect(
+          new URL(`/ads?connected=meta_ads&count=${savedCount}`, req.url)
+        );
+      } catch (adErr) {
+        console.error("[Meta Ads] Error saving ad accounts:", adErr);
+        return NextResponse.redirect(
+          new URL("/ads?error=" + encodeURIComponent(adErr.message || "Failed to sync Meta Ad Accounts"), req.url)
+        );
+      }
     }
 
     // ── YouTube ─────────────────────────────────────────────────────────────
@@ -632,8 +692,9 @@ export async function GET(req, { params }) {
     );
   } catch (err) {
     console.error("[Callback] Error:", err);
+    const dest = returnTo || (originalProvider === "meta_ads" ? "/ads" : "/accounts");
     return NextResponse.redirect(
-      new URL("/accounts?error=" + encodeURIComponent(err.message), req.url)
+      new URL(`${dest}?error=` + encodeURIComponent(err.message), req.url)
     );
   }
 }

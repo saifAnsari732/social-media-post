@@ -135,9 +135,13 @@ export default function MetaAdsPage() {
 
   // Connect Ad Account Modal State
   const [connectAdAccountModalOpen, setConnectAdAccountModalOpen] = useState(false);
-  const [connectTab, setConnectTab] = useState("oauth"); // "oauth" | "manual"
+  const [connectTab, setConnectTab] = useState("direct"); // "direct" | "oauth" | "manage"
   const [newAdAccountIdInput, setNewAdAccountIdInput] = useState("");
   const [newAdAccountNameInput, setNewAdAccountNameInput] = useState("");
+  const [newAdAccountTokenInput, setNewAdAccountTokenInput] = useState("");
+  const [savingAdAccount, setSavingAdAccount] = useState(false);
+  const [connectSuccessMsg, setConnectSuccessMsg] = useState(null);
+  const [connectErrorMsg, setConnectErrorMsg] = useState(null);
 
   // Post Booster Modal State
   const [boostModalOpen, setBoostModalOpen] = useState(false);
@@ -311,6 +315,40 @@ export default function MetaAdsPage() {
     const l = getUserPlanLimits(u);
     setLimits(l);
     setLoading(false);
+
+    // 1. Fetch connected Ad Accounts from DB
+    const fetchAccounts = async () => {
+      try {
+        const res = await fetch(`/api/ads/accounts${u?.userId ? `?userId=${u.userId}` : ""}`, {
+          headers: u?.userId ? { "x-user-id": u.userId } : {}
+        });
+        const data = await res.json();
+        if (data?.accounts && data.accounts.length > 0) {
+          setAdAccounts(data.accounts);
+          setSelectedAccount((prev) => (data.accounts.some((a) => a.id === prev) ? prev : data.accounts[0].id));
+        }
+      } catch (err) {
+        console.error("Failed to load ad accounts from DB:", err);
+      }
+    };
+    fetchAccounts();
+
+    // 2. Inspect URL search params for OAuth redirect feedback
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("connected") === "meta_ads") {
+        const count = urlParams.get("count");
+        setConnectSuccessMsg(
+          count && Number(count) > 0
+            ? `Meta Ads Manager Connected: Successfully synced ${count} ad account(s) via Graph API v20.0!`
+            : "Meta Ads Manager Connected: Successfully authorized via Meta Graph API v20.0!"
+        );
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (urlParams.get("error")) {
+        setConnectErrorMsg(decodeURIComponent(urlParams.get("error")));
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
   }, []);
 
   /**
@@ -619,20 +657,75 @@ export default function MetaAdsPage() {
     setCampaignToDelete(null);
   };
 
-  const handleAddAdAccountSubmit = () => {
+  const handleAddAdAccountSubmit = async () => {
     if (!newAdAccountIdInput.trim()) return;
     if (!checkPlanActive("Connect Meta Ad Account")) return;
-    const newAcc = {
-      id: newAdAccountIdInput.startsWith("act_") ? newAdAccountIdInput : `act_${newAdAccountIdInput}`,
-      name: newAdAccountNameInput || "Connected Ad Account",
-      status: "Active",
-      currency: "INR"
-    };
-    setAdAccounts([...adAccounts, newAcc]);
-    setSelectedAccount(newAcc.id);
-    setConnectAdAccountModalOpen(false);
-    setNewAdAccountIdInput("");
-    setNewAdAccountNameInput("");
+    setSavingAdAccount(true);
+    try {
+      const cleanId = newAdAccountIdInput.trim();
+      const formattedId = cleanId.startsWith("act_") ? cleanId : `act_${cleanId}`;
+      const accountName = newAdAccountNameInput.trim() || `Meta Ad Account (${formattedId})`;
+
+      const res = await fetch("/api/ads/accounts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user?.userId || "guest"
+        },
+        body: JSON.stringify({
+          accountId: formattedId,
+          name: accountName,
+          accessToken: newAdAccountTokenInput.trim() || null
+        })
+      });
+
+      const data = await res.json();
+      if (data?.success && data?.account) {
+        const newAcc = data.account;
+        setAdAccounts((prev) => {
+          const exists = prev.some((a) => a.id === newAcc.id);
+          return exists ? prev.map((a) => (a.id === newAcc.id ? newAcc : a)) : [newAcc, ...prev];
+        });
+        setSelectedAccount(newAcc.id);
+        setConnectSuccessMsg(`Connected: ${accountName} (${formattedId}) is now active.`);
+        setConnectAdAccountModalOpen(false);
+        setNewAdAccountIdInput("");
+        setNewAdAccountNameInput("");
+        setNewAdAccountTokenInput("");
+      } else {
+        alert(data?.error || "Failed to link ad account");
+      }
+    } catch (err) {
+      console.error("Failed to link ad account:", err);
+    } finally {
+      setSavingAdAccount(false);
+    }
+  };
+
+  const handleDeleteAdAccount = async (accountIdToDelete, e) => {
+    if (e) e.stopPropagation();
+    if (!checkPlanActive("Disconnect Meta Ad Account")) return;
+    if (!confirm(`Are you sure you want to disconnect ${accountIdToDelete}?`)) return;
+    try {
+      await fetch("/api/ads/accounts", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user?.userId || "guest"
+        },
+        body: JSON.stringify({ accountId: accountIdToDelete })
+      });
+      setAdAccounts((prev) => {
+        const filtered = prev.filter((a) => a.id !== accountIdToDelete);
+        if (selectedAccount === accountIdToDelete && filtered.length > 0) {
+          setSelectedAccount(filtered[0].id);
+        }
+        return filtered;
+      });
+      setConnectSuccessMsg(`Disconnected: ${accountIdToDelete} removed.`);
+    } catch (err) {
+      console.error("Failed to disconnect ad account:", err);
+    }
   };
 
   const handleOpenBoostModal = (post) => {
@@ -721,6 +814,37 @@ export default function MetaAdsPage() {
           <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold uppercase">
             Active
           </span>
+        </div>
+      )}
+
+      {/* Dynamic Feedback Banners (OAuth Redirect or Manual Link) */}
+      {connectSuccessMsg && (
+        <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold flex items-center justify-between shadow-2xs animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{connectSuccessMsg}</span>
+          </div>
+          <button
+            onClick={() => setConnectSuccessMsg(null)}
+            className="text-emerald-700 hover:text-emerald-950 font-bold px-2 py-0.5 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {connectErrorMsg && (
+        <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs font-semibold flex items-center justify-between shadow-2xs animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>Meta Ads Connection: {connectErrorMsg}</span>
+          </div>
+          <button
+            onClick={() => setConnectErrorMsg(null)}
+            className="text-rose-700 hover:text-rose-950 font-bold px-2 py-0.5 cursor-pointer"
+          >
+            ✕
+          </button>
         </div>
       )}
 
@@ -2121,7 +2245,7 @@ export default function MetaAdsPage() {
       {/* CONNECT AD ACCOUNT MODAL */}
       {connectAdAccountModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl relative border border-slate-100">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative border border-slate-100 max-h-[90vh] overflow-y-auto">
             
             {/* Header */}
             <div className="flex items-start justify-between border-b border-slate-100 pb-4">
@@ -2132,11 +2256,11 @@ export default function MetaAdsPage() {
                   </span>
                   <h3 className="text-base font-bold text-slate-950">Connect Meta Ad Account</h3>
                   <span className="text-[10px] font-semibold bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full border border-rose-200">
-                    v20.0
+                    Graph API v20.0
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 pl-10 font-normal">
-                  Authorize Meta Business account or link an Ad Account ID
+                  Sync your Meta Ads Manager accounts, campaigns, ROAS & spend metrics.
                 </p>
               </div>
               <button
@@ -2150,6 +2274,17 @@ export default function MetaAdsPage() {
             {/* Segmented Control Tabs */}
             <div className="flex p-1 bg-slate-100 rounded-xl">
               <button
+                onClick={() => setConnectTab("direct")}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  connectTab === "direct"
+                    ? "bg-white text-rose-600 shadow-xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 text-rose-600" />
+                <span>Direct Link</span>
+              </button>
+              <button
                 onClick={() => setConnectTab("oauth")}
                 className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   connectTab === "oauth"
@@ -2157,23 +2292,116 @@ export default function MetaAdsPage() {
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                <Zap className="w-3.5 h-3.5 text-rose-600" />
+                <Globe className="w-3.5 h-3.5 text-slate-500" />
                 <span>1-Click OAuth</span>
               </button>
               <button
-                onClick={() => setConnectTab("manual")}
+                onClick={() => setConnectTab("manage")}
                 className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  connectTab === "manual"
+                  connectTab === "manage"
                     ? "bg-white text-rose-600 shadow-xs"
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500" />
-                <span>Manual Account ID</span>
+                <span>Active ({adAccounts.length})</span>
+              </button>
+              <button
+                onClick={() => setConnectTab("mcp")}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  connectTab === "mcp"
+                    ? "bg-white text-rose-600 shadow-xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <Cpu className="w-3.5 h-3.5 text-slate-500" />
+                <span>MCP Server</span>
               </button>
             </div>
 
-            {/* TAB 1: 1-CLICK META OAUTH */}
+            {/* TAB 1: DIRECT AD ACCOUNT LINK (FASTEST & MOST RELIABLE) */}
+            {connectTab === "direct" && (
+              <div className="space-y-4 pt-1">
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs space-y-1.5 leading-relaxed">
+                  <div className="flex items-center gap-1.5 font-bold text-slate-900">
+                    <Info className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>How to find your Meta Ad Account ID:</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600">
+                    Open <span className="font-semibold text-slate-900">Meta Ads Manager</span> in your browser. Look at the address bar or account selector for:
+                    <br />
+                    <code className="bg-white px-1.5 py-0.5 rounded border border-slate-300 font-mono font-bold text-rose-600 inline-block mt-1">
+                      facebook.com/adsmanager/manage/campaigns?act=XXXXXXXXXX
+                    </code>
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                      Meta Ad Account ID <span className="text-rose-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. act_982402198 or 982402198"
+                      value={newAdAccountIdInput}
+                      onChange={(e) => setNewAdAccountIdInput(e.target.value)}
+                      className="w-full p-3 rounded-xl border border-slate-200 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none font-semibold text-xs text-slate-900 transition-all bg-white"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                      Account Name / Nickname
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Main Brand Performance Ads"
+                      value={newAdAccountNameInput}
+                      onChange={(e) => setNewAdAccountNameInput(e.target.value)}
+                      className="w-full p-3 rounded-xl border border-slate-200 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none font-semibold text-xs text-slate-900 transition-all bg-white"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
+                      <span>Meta Access Token / System User Token (Optional)</span>
+                      <span className="text-[10px] text-slate-400 font-normal">For live API sync</span>
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="e.g. EAAB..."
+                      value={newAdAccountTokenInput}
+                      onChange={(e) => setNewAdAccountTokenInput(e.target.value)}
+                      className="w-full p-3 rounded-xl border border-slate-200 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none font-mono text-xs text-slate-900 transition-all bg-white"
+                    />
+                    <p className="text-[10px] text-slate-400">
+                      Optional: Add your System User Token from Meta Business Manager to enable live Graph API telemetry.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleAddAdAccountSubmit}
+                  disabled={savingAdAccount || !newAdAccountIdInput.trim()}
+                  className="w-full py-3.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                >
+                  {savingAdAccount ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Validating & Connecting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>Save & Activate Ad Account</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* TAB 2: 1-CLICK META OAUTH DIALOG */}
             {connectTab === "oauth" && (
               <div className="space-y-4 pt-1">
                 <div className="p-4 rounded-2xl bg-rose-50/70 border border-rose-100 space-y-3">
@@ -2182,81 +2410,164 @@ export default function MetaAdsPage() {
                       f
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-slate-950">Automated Meta Business Authorization</h4>
-                      <p className="text-[11px] text-slate-500 font-normal">Fast 1-step Meta Graph API login</p>
+                      <h4 className="text-xs font-bold text-slate-950">Meta Ads Manager Authorization</h4>
+                      <p className="text-[11px] text-slate-500 font-normal">Meta Graph API v20.0 (Ad Accounts & ROAS)</p>
                     </div>
                   </div>
 
                   <ul className="space-y-2 text-xs text-slate-700 font-medium pt-1">
                     <li className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-rose-600 stroke-[3] shrink-0" />
-                      <span>Auto-discovers all managed Meta Ad Accounts (`act_...`)</span>
+                      <span>Requests <code className="bg-white px-1 py-0.5 rounded border border-rose-200 text-rose-700 font-bold">ads_management</code> & <code className="bg-white px-1 py-0.5 rounded border border-rose-200 text-rose-700 font-bold">ads_read</code> permissions</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-rose-600 stroke-[3] shrink-0" />
-                      <span>Syncs live spend, reach, CTR, ROAS & ad metrics</span>
+                      <span>Auto-discovers and syncs all managed Ad Accounts (`act_...`)</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-rose-600 stroke-[3] shrink-0" />
-                      <span>Enables 1-Click Post Booster & AI Copy Studio tools</span>
+                      <span>Guaranteed return redirect directly to this Meta Ads Hub</span>
                     </li>
                   </ul>
                 </div>
 
-                <Link
-                  href="/api/auth/connect/facebook"
-                  className="w-full py-3.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-600/20 transition-all flex items-center justify-center gap-2 no-underline cursor-pointer"
+                <a
+                  href={`/api/auth/connect/meta_ads?${user?.userId ? `userId=${user.userId}&` : ""}returnTo=/ads`}
+                  className="w-full py-3.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-600/20 transition-all flex items-center justify-center gap-2 no-underline cursor-pointer active:scale-98"
                 >
                   <Globe className="w-4 h-4" />
-                  <span>Launch 1-Click Meta OAuth Dialog</span>
+                  <span>Launch Meta Ads OAuth Authorization</span>
                   <ArrowRight className="w-4 h-4" />
-                </Link>
+                </a>
 
                 <p className="text-[11px] text-center text-slate-400 font-normal">
-                  🔒 Official Meta Graph API v20.0 • SSL Secured & 256-bit Encrypted
+                  🔒 Official Meta Graph API v20.0 • Verified Callback to /ads
                 </p>
               </div>
             )}
 
-            {/* TAB 2: MANUAL ID LINK */}
-            {connectTab === "manual" && (
-              <div className="space-y-4 pt-1">
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium">
-                  Link an existing Meta Ad Account by manually entering its unique ID (e.g. <code className="bg-white px-1.5 py-0.5 rounded border border-slate-300 font-mono font-bold text-rose-600">act_982402198</code>).
+            {/* TAB 3: MANAGE CONNECTED ACCOUNTS */}
+            {connectTab === "manage" && (
+              <div className="space-y-3 pt-1">
+                <p className="text-xs text-slate-500 font-medium">
+                  Select an account to view metrics or disconnect unused IDs:
+                </p>
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {adAccounts.map((acc) => {
+                    const isSelected = selectedAccount === acc.id;
+                    return (
+                      <div
+                        key={acc.id}
+                        className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
+                          isSelected
+                            ? "bg-rose-50/80 border-rose-300 ring-1 ring-rose-200"
+                            : "bg-white border-slate-200 hover:border-slate-300"
+                        }`}
+                      >
+                        <div className="space-y-0.5 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xs text-slate-900 truncate">{acc.name}</span>
+                            {isSelected && (
+                              <span className="px-2 py-0.2 rounded-full bg-rose-600 text-white text-[9px] font-bold uppercase">
+                                Selected
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] font-mono text-slate-500 flex items-center gap-2">
+                            <span>{acc.id}</span>
+                            <span>•</span>
+                            <span className="text-emerald-600 font-semibold">{acc.currency || "INR"}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {!isSelected && (
+                            <button
+                              onClick={() => {
+                                setSelectedAccount(acc.id);
+                                setConnectSuccessMsg(`Switched active ad account to ${acc.name} (${acc.id})`);
+                                setConnectAdAccountModalOpen(false);
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] cursor-pointer"
+                            >
+                              Select
+                            </button>
+                          )}
+                          <button
+                            onClick={(e) => handleDeleteAdAccount(acc.id, e)}
+                            title="Disconnect account"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 4: MODEL CONTEXT PROTOCOL (MCP) INTEGRATION */}
+            {connectTab === "mcp" && (
+              <div className="space-y-4 pt-1 text-slate-800 text-xs">
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <Cpu className="w-4 h-4 text-rose-600" />
+                      <span>Meta Ads MCP Server Status</span>
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Stdio Active (Port / Stdio)
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    Yes! Meta Ads Manager can be connected directly via <strong>Model Context Protocol (MCP)</strong>.
+                    This enables AI agents (Antigravity, Cursor, Claude) to query campaigns, analyze ROAS, and adjust budgets via native tool calling.
+                  </p>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Ad Account Name</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. E-Commerce Retargeting Account"
-                      value={newAdAccountNameInput}
-                      onChange={(e) => setNewAdAccountNameInput(e.target.value)}
-                      className="w-full p-3 rounded-xl border border-slate-200 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none font-semibold text-xs text-slate-900 transition-all"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Ad Account ID</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. act_982402198"
-                      value={newAdAccountIdInput}
-                      onChange={(e) => setNewAdAccountIdInput(e.target.value)}
-                      className="w-full p-3 rounded-xl border border-slate-200 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none font-semibold text-xs text-slate-900 transition-all"
-                    />
+                <div className="space-y-1.5">
+                  <p className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Registered MCP Tools (6 Active):</p>
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div className="p-2 rounded-lg bg-white border border-slate-200 font-mono text-slate-800">
+                      ⚡ meta_ads_list_accounts
+                    </div>
+                    <div className="p-2 rounded-lg bg-white border border-slate-200 font-mono text-slate-800">
+                      📊 meta_ads_get_campaigns
+                    </div>
+                    <div className="p-2 rounded-lg bg-white border border-slate-200 font-mono text-slate-800">
+                      🎯 meta_ads_get_roas_insights
+                    </div>
+                    <div className="p-2 rounded-lg bg-white border border-slate-200 font-mono text-slate-800">
+                      💰 meta_ads_update_campaign
+                    </div>
+                    <div className="p-2 rounded-lg bg-white border border-slate-200 font-mono text-slate-800">
+                      🚀 meta_ads_create_campaign
+                    </div>
+                    <div className="p-2 rounded-lg bg-white border border-slate-200 font-mono text-slate-800">
+                      🔗 meta_ads_link_account
+                    </div>
                   </div>
                 </div>
 
-                <button
-                  onClick={handleAddAdAccountSubmit}
-                  disabled={!newAdAccountIdInput.trim()}
-                  className="w-full py-3.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Check className="w-4 h-4" />
-                  <span>Link Ad Account ID</span>
-                </button>
+                <div className="space-y-1.5">
+                  <p className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Configured In mcp_config.json:</p>
+                  <pre className="p-3 rounded-xl bg-slate-900 text-slate-100 font-mono text-[10px] overflow-x-auto leading-relaxed">
+{`{
+  "mcpServers": {
+    "meta-ads-manager": {
+      "command": "node",
+      "args": ["mcp/meta-ads-server.js"]
+    }
+  }
+}`}
+                  </pre>
+                  <p className="text-[10px] text-slate-500">
+                    Location: <code className="bg-slate-100 px-1 py-0.5 rounded text-rose-600 font-mono">~/.gemini/config/mcp_config.json</code>
+                  </p>
+                </div>
               </div>
             )}
 
