@@ -91,7 +91,7 @@ export default function BillingPage() {
     {
       name: "Starter",
       monthlyPrice: 999,
-      priceLabel: yearly ? "₹799" : "₹999",
+      priceLabel: yearly ? "₹899" : "₹999",
       description: "For solopreneurs & small creators starting out",
       features: [
         "3 Connected Social Accounts",
@@ -110,7 +110,7 @@ export default function BillingPage() {
     {
       name: "Growth",
       monthlyPrice: 1999,
-      priceLabel: yearly ? "₹1,599" : "₹1,999",
+      priceLabel: yearly ? "₹1,799" : "₹1,999",
       description: "For growing brands, creators & active teams",
       features: [
         "6 Connected Social Accounts",
@@ -132,7 +132,7 @@ export default function BillingPage() {
     {
       name: "Pro Unlimited",
       monthlyPrice: 3999,
-      priceLabel: yearly ? "₹3,199" : "₹3,999",
+      priceLabel: yearly ? "₹3,599" : "₹3,999",
       description: "For power marketers, brands & agencies needing all capabilities",
       features: [
         "Unlimited Connected Social Accounts",
@@ -152,7 +152,7 @@ export default function BillingPage() {
   ];
 
   const getPlanPricing = (plan) => {
-    const base = yearly ? Math.round(plan.monthlyPrice * 0.8) : plan.monthlyPrice;
+    const base = yearly ? Math.round(plan.monthlyPrice * 0.9) : plan.monthlyPrice;
     if (!appliedCoupon) {
       return {
         original: null,
@@ -296,7 +296,7 @@ export default function BillingPage() {
             onClick={() => setYearly(true)}
             className={`px-4 py-2 rounded-lg transition-all ${yearly ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500"}`}
           >
-            Annual Billed <span className="text-emerald-300 ml-1">(Save 20%)</span>
+            Annual Billed <span className="text-emerald-300 ml-1">(Save 10%)</span>
           </button>
         </div>
       </div>

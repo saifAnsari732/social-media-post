@@ -97,7 +97,7 @@ export default function LightSaaSLandingPage() {
       tagline: "For solopreneurs & small creators starting out",
       badge: "ENTRY PLAN",
       monthlyPrice: 999,
-      yearlyPrice: 799,
+      yearlyPrice: 899,
       accentBg: "bg-slate-50",
       border: "border border-slate-200/90 shadow-2xs hover:shadow-md transition-all",
       btnBg: "bg-slate-900 hover:bg-slate-800 text-white",
@@ -119,7 +119,7 @@ export default function LightSaaSLandingPage() {
       badge: "★ MOST POPULAR",
       popular: true,
       monthlyPrice: 1999,
-      yearlyPrice: 1599,
+      yearlyPrice: 1799,
       accentBg: "bg-gradient-to-b from-indigo-50/50 to-white",
       border: "border-2 border-indigo-600 shadow-xl shadow-indigo-600/10 hover:shadow-2xl hover:shadow-indigo-600/15 transition-all relative",
       btnBg: "bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/25",
@@ -142,7 +142,7 @@ export default function LightSaaSLandingPage() {
       tagline: "For power marketers, brands & agencies needing all capabilities",
       badge: "ALL UNLIMITED",
       monthlyPrice: 3999,
-      yearlyPrice: 3199,
+      yearlyPrice: 3599,
       accentBg: "bg-slate-50",
       border: "border border-slate-200/90 shadow-2xs hover:border-purple-300 hover:shadow-md transition-all",
       btnBg: "bg-purple-600 hover:bg-purple-700 text-white shadow-xs",
@@ -542,7 +542,7 @@ export default function LightSaaSLandingPage() {
                 >
                   <span>Annual Billed</span>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold ${yearly ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-800"}`}>
-                    SAVE 20%
+                    SAVE 10%
                   </span>
                 </button>
               </div>
