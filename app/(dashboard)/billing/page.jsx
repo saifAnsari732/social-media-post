@@ -165,7 +165,10 @@ export default function BillingPage() {
     if (appliedCoupon.type === "percentage") {
       discounted = Math.round(base * (1 - appliedCoupon.value / 100));
     } else {
-      discounted = Math.max(0, base - appliedCoupon.value);
+      discounted = base - appliedCoupon.value;
+    }
+    if (discounted <= 0) {
+      discounted = 1; // Default to 1 INR if 100% off
     }
     return {
       original: `₹${base.toLocaleString('en-IN')}`,
