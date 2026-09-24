@@ -16,11 +16,11 @@ export async function GET(req, { params }) {
       )}`,
     facebook: () =>
       `https://www.facebook.com/v20.0/dialog/oauth?client_id=${metaAppId}&redirect_uri=${encodeURIComponent(metaRedirectUri)}&state=${state}&auth_type=rerequest&scope=${encodeURIComponent(
-        "pages_show_list,pages_read_engagement,pages_manage_posts"
+        "pages_show_list,pages_read_engagement,pages_manage_posts,pages_manage_metadata,pages_read_user_content,business_management"
       )}`,
     instagram: () =>
       `https://www.facebook.com/v20.0/dialog/oauth?client_id=${metaAppId}&redirect_uri=${encodeURIComponent(metaRedirectUri)}&state=${state}&auth_type=rerequest&scope=${encodeURIComponent(
-        "pages_show_list,pages_read_engagement,instagram_basic,instagram_content_publish,instagram_manage_messages,instagram_manage_comments"
+        "pages_show_list,pages_read_engagement,pages_manage_posts,pages_manage_metadata,instagram_basic,instagram_content_publish,instagram_manage_messages,instagram_manage_comments,instagram_manage_insights,business_management"
       )}`,
     twitter: () => {
       return `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${process.env.TWITTER_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.TWITTER_REDIRECT_URI)}&scope=${encodeURIComponent(

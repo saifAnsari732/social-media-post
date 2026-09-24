@@ -99,10 +99,19 @@ function AccountsContent() {
     const connected = searchParams?.get("connected");
 
     if (err) {
-      setErrorNotice(decodeURIComponent(err));
-      toast.error("Channel connection notice");
+      const decoded = decodeURIComponent(err);
+      setErrorNotice(decoded);
+      toast.error("Connection issue — see details below", { duration: 5000 });
     } else if (connected) {
-      toast.success(`Successfully connected ${connected.toUpperCase()} channel!`);
+      const platformLabel =
+        connected === "facebook"
+          ? "Facebook"
+          : connected === "instagram"
+          ? "Instagram"
+          : connected.charAt(0).toUpperCase() + connected.slice(1);
+      toast.success(`✅ ${platformLabel} connected! Refreshing channels...`, { duration: 4000 });
+      // Auto-refresh after brief delay to show newly saved accounts
+      setTimeout(() => fetchAccounts(getStoredUser()?.userId), 1200);
     }
   }, [searchParams]);
 
@@ -222,9 +231,19 @@ function AccountsContent() {
               <p className="text-xs text-rose-900 leading-relaxed font-medium">
                 {errorNotice}
               </p>
-              {(errorNotice.toLowerCase().includes("unavailable") || errorNotice.toLowerCase().includes("permission") || errorNotice.toLowerCase().includes("role")) && (
+              {errorNotice.toLowerCase().includes("instagram") && (
                 <p className="text-[11px] text-rose-800 bg-white/70 p-2.5 rounded-xl border border-rose-200/80 mt-2 font-normal leading-relaxed">
-                  💡 <strong>Tip for Meta / Facebook:</strong> If you are testing before Meta App Review is approved, ensure this Facebook profile is added to <strong>App Roles ➔ Testers</strong> in the Meta Developer Portal.
+                  💡 <strong>Instagram tip:</strong> Instagram Business accounts are discovered via your linked Facebook Pages. Go to <strong>business.facebook.com</strong> → Settings → Instagram Accounts to link your Instagram to a Facebook Page first.
+                </p>
+              )}
+              {(errorNotice.toLowerCase().includes("no facebook pages") || errorNotice.toLowerCase().includes("no pages found") || errorNotice.toLowerCase().includes("pages found")) && (
+                <p className="text-[11px] text-rose-800 bg-white/70 p-2.5 rounded-xl border border-rose-200/80 mt-2 font-normal leading-relaxed">
+                  💡 <strong>Dev Mode tip:</strong> During Meta App Review, the app can only access pages of the App Admin. Make sure you are logged in as <strong>Saifuddin Ansari</strong> (app owner) or added as a Tester in <a href="https://developers.facebook.com/apps/1401279338528045/roles/testers/" target="_blank" className="underline">Meta Developer Portal</a>.
+                </p>
+              )}
+              {(errorNotice.toLowerCase().includes("permission") || errorNotice.toLowerCase().includes("role") || errorNotice.toLowerCase().includes("tester")) && (
+                <p className="text-[11px] text-rose-800 bg-white/70 p-2.5 rounded-xl border border-rose-200/80 mt-2 font-normal leading-relaxed">
+                  💡 <strong>Access tip:</strong> Ensure this Facebook account is added to <strong>App Roles ➔ Testers</strong> at <a href="https://developers.facebook.com" target="_blank" className="underline">developers.facebook.com</a> before connecting.
                 </p>
               )}
             </div>
