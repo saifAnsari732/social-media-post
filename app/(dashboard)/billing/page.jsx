@@ -142,6 +142,7 @@ export default function BillingPage() {
       description: "For power marketers, brands & agencies needing all capabilities",
       features: [
         "Unlimited Connected Social Accounts",
+        "🎯 Meta Ads Manager & 1-Click Post Booster",
         "✅ Unlimited AI Credits & All AI Tools",
         "Unlimited Scheduled Posts & Queues",
         "Smart Auto-Reply Comment Bot Rules",

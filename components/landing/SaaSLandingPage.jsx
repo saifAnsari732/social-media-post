@@ -148,6 +148,7 @@ export default function SaaSLandingPage() {
       btnBg: "bg-purple-600 hover:bg-purple-700 text-white shadow-xs",
       features: [
         "Unlimited Connected Social Accounts",
+        "🎯 Meta Ads Manager & 1-Click Post Booster",
         "✅ Unlimited AI Credits & All AI Tools",
         "Unlimited Scheduled Posts & Queues",
         "Smart Auto-Reply Comment Bot Rules",

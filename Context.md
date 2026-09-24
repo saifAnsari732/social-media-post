@@ -52,6 +52,7 @@ social-media-post/
 │   │   ├── comments/page.jsx      # Comment Manager
 │   │   ├── rules/page.jsx         # Automation Triggers & Bot Rules
 │   │   ├── analytics/page.jsx     # Analytics & Reach Metrics
+│   │   ├── ads/page.jsx           # Meta Ads Command Hub & Post Booster (Pro Unlimited Exclusive)
 │   │   ├── billing/page.jsx       # Razorpay Plans, Coupons & History
 │   │   ├── dashboard/page.jsx     # Super Admin Overview & Metrics
 │   │   ├── tenants/page.jsx       # Super Admin Tenant Management & Blocking
@@ -180,7 +181,7 @@ When a user authorizes Meta, the backend queries `me/accounts` with `&limit=100`
 | :--- | :--- | :--- | :--- |
 | **Starter** | ₹999 / mo | ₹899 / mo (₹10,788/yr) | 3 Social Accounts, 50 Posts/mo, No AI Assistant |
 | **Growth** *(Most Popular)* | ₹1,999 / mo | ₹1,799 / mo (₹21,588/yr) | 6 Social Accounts, 500 AI Credits, Unlimited Posts, Inbox & DMs |
-| **Pro Unlimited** | ₹3,999 / mo | ₹3,599 / mo (₹43,188/yr) | Unlimited Accounts, Unlimited AI, Bot Rules, Multi-Tenant Workspaces |
+| **Pro Unlimited** | ₹3,999 / mo | ₹3,599 / mo (₹43,188/yr) | Unlimited Accounts, Unlimited AI, Bot Rules, Meta Ads Manager & 1-Click Post Booster, Multi-Tenant Workspaces |
 
 ### Payment Engine:
 * **Razorpay Gateway:** Native INR (₹) checkout supporting UPI, Cards, NetBanking, and Wallets.

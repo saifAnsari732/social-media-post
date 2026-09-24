@@ -31,7 +31,8 @@ import {
   Activity,
   DollarSign,
   Key,
-  Tag
+  Tag,
+  Megaphone
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -111,7 +112,8 @@ export default function Sidebar() {
     {
       title: "Performance",
       items: [
-        { name: 'Analytics', href: '/analytics', icon: BarChart3 }
+        { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+        { name: 'Meta Ads', href: '/ads', icon: Megaphone, badge: 'PRO' }
       ]
     },
     {
@@ -147,6 +149,7 @@ export default function Sidebar() {
       items: [
         { name: 'Connected Channels', href: '/accounts', icon: Link2 },
         { name: 'Platform Analytics', href: '/analytics', icon: BarChart3 },
+        { name: 'Meta Ads', href: '/ads', icon: Megaphone, badge: 'PRO' },
         { name: 'Automation Rules', href: '/rules', icon: Zap }
       ]
     }
@@ -282,7 +285,16 @@ export default function Sidebar() {
                       title={collapsed ? item.name : undefined}
                     >
                       <item.icon className={`h-5 w-5 shrink-0 transition-colors ${isActive ? 'text-indigo-600 stroke-[2.5]' : 'text-slate-700 stroke-[2]'}`} />
-                      {!collapsed && <span className="truncate">{item.name}</span>}
+                      {!collapsed && (
+                        <div className="flex-1 flex items-center justify-between min-w-0">
+                          <span className="truncate">{item.name}</span>
+                          {item.badge && (
+                            <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-purple-100 text-purple-700 border border-purple-200 shrink-0">
+                              {item.badge}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </Link>
                   );
                 })}

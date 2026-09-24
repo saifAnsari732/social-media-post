@@ -91,6 +91,7 @@ export default function TrialPaywallModal() {
             <div className="text-lg font-black text-slate-950">₹4,999<span className="text-[10px] text-slate-500 font-normal">/mo</span></div>
             <ul className="text-[11px] text-slate-600 space-y-1 font-medium">
               <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-600" /> Unlimited Channels</li>
+              <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-purple-600" /> 🎯 Meta Ads Manager</li>
               <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-600" /> Auto-Reply Bot Rules</li>
             </ul>
           </div>
