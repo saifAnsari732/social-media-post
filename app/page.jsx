@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import SaaSLandingPage from "./landing/page";
+import SaaSLandingPage from "@/components/landing/SaaSLandingPage";
 
 export default function RootHomePage() {
   const router = useRouter();
