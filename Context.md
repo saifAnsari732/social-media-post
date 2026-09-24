@@ -21,6 +21,7 @@
 12. [Super Admin Control Hub](#12-super-admin-control-hub)
 13. [Database Schemas & Collections](#13-database-schemas--collections)
 14. [API Endpoints Directory](#14-api-endpoints-directory)
+15. [Meta Ads Manager & AI Post Booster Hub (Pro Unlimited Exclusive)](#15-meta-ads-manager--ai-post-booster-hub-pro-unlimited-exclusive)
 
 ---
 
@@ -235,6 +236,33 @@ POST   /api/coupons/validate          # Verify promo coupon codes
 GET    /api/admin/users               # Super Admin tenant listing
 POST   /api/admin/system              # System health & reset actions
 ```
+
+---
+
+## 15. Meta Ads Manager & AI Post Booster Hub (Pro Unlimited Exclusive)
+
+* **Access Control & Plan Gating:**
+  - Strictly exclusive to **Pro Unlimited** subscribers (`plan === "pro"`) and Super Admins (`role === "admin"`).
+  - Gated for Starter, Growth, and 5-Day Free Trial users via an interactive upgrade modal (`TrialPaywallModal.jsx`).
+  - Feature listed explicitly across Pricing cards on Landing Page, Billing Page, and Trial Paywall Modal.
+
+* **UI Theme & Visual Guidelines:**
+  - **Rose Color Theme:** Clean solid rose accents (`rose-600`, `rose-950`, `rose-50`, `border-rose-200`).
+  - **Design Constraints:** Zero gradient background colors, zero black background cards, zero playful AI sparkles/magic wand icons.
+  - **Corporate Icons:** Clean, professional Lucide icons (`Target`, `Zap`, `Compass`, `Users`, `FileText`, `PieChart`, `SlidersHorizontal`).
+  - **Top Header Action:** Top-right header fixed placement for 1-Click "Connect Ad Account" button, Ad Account switcher, and Real vs Demo Preview Data mode toggle.
+
+* **Advanced Gemini AI Capabilities:**
+  - 🤖 **AI Campaign Copilot & ROAS Strategist:** Performs live campaign performance audits, provides budget reallocation suggestions, CTR/ROAS improvement tactics, and visual performance scorecards.
+  - 🎯 **AI Audience Blueprint Generator:** Automatically generates high-converting target audience specifications (Demographics, Behaviors, Interests, Exclusions, Lookalike recommendations) tailored to specific industry niches.
+  - ✍️ **Multi-Framework AI Ad Copy Studio:** Instantly generates ad copy across proven marketing frameworks including PAS (Problem-Agitate-Solution), AIDA (Attention-Interest-Desire-Action), Social Proof, and Urgency/FOMO.
+  - ⚡ **1-Click Post Booster with Viral Predictor:** Evaluates organic posts with an AI Viral Predictor Score before converting them into high-ROI sponsored Meta Ad campaigns.
+
+* **Full Campaign CRUD Operations:**
+  - **Create:** 3-step Ad Campaign Wizard with integrated AI copy generator & audience target builder.
+  - **Read:** Deep Campaign Inspector with AI Campaign Auditor.
+  - **Update:** Inline status toggle (ACTIVE / PAUSED) and modal editing for daily budget and schedule.
+  - **Delete:** Archive campaign modal with permanent deletion safety.
 
 ---
 
