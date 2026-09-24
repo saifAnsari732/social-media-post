@@ -152,125 +152,9 @@ export default function MetaAdsPage() {
   const [boostLaunching, setBoostLaunching] = useState(false);
   const [boostSuccess, setBoostSuccess] = useState(false);
 
-  // Active Meta Campaigns List
-  const [realCampaigns, setRealCampaigns] = useState([
-    {
-      id: "cam_01",
-      name: "Festive Season Retargeting Campaign",
-      platform: "instagram",
-      objective: "Conversions (Sales)",
-      status: "ACTIVE",
-      dailyBudget: 2500,
-      spent: 17500,
-      impressions: 89400,
-      clicks: 4320,
-      ctr: "4.83%",
-      purchases: 210,
-      roas: "4.8x"
-    },
-    {
-      id: "cam_02",
-      name: "Product Launch Video Traffic Ads",
-      platform: "facebook",
-      objective: "Traffic & Clicks",
-      status: "ACTIVE",
-      dailyBudget: 1500,
-      spent: 10500,
-      impressions: 64200,
-      clicks: 3890,
-      ctr: "6.05%",
-      purchases: 95,
-      roas: "3.9x"
-    },
-    {
-      id: "cam_03",
-      name: "Lookalike Audience Lead Generation",
-      platform: "instagram",
-      objective: "Lead Generation",
-      status: "PAUSED",
-      dailyBudget: 1000,
-      spent: 14200,
-      impressions: 51000,
-      clicks: 2100,
-      ctr: "4.11%",
-      purchases: 115,
-      roas: "3.4x"
-    },
-    {
-      id: "cam_04",
-      name: "Brand Awareness & Reach Campaign",
-      platform: "facebook",
-      objective: "Brand Awareness",
-      status: "ACTIVE",
-      dailyBudget: 800,
-      spent: 6050,
-      impressions: 41200,
-      clicks: 2090,
-      ctr: "5.07%",
-      purchases: 60,
-      roas: "4.1x"
-    }
-  ]);
-
-  // Demo Campaigns Data
-  const [demoCampaigns, setDemoCampaigns] = useState([
-    {
-      id: "cam_01",
-      name: "Festive Season Retargeting Campaign",
-      platform: "instagram",
-      objective: "Conversions (Sales)",
-      status: "ACTIVE",
-      dailyBudget: 2500,
-      spent: 17500,
-      impressions: 89400,
-      clicks: 4320,
-      ctr: "4.83%",
-      purchases: 210,
-      roas: "4.8x"
-    },
-    {
-      id: "cam_02",
-      name: "Product Launch Video Traffic Ads",
-      platform: "facebook",
-      objective: "Traffic & Clicks",
-      status: "ACTIVE",
-      dailyBudget: 1500,
-      spent: 10500,
-      impressions: 64200,
-      clicks: 3890,
-      ctr: "6.05%",
-      purchases: 95,
-      roas: "3.9x"
-    },
-    {
-      id: "cam_03",
-      name: "Lookalike Audience Lead Generation",
-      platform: "instagram",
-      objective: "Lead Generation",
-      status: "PAUSED",
-      dailyBudget: 1000,
-      spent: 14200,
-      impressions: 51000,
-      clicks: 2100,
-      ctr: "4.11%",
-      purchases: 115,
-      roas: "3.4x"
-    },
-    {
-      id: "cam_04",
-      name: "Brand Awareness & Reach Campaign",
-      platform: "facebook",
-      objective: "Brand Awareness",
-      status: "ACTIVE",
-      dailyBudget: 800,
-      spent: 6050,
-      impressions: 41200,
-      clicks: 2090,
-      ctr: "5.07%",
-      purchases: 60,
-      roas: "4.1x"
-    }
-  ]);
+  // Active Meta Campaigns List (Real DB & Meta Graph API Data)
+  const [realCampaigns, setRealCampaigns] = useState([]);
+  const [campaignsLoading, setCampaignsLoading] = useState(true);
 
   // Organic Posts for Booster (with AI Viral Potential Score)
   const mockOrganicPosts = [
@@ -350,6 +234,32 @@ export default function MetaAdsPage() {
       }
     }
   }, []);
+
+  // Fetch real campaigns from API whenever selectedAccount changes
+  useEffect(() => {
+    if (!selectedAccount) return;
+    const fetchCampaigns = async () => {
+      setCampaignsLoading(true);
+      try {
+        const u = getStoredUser();
+        const res = await fetch(`/api/ads/campaigns?accountId=${encodeURIComponent(selectedAccount)}`, {
+          headers: u?.userId ? { "x-user-id": u.userId } : {}
+        });
+        const data = await res.json();
+        if (data?.success && Array.isArray(data.campaigns)) {
+          setRealCampaigns(data.campaigns);
+        } else {
+          setRealCampaigns([]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch campaigns for account:", err);
+        setRealCampaigns([]);
+      } finally {
+        setCampaignsLoading(false);
+      }
+    };
+    fetchCampaigns();
+  }, [selectedAccount]);
 
   /**
    * Plan Access Guard:
@@ -563,30 +473,38 @@ export default function MetaAdsPage() {
   // --------------------------------------------------------------------------
   // CRUD OPERATIONS FOR CAMPAIGNS
   // --------------------------------------------------------------------------
-  const handleCreateCampaignSubmit = () => {
+  const handleCreateCampaignSubmit = async () => {
     if (!newCampaignName.trim()) return;
     if (!checkPlanActive("Create Meta Campaign")) return;
     setCreatingCampaign(true);
-    setTimeout(() => {
-      const newCamp = {
-        id: `cam_${Date.now()}`,
-        name: newCampaignName,
-        platform: newCampaignPlatform,
-        objective: newCampaignObjective,
-        status: "ACTIVE",
-        dailyBudget: Number(newCampaignBudget),
-        spent: 0,
-        impressions: 0,
-        clicks: 0,
-        ctr: "0.00%",
-        purchases: 0,
-        roas: "0.0x"
-      };
-      setRealCampaigns([newCamp, ...realCampaigns]);
+    try {
+      const res = await fetch("/api/ads/campaigns", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user?.userId || "guest"
+        },
+        body: JSON.stringify({
+          accountId: selectedAccount,
+          name: newCampaignName,
+          objective: newCampaignObjective,
+          dailyBudget: Number(newCampaignBudget),
+          platform: newCampaignPlatform
+        })
+      });
+      const data = await res.json();
+      if (data?.success && data?.campaign) {
+        setRealCampaigns([data.campaign, ...realCampaigns]);
+        setCreateModalOpen(false);
+        setNewCampaignName("");
+      } else {
+        alert(data?.error || "Failed to create campaign");
+      }
+    } catch (err) {
+      console.error("Failed to create campaign:", err);
+    } finally {
       setCreatingCampaign(false);
-      setCreateModalOpen(false);
-      setNewCampaignName("");
-    }, 1000);
+    }
   };
 
   const handleInspectCampaign = (campaign) => {
@@ -620,26 +538,67 @@ export default function MetaAdsPage() {
     setEditModalOpen(true);
   };
 
-  const handleUpdateCampaignSubmit = () => {
+  const handleUpdateCampaignSubmit = async () => {
     if (!editCampaignData) return;
     setUpdatingCampaign(true);
-    setTimeout(() => {
-      const updater = (list) =>
-        list.map((c) => (c.id === editCampaignData.id ? { ...editCampaignData } : c));
-      setRealCampaigns(updater(realCampaigns));
+    try {
+      const res = await fetch("/api/ads/campaigns", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user?.userId || "guest"
+        },
+        body: JSON.stringify({
+          accountId: selectedAccount,
+          campaignId: editCampaignData.id,
+          name: editCampaignData.name,
+          objective: editCampaignData.objective,
+          dailyBudget: Number(editCampaignData.dailyBudget),
+          status: editCampaignData.status
+        })
+      });
+      const data = await res.json();
+      if (data?.success && data?.campaign) {
+        setRealCampaigns((prev) =>
+          prev.map((c) => (c.id === editCampaignData.id ? { ...c, ...data.campaign } : c))
+        );
+        setEditModalOpen(false);
+      } else {
+        alert(data?.error || "Failed to update campaign");
+      }
+    } catch (err) {
+      console.error("Failed to update campaign:", err);
+    } finally {
       setUpdatingCampaign(false);
-      setEditModalOpen(false);
-    }, 800);
+    }
   };
 
-  const toggleCampaignStatus = (id, e) => {
+  const toggleCampaignStatus = async (id, e) => {
     if (e) e.stopPropagation();
     if (!checkPlanActive("Pause/Resume Meta Campaign")) return;
-    const toggler = (list) =>
-      list.map((c) =>
-        c.id === id ? { ...c, status: c.status === "ACTIVE" ? "PAUSED" : "ACTIVE" } : c
-      );
-    setRealCampaigns(toggler(realCampaigns));
+    const target = realCampaigns.find((c) => c.id === id);
+    if (!target) return;
+    const nextStatus = target.status === "ACTIVE" ? "PAUSED" : "ACTIVE";
+    // Optimistic UI update
+    setRealCampaigns((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, status: nextStatus } : c))
+    );
+    try {
+      await fetch("/api/ads/campaigns", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user?.userId || "guest"
+        },
+        body: JSON.stringify({
+          accountId: selectedAccount,
+          campaignId: id,
+          status: nextStatus
+        })
+      });
+    } catch (err) {
+      console.error("Failed to toggle campaign status:", err);
+    }
   };
 
   const handleOpenDeleteModal = (campaign, e) => {
@@ -649,12 +608,27 @@ export default function MetaAdsPage() {
     setDeleteModalOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!campaignToDelete) return;
-    const filterOut = (list) => list.filter((c) => c.id !== campaignToDelete.id);
-    setRealCampaigns(filterOut(realCampaigns));
+    const idToDelete = campaignToDelete.id;
+    setRealCampaigns((prev) => prev.filter((c) => c.id !== idToDelete));
     setDeleteModalOpen(false);
     setCampaignToDelete(null);
+    try {
+      await fetch("/api/ads/campaigns", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user?.userId || "guest"
+        },
+        body: JSON.stringify({
+          accountId: selectedAccount,
+          campaignId: idToDelete
+        })
+      });
+    } catch (err) {
+      console.error("Failed to delete campaign:", err);
+    }
   };
 
   const handleAddAdAccountSubmit = async () => {
@@ -1252,7 +1226,15 @@ export default function MetaAdsPage() {
             </div>
           </div>
 
-          {filteredCampaigns.length === 0 ? (
+          {campaignsLoading ? (
+            <div className="p-12 rounded-2xl border border-slate-200 bg-white text-center space-y-3">
+              <div className="flex items-center justify-center gap-3 text-rose-600 font-semibold text-sm">
+                <RefreshCw className="w-5 h-5 animate-spin text-rose-600" />
+                <span>Syncing live Meta campaigns...</span>
+              </div>
+              <p className="text-xs text-slate-500">Fetching live account campaigns via Graph API v20.0</p>
+            </div>
+          ) : filteredCampaigns.length === 0 ? (
             <div className="p-12 rounded-2xl border border-dashed border-slate-300 bg-white text-center space-y-4">
               <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
                 <Target className="w-6 h-6" />
