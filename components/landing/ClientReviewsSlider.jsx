@@ -1,312 +1,410 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Play, X, Star, CheckCircle2, ChevronLeft, ChevronRight, Quote } from "lucide-react";
+import { 
+  Star, 
+  CheckCircle2, 
+  Quote, 
+  ChevronLeft, 
+  ChevronRight, 
+  Sparkles, 
+  TrendingUp, 
+  ShieldCheck, 
+  HeartHandshake,
+  MessageSquareQuote
+} from "lucide-react";
 
 export default function ClientReviewsSlider() {
-  const [activeModal, setActiveModal] = useState(null);
-  const sliderRef = useRef(null);
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [isPaused, setIsPaused] = useState(false);
+  const row1Ref = useRef(null);
+  const row2Ref = useRef(null);
 
-  const testimonials = [
+  const reviews = [
     {
       id: "zeeshan",
-      name: "Zeeshan",
-      role: "E-commerce Founder",
+      name: "Zeeshan Ansari",
+      role: "E-Commerce Founder",
       company: "Zeeshan Organics",
-      image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80",
-      quote: "Postfly completely transformed our social selling. Automated comment-to-DM triggers generated ₹3.4L in sales within our first month.",
-      videoUrl: "/video-hero/hero-video.mp4",
+      category: "ecommerce",
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
+      quote: "Postfly completely transformed our social selling. Automated comment-to-DM triggers generated ₹3.4L in sales within our first month alone.",
       rating: 5,
-      followers: "128K Followers",
-      growth: "+42% Engagement"
+      impact: "+₹3.4L Sales in 30 Days",
+      channels: "Instagram + Facebook",
+      plan: "Growth Plan",
+      verified: true
     },
     {
       id: "aleks",
-      name: "Aleks",
-      role: "D2C Brand Owner",
+      name: "Aleksandar M.",
+      role: "Head of Marketing",
       company: "Golden Harvest Foods",
-      image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80",
-      quote: "Managing 7 channels from one dashboard saved our marketing team over 25 hours every week. The 1-click scheduling is flawless.",
-      videoUrl: "/video-hero/hero-video.mp4",
+      category: "brands",
+      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80",
+      quote: "Managing 7 channels from one unified dashboard saved our marketing team 25+ hours every week. The 1-click multi-post scheduling is flawless.",
       rating: 5,
-      followers: "85K Followers",
-      growth: "3.5x Faster Workflow"
+      impact: "Saved 25+ Hrs/Week",
+      channels: "7 Channels Synced",
+      plan: "Pro Enterprise",
+      verified: true
     },
     {
       id: "rajesh",
-      name: "Rajesh",
-      role: "Retail & Sweets Chain",
+      name: "Rajesh Sharma",
+      role: "Managing Director",
       company: "Rajesh Foods & Sweets",
-      image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80",
-      quote: "Our local festival campaigns went viral across Instagram and Facebook simultaneously. Postfly made scheduling feel effortless.",
-      videoUrl: "/video-hero/hero-video.mp4",
+      category: "retail",
+      avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=300&q=80",
+      quote: "Our festival campaigns went viral across Instagram, Facebook, and YouTube Shorts simultaneously. Postfly made scheduling effortless.",
       rating: 5,
-      followers: "240K Followers",
-      growth: "1.2M Monthly Views"
+      impact: "1.2M Organic Views",
+      channels: "Instagram + YouTube",
+      plan: "Growth Plan",
+      verified: true
     },
     {
       id: "vikram",
-      name: "Vikram",
-      role: "Supermarket Franchise",
+      name: "Vikramaditya Rao",
+      role: "Franchise Owner",
       company: "Kisan Choice Mart",
-      image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=600&q=80",
-      quote: "The AI caption generator understands Indian festival context and retail promotions like a human copywriter. 10/10 recommend.",
-      videoUrl: "/video-hero/hero-video.mp4",
+      category: "retail",
+      avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=300&q=80",
+      quote: "The AI caption generator understands Indian retail promotions and local festival context like an expert human copywriter. 10/10 recommend.",
       rating: 5,
-      followers: "65K Followers",
-      growth: "50+ Weekly Posts"
+      impact: "50+ Weekly Posts",
+      channels: "AI Copy + Meta",
+      plan: "Pro Plan",
+      verified: true
     },
     {
       id: "siobhan",
-      name: "Siobhan",
-      role: "Retail Operations Lead",
+      name: "Siobhan Kelly",
+      role: "Operations Lead",
       company: "Daily Needs Superstore",
-      image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80",
-      quote: "Automated DM replies give our customers immediate price checks and stock updates even when our physical stores are closed.",
-      videoUrl: "/video-hero/hero-video.mp4",
+      category: "retail",
+      avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80",
+      quote: "The automated DM replies give our shoppers immediate price checks and stock updates even when our physical stores are closed at night.",
       rating: 5,
-      followers: "42K Followers",
-      growth: "24/7 Response Rate"
+      impact: "24/7 Response Rate",
+      channels: "Social Inbox + DMs",
+      plan: "Growth Plan",
+      verified: true
     },
     {
-      id: "john",
-      name: "Pooja",
-      role: "Business Coach & Educator",
+      id: "pooja",
+      name: "Pooja Aggarwal",
+      role: "Creator & Educator",
       company: "Creator Scale Academy",
-      image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=600&q=80",
-      quote: "Postfly is the backbone of my personal brand. I schedule YouTube Shorts, LinkedIn articles, and Instagram Reels all at once.",
-      videoUrl: "/video-hero/hero-video.mp4",
+      category: "creators",
+      avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=300&q=80",
+      quote: "Postfly is the backbone of my personal brand. I schedule YouTube Shorts, LinkedIn articles, and Instagram Reels all in one go.",
       rating: 5,
-      followers: "310K Followers",
-      growth: "+180% Community Reach"
+      impact: "+180% Community Reach",
+      channels: "LinkedIn + YouTube + Reels",
+      plan: "Pro Plan",
+      verified: true
     },
     {
       id: "saif",
-      name: "Saif",
-      role: "Digital Marketing Agency",
+      name: "Saifuddin Ansari",
+      role: "Agency Founder",
       company: "GrowthFlow Media",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80",
-      quote: "We handle 18 different client accounts seamlessly. White-label reports and Razorpay INR subscriptions make it the ultimate Indian SaaS.",
-      videoUrl: "/video-hero/hero-video.mp4",
+      category: "agencies",
+      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80",
+      quote: "We manage 18 client accounts with zero confusion. Granular client permissions and INR Razorpay billing make it the best SaaS platform.",
       rating: 5,
-      followers: "500K+ Network",
-      growth: "18 Active Clients"
+      impact: "18 Client Accounts",
+      channels: "Agency Multi-Tenant",
+      plan: "Enterprise Pro",
+      verified: true
     },
     {
       id: "jelly",
-      name: "Jelly",
-      role: "Lifestyle & Fashion Creator",
+      name: "Jelly Verma",
+      role: "Lifestyle Creator",
       company: "StyleWithJelly",
-      image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=600&q=80",
-      quote: "The media library and Canva integration are super intuitive. I never miss peak publishing hours thanks to the automated scheduler.",
-      videoUrl: "/video-hero/hero-video.mp4",
+      category: "creators",
+      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80",
+      quote: "The visual calendar and media library are super intuitive. I never miss peak publishing hours thanks to the automated scheduler.",
       rating: 5,
-      followers: "195K Followers",
-      growth: "98% On-time Schedule"
+      impact: "99.2% On-Time Posts",
+      channels: "Visual Calendar + Insta",
+      plan: "Starter Pro",
+      verified: true
     },
     {
       id: "ananya",
-      name: "Ananya",
+      name: "Ananya Deshmukh",
       role: "Creative Director",
       company: "Vedic Roots Studio",
-      image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=600&q=80",
-      quote: "Real MongoDB persistence, zero downtime, and instant Meta Graph API sync. It feels years ahead of legacy social media tools.",
-      videoUrl: "/video-hero/hero-video.mp4",
+      category: "brands",
+      avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80",
+      quote: "Multi-image carousels and direct Reels publishing without compression artifacts. It feels years ahead of legacy social media tools.",
       rating: 5,
-      followers: "115K Followers",
-      growth: "+65% Video Reach"
+      impact: "+65% Video Reach",
+      channels: "Reels + Threads + Meta",
+      plan: "Growth Plan",
+      verified: true
+    },
+    {
+      id: "rohan",
+      name: "Rohan Mehta",
+      role: "Growth Lead",
+      company: "TechPulse Media",
+      category: "agencies",
+      avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=300&q=80",
+      quote: "Connecting YouTube, Twitter, and LinkedIn took under 60 seconds. The live analytics and unified social inbox keep our entire team aligned.",
+      rating: 5,
+      impact: "3.8x Follower Growth",
+      channels: "Twitter + YouTube + LinkedIn",
+      plan: "Pro Enterprise",
+      verified: true
     }
   ];
 
-  // Duplicate for seamless infinite loop feel
-  const duplicatedList = [...testimonials, ...testimonials];
+  const categories = [
+    { id: "all", label: "All Reviews" },
+    { id: "ecommerce", label: "E-Commerce & D2C" },
+    { id: "agencies", label: "Agencies & Teams" },
+    { id: "creators", label: "Creators & Influencers" },
+    { id: "retail", label: "Retail & Franchises" }
+  ];
 
-  const scrollLeft = () => {
-    if (sliderRef.current) {
-      sliderRef.current.scrollBy({ left: -320, behavior: "smooth" });
+  const filteredReviews = selectedCategory === "all" 
+    ? reviews 
+    : reviews.filter(r => r.category === selectedCategory);
+
+  // Split into 2 rows for dual smooth marquee sliding
+  const halfLength = Math.ceil(filteredReviews.length / 2);
+  const row1List = filteredReviews.slice(0, halfLength);
+  const row2List = filteredReviews.slice(halfLength);
+
+  // Multiply lists for continuous infinite glide
+  const infiniteRow1 = [...row1List, ...row1List, ...row1List, ...row1List];
+  const infiniteRow2 = [...row2List, ...row2List, ...row2List, ...row2List];
+
+  const handleManualScroll = (direction) => {
+    const scrollAmount = direction === "left" ? -400 : 400;
+    if (row1Ref.current) {
+      row1Ref.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
     }
-  };
-
-  const scrollRight = () => {
-    if (sliderRef.current) {
-      sliderRef.current.scrollBy({ left: 320, behavior: "smooth" });
+    if (row2Ref.current) {
+      row2Ref.current.scrollBy({ left: -scrollAmount, behavior: "smooth" });
     }
   };
 
   return (
-    <section className="relative bg-[#143E37] py-20 sm:py-28 overflow-hidden select-none">
+    <section className="relative bg-slate-950 py-24 sm:py-32 overflow-hidden select-none border-y border-slate-800">
       
-      {/* Background radial atmosphere */}
-      <div className="absolute inset-0 bg-radial-gradient from-emerald-900/30 via-transparent to-transparent pointer-events-none" />
-      <div className="absolute -top-24 -right-24 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+      {/* Background ambient lighting effects */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-b from-indigo-500/10 via-emerald-500/5 to-transparent blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-20 -right-20 w-80 h-80 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Top Header */}
-      <div className="max-w-4xl mx-auto px-6 text-center space-y-4 relative z-10 mb-12 sm:mb-16">
+      {/* Grid Pattern Accent */}
+      <div 
+        className="absolute inset-0 opacity-[0.03] pointer-events-none" 
+        style={{ backgroundImage: "radial-gradient(#ffffff 1px, transparent 1px)", backgroundSize: "24px 24px" }}
+      />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
-        {/* Subtle pill box */}
-        <div className="inline-block px-4 py-1.5 rounded-lg bg-white/10 border border-white/20 backdrop-blur-xs text-white/95 text-xs sm:text-sm font-medium tracking-wide shadow-xs">
-          Real stories and testimonials
-        </div>
-
-        {/* Huge bold headline */}
-        <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight uppercase">
-          FROM OUR CLIENTS
-        </h2>
-
-        <p className="text-emerald-100/75 text-xs sm:text-sm max-w-xl mx-auto font-normal leading-relaxed">
-          See how leading brands, e-commerce stores, and digital creators scale their audience using Postfly automation.
-        </p>
-
-        {/* Controls for manual scrolling on desktop */}
-        <div className="pt-2 flex items-center justify-center gap-3">
-          <button
-            onClick={scrollLeft}
-            className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center transition-all cursor-pointer backdrop-blur-xs"
-            title="Scroll Left"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <span className="text-xs font-semibold text-emerald-200/80">Click any card to watch review</span>
-          <button
-            onClick={scrollRight}
-            className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center transition-all cursor-pointer backdrop-blur-xs"
-            title="Scroll Right"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-
-      {/* ── Tilted Arc / Diagonal Slider Track ── */}
-      <div className="relative w-full py-8 overflow-hidden">
-        
-        {/* The tilted rotational wrapper (-rotate-2 on mobile, -rotate-3 on desktop) */}
-        <div className="w-full transform -rotate-1 sm:-rotate-3 scale-[1.03] transition-transform duration-300">
+        {/* Section Header */}
+        <div className="text-center max-w-3xl mx-auto space-y-4 mb-14 sm:mb-18">
           
-          <div
-            ref={sliderRef}
-            className="flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar py-6 px-8 scroll-smooth cursor-grab active:cursor-grabbing"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-          >
-            {duplicatedList.map((client, index) => (
-              <div
-                key={`${client.id}-${index}`}
-                onClick={() => setActiveModal(client)}
-                className="flex flex-col items-center shrink-0 group cursor-pointer transition-all duration-300 transform hover:-translate-y-2"
+          {/* Rating Pill Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900 border border-slate-700/80 shadow-inner text-xs font-semibold text-slate-200">
+            <div className="flex items-center text-amber-400">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className="w-3.5 h-3.5 fill-amber-400" />
+              ))}
+            </div>
+            <span className="font-bold text-white">4.9 / 5</span>
+            <span className="text-slate-400">•</span>
+            <span className="text-slate-300">2,400+ Verified Reviews</span>
+          </div>
+
+          {/* Main Title */}
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight">
+            Loved by Growing Brands & Creators
+          </h2>
+
+          <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto font-normal leading-relaxed">
+            See how founders, agencies, and social media managers automate publishing, engage audiences, and scale organic reach with Postfly.
+          </p>
+
+          {/* Category Filter Pills & Controls */}
+          <div className="pt-4 flex flex-wrap items-center justify-center gap-2">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  selectedCategory === cat.id
+                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-500 scale-105"
+                    : "bg-slate-900/80 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800"
+                }`}
               >
-                {/* Card Container with dark rounded frame */}
-                <div className="relative w-40 sm:w-48 h-60 sm:h-72 rounded-2xl overflow-hidden bg-slate-900 border-2 border-black/50 shadow-2xl shadow-black/40 group-hover:border-emerald-400/80 group-hover:shadow-emerald-500/30 transition-all duration-300">
-                  
-                  {/* Thumbnail Image */}
-                  <img
-                    src={client.image}
-                    alt={client.name}
-                    className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 ease-out"
-                    loading="lazy"
-                  />
-
-                  {/* Gradient overlays */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent pointer-events-none" />
-                  
-                  {/* Brand Tag Top Right */}
-                  <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-xs border border-white/10 text-[9px] font-bold text-white/90">
-                    Postfly
-                  </div>
-
-                  {/* Green Circular Play Button at Bottom Left (matching screenshot) */}
-                  <div className="absolute bottom-3 left-3 w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-950/60 group-hover:bg-emerald-400 group-hover:scale-110 transition-all">
-                    <Play className="w-3.5 h-3.5 fill-white text-white ml-0.5" />
-                  </div>
-
-                  {/* Growth Metric Badge */}
-                  <div className="absolute bottom-3 right-3 text-[10px] font-bold text-emerald-300">
-                    {client.growth}
-                  </div>
-                </div>
-
-                {/* Client Name under Card */}
-                <span className="mt-2.5 text-xs sm:text-sm font-semibold text-white/90 group-hover:text-emerald-300 transition-colors">
-                  {client.name}
-                </span>
-                <span className="text-[10.5px] text-emerald-100/60 font-medium">
-                  {client.company}
-                </span>
-              </div>
+                {cat.label}
+              </button>
             ))}
           </div>
 
+          {/* Controls bar (Pause / Scroll) */}
+          <div className="pt-2 flex items-center justify-center gap-3">
+            <button
+              onClick={() => handleManualScroll("left")}
+              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition-all cursor-pointer shadow-sm active:scale-95"
+              title="Previous Reviews"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-xs text-slate-400 font-medium px-2">
+              Hover over any review to pause slide
+            </span>
+            <button
+              onClick={() => handleManualScroll("right")}
+              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition-all cursor-pointer shadow-sm active:scale-95"
+              title="Next Reviews"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
         </div>
 
       </div>
 
-      {/* ── Interactive Video Testimonial Modal ── */}
-      {activeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl text-white">
-            
-            {/* Close Button */}
-            <button
-              onClick={() => setActiveModal(null)}
-              className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-black/60 hover:bg-black text-white/80 hover:text-white flex items-center justify-center border border-white/20 transition-all cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
+      {/* ── Seamless Infinite Sliding Rows ── */}
+      <div 
+        className="relative w-full overflow-hidden space-y-6"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
+        
+        {/* Left & Right Gradient Fade Masks for seamless edge effect */}
+        <div className="absolute top-0 bottom-0 left-0 w-16 sm:w-32 bg-gradient-to-r from-slate-950 to-transparent z-20 pointer-events-none" />
+        <div className="absolute top-0 bottom-0 right-0 w-16 sm:w-32 bg-gradient-to-l from-slate-950 to-transparent z-20 pointer-events-none" />
 
-            {/* Video Player */}
-            <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
-              <video
-                src={activeModal.videoUrl}
-                controls
-                autoPlay
-                playsInline
-                className="w-full h-full object-cover"
-              />
-            </div>
-
-            {/* Client Info & Review Content */}
-            <div className="p-6 space-y-4 bg-gradient-to-b from-slate-900 to-slate-950">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={activeModal.image}
-                    alt={activeModal.name}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-emerald-500 shadow-md"
-                  />
-                  <div>
-                    <h3 className="text-base font-bold text-white flex items-center gap-1.5">
-                      <span>{activeModal.name}</span>
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    </h3>
-                    <p className="text-xs text-slate-400">
-                      {activeModal.role} • <strong className="text-emerald-400">{activeModal.company}</strong>
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  {[...Array(activeModal.rating)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />
-                  ))}
-                </div>
-              </div>
-
-              {/* Quote */}
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-xs sm:text-sm text-slate-200 leading-relaxed italic relative">
-                <Quote className="w-6 h-6 text-emerald-500/30 absolute top-2 right-3 pointer-events-none" />
-                "{activeModal.quote}"
-              </div>
-
-              <div className="flex items-center justify-between pt-2 text-[11px] text-slate-400 border-t border-slate-800">
-                <span>Verified Subscriber Review</span>
-                <span className="text-emerald-400 font-semibold">{activeModal.growth}</span>
-              </div>
-            </div>
-
+        {/* ── ROW 1: Smooth Left Slide ── */}
+        <div 
+          ref={row1Ref}
+          className="flex overflow-x-hidden"
+        >
+          <div 
+            className="animate-marquee-smooth flex items-stretch gap-6 px-3"
+            style={{ animationPlayState: isPaused ? "paused" : "running" }}
+          >
+            {infiniteRow1.map((item, idx) => (
+              <ReviewCard key={`r1-${item.id}-${idx}`} review={item} />
+            ))}
           </div>
         </div>
-      )}
+
+        {/* ── ROW 2: Smooth Right Slide ── */}
+        <div 
+          ref={row2Ref}
+          className="flex overflow-x-hidden"
+        >
+          <div 
+            className="animate-marquee-reverse flex items-stretch gap-6 px-3"
+            style={{ animationPlayState: isPaused ? "paused" : "running" }}
+          >
+            {infiniteRow2.map((item, idx) => (
+              <ReviewCard key={`r2-${item.id}-${idx}`} review={item} />
+            ))}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Trust Stats Footer Strip */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-16 pt-10 border-t border-slate-800/80">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
+          <div className="space-y-1">
+            <h4 className="text-2xl sm:text-3xl font-black text-white">99.4%</h4>
+            <p className="text-xs text-slate-400 font-medium">Customer Satisfaction</p>
+          </div>
+          <div className="space-y-1">
+            <h4 className="text-2xl sm:text-3xl font-black text-indigo-400">10M+</h4>
+            <p className="text-xs text-slate-400 font-medium">Posts Auto-Published</p>
+          </div>
+          <div className="space-y-1">
+            <h4 className="text-2xl sm:text-3xl font-black text-emerald-400">25+ Hrs</h4>
+            <p className="text-xs text-slate-400 font-medium">Saved Per Team Weekly</p>
+          </div>
+          <div className="space-y-1">
+            <h4 className="text-2xl sm:text-3xl font-black text-amber-400">4.9 ★</h4>
+            <p className="text-xs text-slate-400 font-medium">Average Client Rating</p>
+          </div>
+        </div>
+      </div>
 
     </section>
+  );
+}
+
+// ── Single Review Card Component ──
+function ReviewCard({ review }) {
+  return (
+    <div className="w-[340px] sm:w-[380px] shrink-0 p-6 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-indigo-500/60 shadow-xl hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 flex flex-col justify-between space-y-4 group">
+      
+      {/* Card Header: Stars + Impact Badge */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1 text-amber-400">
+          {[...Array(review.rating)].map((_, i) => (
+            <Star key={i} className="w-4 h-4 fill-amber-400" />
+          ))}
+        </div>
+
+        {/* Growth/Impact Metric Pill */}
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-950/80 border border-emerald-800/80 text-[11px] font-bold text-emerald-300">
+          <TrendingUp className="w-3 h-3" />
+          {review.impact}
+        </span>
+      </div>
+
+      {/* Quote Body */}
+      <div className="relative">
+        <Quote className="w-6 h-6 text-indigo-500/20 absolute -top-2 -left-1 pointer-events-none" />
+        <p className="text-xs sm:text-[13px] text-slate-300 font-normal leading-relaxed pl-2 group-hover:text-slate-100 transition-colors">
+          "{review.quote}"
+        </p>
+      </div>
+
+      {/* Card Footer: Reviewer Info + Channel Badges */}
+      <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="relative shrink-0">
+            <img 
+              src={review.avatar} 
+              alt={review.name}
+              className="w-10 h-10 rounded-full object-cover ring-2 ring-indigo-500/30 group-hover:ring-indigo-500 transition-all"
+              loading="lazy"
+            />
+            {review.verified && (
+              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center ring-2 ring-slate-900" title="Verified Postfly Client">
+                <CheckCircle2 className="w-3 h-3 fill-emerald-500 text-slate-950" />
+              </span>
+            )}
+          </div>
+          <div className="min-w-0">
+            <h4 className="text-xs font-bold text-white truncate group-hover:text-indigo-300 transition-colors">
+              {review.name}
+            </h4>
+            <p className="text-[11px] text-slate-400 truncate">
+              {review.role} • <span className="text-slate-300 font-medium">{review.company}</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Channels Tag */}
+        <span className="shrink-0 text-[10px] font-medium text-indigo-300 bg-indigo-950/60 border border-indigo-800/50 px-2 py-0.5 rounded-md">
+          {review.channels}
+        </span>
+      </div>
+
+    </div>
   );
 }
