@@ -281,27 +281,49 @@ export default function PublisherPage() {
 
       toast.success("AI text generated successfully!");
     } catch (err) {
-      console.log("Using smart fallback generation:", err);
-      // Fallback rich generation based on promptToUse
+      console.log("Using smart concept fallback generation:", err);
+      const cleanPrompt = (promptToUse || "Social Media Strategy").trim();
+      const lower = cleanPrompt.toLowerCase();
+
+      let genTitle = "Transform Your Brand Reach with Next-Generation Social Automation";
+      let genDesc = "";
+
+      if (lower.includes("promosinal") || lower.includes("promo") || lower.includes("product") || lower.includes("application") || lower.includes("app") || lower.includes("video")) {
+        genTitle = "Transform Your Brand Reach with Next-Generation Social Automation";
+        if (lengthToUse === "short") {
+          genDesc = 
+            `Discover how our advanced publishing platform streamlines multi-channel distribution and automates content workflows.\n\n` +
+            `Key Takeaways:\n` +
+            `• Automated multi-channel post scheduling\n` +
+            `• Real-time channel preview rendering\n` +
+            `• High-converting AI caption and hashtag engine`;
+        } else {
+          genDesc = 
+            `Elevate your brand presence with a modern social media management application built for digital creators and growth teams.\n\n` +
+            `Core Strategic Features:\n` +
+            `• Multi-Channel Automation: Draft, schedule, and publish content across Instagram, Facebook, YouTube, LinkedIn, and Twitter simultaneously.\n` +
+            `• AI-Powered Content Engine: Instantly generate optimized headlines, structured captions, and targeted viral hashtags.\n` +
+            `• High-Speed Media CDN: Upload and stream image and video assets seamlessly via integrated ImageKit hosting.\n` +
+            `• Performance Intelligence: Track engagement metrics and optimize publishing schedules for maximum reach.\n\n` +
+            `Implement these tools today to scale your online presence efficiently. Share your feedback in the comments below.`;
+        }
+      } else {
+        const formattedTopic = cleanPrompt.replace(/(^\w|\s\w)/g, m => m.toUpperCase());
+        genTitle = `Mastering ${formattedTopic}: Comprehensive Growth Framework`;
+        genDesc = 
+          `Building a strong digital presence with ${formattedTopic} requires a structured approach to content, engagement, and audience retention.\n\n` +
+          `Key Strategic Pillars:\n` +
+          `• Hook Audience Retention: Capture viewer attention in the first 3 seconds with compelling headlines and value offers.\n` +
+          `• Structured Content Delivery: Format your captions with clear bullet points, actionable advice, and strong calls to action.\n` +
+          `• Multi-Channel Consistency: Distribute high-resolution media across all active social platforms systematically.\n\n` +
+          `Apply these steps to build lasting brand authority. What is your primary objective with ${formattedTopic}? Join the discussion below.`;
+      }
+
       if (overrideType !== "description" && overrideType !== "hashtags") {
-        setTitle(`How to 10x your social reach with ${promptToUse}`);
+        setTitle(genTitle);
       }
       if (overrideType !== "title" && overrideType !== "hashtags") {
-        if (lengthToUse === "short") {
-          setDescription(`🚀 **Quick Takeaway on ${promptToUse}:**\nFocus on clear value, 3-second hooks, and consistent posting. Drop your thoughts below! 👇`);
-        } else {
-          setDescription(
-            `🚀 **Excited to share our latest deep-dive insights on ${promptToUse}!**\n\n` +
-            `If you want to explode your social media reach and double your conversions, here is the exact step-by-step strategy you need to implement:\n\n` +
-            `📌 **1. Craft Irresistible 3-Second Hooks**\n` +
-            `The first 3 seconds of your video or first 2 lines of your caption dictate 80% of your retention. Make sure your hook states a clear transformation.\n\n` +
-            `💡 **2. Optimize Content for High Engagement & Saves**\n` +
-            `Break complex ideas down into actionable bullet points, infographics, or quick step-by-step frameworks.\n\n` +
-            `⚡ **3. Clear Call to Action**\n` +
-            `Prompt your audience to comment a keyword to instantly receive your free guide or resource.\n\n` +
-            `💬 What is your main goal with ${promptToUse}? Drop a comment below! 👇`
-          );
-        }
+        setDescription(genDesc);
       }
       if (overrideType !== "title" && overrideType !== "description") {
         const fallbackTags = [
