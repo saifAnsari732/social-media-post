@@ -52,7 +52,7 @@ export default function PublisherPage() {
   const [generating, setGenerating] = useState(false);
   const [posting, setPosting] = useState(false);
   const [results, setResults] = useState(null);
-  const [publishMode, setPublishMode] = useState("now"); // 'now' | 'schedule' | 'draft'
+  const [publishMode, setPublishMode] = useState("draft"); // 'draft' (default) | 'now' | 'schedule'
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("18:30");
   const [previewTab, setPreviewTab] = useState("instagram");
@@ -1132,13 +1132,13 @@ export default function PublisherPage() {
               {[
                 { id: "now", label: "Publish Now" },
                 { id: "schedule", label: "Schedule" },
-                { id: "draft", label: "Draft" }
+                { id: "draft", label: "Save / Draft" }
               ].map((m) => (
                 <button
                   key={m.id}
                   type="button"
                   onClick={() => setPublishMode(m.id)}
-                  className={`py-2 rounded-lg transition-all text-center ${
+                  className={`py-2 rounded-lg transition-all text-center cursor-pointer ${
                     publishMode === m.id
                       ? "bg-indigo-600 text-white shadow-2xs"
                       : "text-slate-600 hover:text-slate-900"
