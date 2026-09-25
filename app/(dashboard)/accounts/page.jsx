@@ -269,6 +269,11 @@ function AccountsContent() {
                   💡 <strong>Access tip:</strong> Ensure this Facebook account is added to <strong>App Roles ➔ Testers</strong> at <a href="https://developers.facebook.com" target="_blank" className="underline">developers.facebook.com</a> before connecting.
                 </p>
               )}
+              {(errorNotice.toLowerCase().includes("organization") || errorNotice.toLowerCase().includes("linkedin") || errorNotice.toLowerCase().includes("scope")) && (
+                <p className="text-[11px] text-rose-800 bg-white/70 p-2.5 rounded-xl border border-rose-200/80 mt-2 font-normal leading-relaxed">
+                  💡 <strong>LinkedIn tip:</strong> To connect LinkedIn Company Pages, your app in <a href="https://www.linkedin.com/developers/apps" target="_blank" className="underline font-bold">LinkedIn Developer Portal</a> needs the <strong>Community Management API</strong> product enabled under the <em>Products</em> tab. For personal posting, <strong>Share on LinkedIn</strong> is used.
+                </p>
+              )}
             </div>
           </div>
           <button

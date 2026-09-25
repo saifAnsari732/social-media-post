@@ -37,12 +37,14 @@ export async function GET(req, { params }) {
         "tweet.read tweet.write users.read offline.access"
       )}&state=${state}&code_challenge=yDiyogOBAhICYCLz2kezunB7Mo0MdVRIQMs7tRbJmLE&code_challenge_method=S256`;
     },
-    linkedin: () =>
-      `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${process.env.LINKEDIN_CLIENT_ID}&redirect_uri=${encodeURIComponent(
+    linkedin: () => {
+      const defaultScopes = "openid profile email w_member_social";
+      const customScopes = process.env.LINKEDIN_SCOPES || process.env.LINKEDIN_SCOPE;
+      const linkedinScope = customScopes || defaultScopes;
+      return `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${process.env.LINKEDIN_CLIENT_ID}&redirect_uri=${encodeURIComponent(
         process.env.LINKEDIN_REDIRECT_URI || "https://social-media-post-eta.vercel.app/api/auth/callback/linkedin"
-      )}&state=${state}&scope=${encodeURIComponent(
-        "openid profile email w_member_social w_organization_social rw_organization_admin r_organization_social"
-      )}`,
+      )}&state=${state}&scope=${encodeURIComponent(linkedinScope)}`;
+    },
     threads: () =>
       `https://threads.net/oauth/authorize?client_id=${threadsAppId}&app_id=${threadsAppId}&redirect_uri=${encodeURIComponent(
         threadsRedirectUri
