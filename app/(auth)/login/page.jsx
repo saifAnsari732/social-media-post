@@ -251,11 +251,10 @@ export default function LoginPage() {
 
           <div>
             {/* Logo */}
-            <div className="flex items-center gap-3 mb-8">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/95 border border-white/20 p-1 shadow-md shadow-indigo-950/40">
-                <img src="/postflyLOGO.png" alt="Postfly" className="w-full h-full object-contain" />
+            <div className="flex items-center mb-8">
+              <div className="bg-white/95 rounded-2xl p-2 px-3 shadow-md shadow-indigo-950/40">
+                <img src="/postflyLOGO.png" alt="Postfly" className="h-10 sm:h-11 w-auto max-w-[180px] object-contain" />
               </div>
-              <span className="text-xl font-extrabold tracking-tight text-white">Postfly</span>
             </div>
 
             {/* Headline */}

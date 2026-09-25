@@ -219,11 +219,8 @@ export default function SaaSLandingPage() {
       {/* ── Top Header ── */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-6 py-3.5 shadow-2xs">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 no-underline">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white border border-slate-200/90 p-0.5 shadow-xs overflow-hidden">
-              <img src="/postflyLOGO.png" alt="Postfly" className="w-full h-full object-contain" />
-            </div>
-            <span className="text-xl font-bold tracking-tight text-slate-900">Postfly</span>
+          <Link href="/" className="flex items-center no-underline group">
+            <img src="/postflyLOGO.png" alt="Postfly" className="h-10 sm:h-11 w-auto max-w-[190px] object-contain group-hover:scale-105 transition-transform" />
           </Link>
 
           <nav className="hidden md:flex items-center gap-7 text-xs font-semibold text-slate-600">
@@ -762,10 +759,7 @@ export default function SaaSLandingPage() {
           <div className="bg-slate-50 rounded-2xl border border-slate-200/90 p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xs">
             <div className="space-y-2 max-w-xl text-center md:text-left">
               <div className="flex items-center justify-center md:justify-start gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white border border-slate-200 p-0.5 shadow-xs overflow-hidden">
-                  <img src="/postflyLOGO.png" alt="Postfly" className="w-full h-full object-contain" />
-                </div>
-                <span className="text-xl font-extrabold text-slate-950 tracking-tight">Postfly</span>
+                <img src="/postflyLOGO.png" alt="Postfly" className="h-10 w-auto max-w-[190px] object-contain" />
                 <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 ml-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Systems Operational
                 </span>

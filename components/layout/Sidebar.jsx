@@ -168,25 +168,21 @@ export default function Sidebar() {
     }`}>
       <div className="flex flex-col h-full min-h-0">
         
-        {/* Header & Logo */}
-        <div className="p-4 border-b border-slate-200/80 flex items-center justify-between bg-white">
-          <Link href="/dashboard" className="flex items-center gap-3 no-underline overflow-hidden group">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-200/90 p-1 shadow-xs group-hover:scale-105 transition-transform overflow-hidden">
-              <img src="/postflyLOGO.png" alt="Postfly" className="w-full h-full object-contain" />
+        {/* Header & Logo - Large Brand Logo Only (No Name Text) */}
+        <div className="px-4 py-3 border-b border-slate-200/80 flex items-center justify-between bg-white min-h-[68px]">
+          <Link href="/dashboard" className="flex items-center no-underline overflow-hidden group flex-1 mr-2">
+            <div className="flex items-center group-hover:scale-105 transition-transform duration-200">
+              <img 
+                src="/postflyLOGO.png" 
+                alt="Postfly" 
+                className={collapsed ? "h-9 w-9 object-contain" : "h-11 sm:h-12 w-auto max-w-[190px] object-contain"} 
+              />
             </div>
-            {!collapsed && (
-              <div className="flex flex-col">
-                <span className="text-[17px] font-extrabold tracking-tight text-slate-950 leading-none">Postfly</span>
-                <span className={`text-[11px] font-semibold mt-1 uppercase tracking-wider ${isAdminUser ? 'text-indigo-600 font-black' : 'text-slate-500'}`}>
-                  {isAdminUser ? "System Console" : "SaaS Platform"}
-                </span>
-              </div>
-            )}
           </Link>
 
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="p-1.5 rounded-lg border border-slate-300 bg-slate-50 text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition-all hidden md:flex cursor-pointer"
+            className="p-1.5 rounded-lg border border-slate-300 bg-slate-50 text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition-all hidden md:flex cursor-pointer shrink-0"
             title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
             {collapsed ? <ChevronRight className="w-4 h-4 stroke-[2.5]" /> : <ChevronLeft className="w-4 h-4 stroke-[2.5]" />}
