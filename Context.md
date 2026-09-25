@@ -313,4 +313,25 @@ POST   /api/admin/system              # System health & reset actions
 
 ---
 
+## 18. Multi-System Post Publishing, Threads Unified OAuth & LinkedIn Organization Pages Sync
+
+* **Multi-System User Sanitization & Safe Fallbacks (`/api/post`, `/publisher`):**
+  - Sanitized incoming `x-user-id` headers to handle `null`, `undefined`, or empty string scenarios gracefully across remote devices.
+  - Implemented exact real-time backend error toasts on the frontend (`data.error` / trial expiry alerts) instead of silent/generic failures.
+
+* **Save Draft Resilience & Publishing Controls:**
+  - Decoupled social channel selection requirements when saving drafts (`publishMode === "draft"`), allowing draft creation with zero connected channels.
+  - Enabled instant draft saving, full composer re-population on draft edit, and 1-click publishing from the bottom recent posts list.
+
+* **Threads Direct Meta OAuth Auto-Linking:**
+  - Updated `/api/auth/connect/threads` to route directly through Meta OAuth Dialog, discovering Instagram accounts and automatically registering linked Threads profiles without standalone Threads App ID mismatch errors.
+  - Enabled instant server cache invalidation (`serverCache.delete` and `serverCache.invalidateTag("accounts")`) on OAuth callback completion.
+
+* **LinkedIn Multi-Company Pages (Organizations) Discovery:**
+  - Upgraded LinkedIn OAuth scopes to include `w_organization_social`, `rw_organization_admin`, and `r_organization_social`.
+  - Implemented multi-tier organization discovery across `/v2/organizationalEntityAcls` (state-filtered & unfiltered) and `/v2/organizationAcls` endpoints.
+  - Added dedicated company page account cards with individual logo and title resolution for targeted multi-channel publishing.
+
+---
+
 *This document serves as the single source of truth for Postfly's system architecture, business logic, and feature set.*

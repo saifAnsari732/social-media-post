@@ -347,6 +347,26 @@ async function fetchAllLinkedInOrganizations(accessToken) {
       console.log("[LinkedIn] organizationalEntityAcls (fallback):", JSON.stringify(fallbackData));
       if (fallbackData.elements && fallbackData.elements.length > 0) {
         elements = fallbackData.elements;
+      } else {
+        console.log("[LinkedIn] Trying modern organizationAcls endpoint...");
+        try {
+          const modernRes = await fetch(
+            "https://api.linkedin.com/v2/organizationAcls?q=roleAssignee",
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                "X-Restli-Protocol-Version": "2.0.0"
+              }
+            }
+          );
+          const modernData = await modernRes.json();
+          console.log("[LinkedIn] organizationAcls (modern):", JSON.stringify(modernData));
+          if (modernData.elements && modernData.elements.length > 0) {
+            elements = modernData.elements;
+          }
+        } catch (e) {
+          console.error("[LinkedIn] Modern organizationAcls error:", e);
+        }
       }
     }
 
