@@ -1181,6 +1181,15 @@ export default function MetaAdsPage() {
             </select>
           </div>
 
+          {/* PROMINENT TODAY'S LOGS & SPEND BUTTON */}
+          <Link
+            href="/ads/logs"
+            className="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 no-underline cursor-pointer active:scale-95"
+          >
+            <Activity className="w-4 h-4 text-rose-400" />
+            <span>Today's Spend & Logs</span>
+          </Link>
+
           {/* TOP CONNECT AD ACCOUNT BUTTON */}
           <button
             onClick={() => {
@@ -1242,15 +1251,14 @@ export default function MetaAdsPage() {
             <span className="text-slate-600 font-semibold">0% spent in learning phase <Info className="w-3.5 h-3.5 inline text-slate-400" /></span>
           </div>
 
-          <div className="flex items-center gap-2 text-[11px]">
-            <span>Today's Real-Time Spend Log: <strong className="text-rose-600 font-bold">₹1,248.50</strong></span>
-            <span>•</span>
+          <div className="flex items-center gap-3 text-xs">
+            <span>Today's Real-Time Spend: <strong className="text-rose-600 font-bold">₹1,248.50</strong></span>
             <Link
               href="/ads/logs"
-              className="text-rose-600 hover:text-rose-700 font-bold underline flex items-center gap-1 cursor-pointer"
+              className="px-3 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 shadow-2xs transition-all flex items-center gap-1.5 no-underline cursor-pointer active:scale-95"
             >
-              <span>View Today's Meta Logs</span>
-              <span>→</span>
+              <Activity className="w-3.5 h-3.5 text-rose-600" />
+              <span>Open Today's Logs →</span>
             </Link>
           </div>
         </div>
