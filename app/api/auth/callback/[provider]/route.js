@@ -92,6 +92,8 @@ async function exchangeToken(provider, code) {
       const redirectUri =
         process.env.THREADS_REDIRECT_URI ||
         "https://social-media-post-eta.vercel.app/api/auth/callback/threads";
+
+      // Step 1: Exchange code for short-lived token
       const res = await fetch("https://graph.threads.net/oauth/access_token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -103,7 +105,26 @@ async function exchangeToken(provider, code) {
           code
         })
       });
-      return res.json();
+      const shortToken = await res.json();
+      if (shortToken.error || !shortToken.access_token) return shortToken;
+
+      console.log("[Threads] Short-lived token obtained:", shortToken.access_token?.slice(0, 15) + "...");
+
+      // Step 2: Exchange for long-lived access token (60 days)
+      try {
+        const longRes = await fetch(
+          `https://graph.threads.net/access_token?grant_type=th_exchange_token&client_secret=${appSecret}&access_token=${shortToken.access_token}`
+        );
+        const longToken = await longRes.json();
+        console.log("[Threads] Long-lived token response:", JSON.stringify({ expires_in: longToken.expires_in, hasToken: !!longToken.access_token }));
+        if (longToken.access_token) {
+          return { ...longToken, user_id: shortToken.user_id || longToken.user_id };
+        }
+      } catch (err) {
+        console.warn("[Threads] Failed to exchange long-lived token, using short-lived fallback:", err);
+      }
+
+      return shortToken;
     }
     case "pinterest": {
       const basicAuth = Buffer.from(
@@ -289,6 +310,129 @@ async function fetchAllMetaPages(userAccessToken) {
   );
 
   return uniquePages;
+}
+
+// ─── Fetch ALL LinkedIn Organization / Company Pages ────────────────────────
+async function fetchAllLinkedInOrganizations(accessToken) {
+  const organizations = [];
+  try {
+    console.log("[LinkedIn] Fetching organization ACLs...");
+    // 1. Fetch organizational entity ACLs (approved role assignments)
+    let aclsUrl = "https://api.linkedin.com/v2/organizationalEntityAcls?q=roleAssignee&state=APPROVED";
+    let aclsRes = await fetch(aclsUrl, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "X-Restli-Protocol-Version": "2.0.0"
+      }
+    });
+    let aclsData = await aclsRes.json();
+    console.log("[LinkedIn] organizationalEntityAcls (state=APPROVED):", JSON.stringify(aclsData));
+
+    let elements = aclsData.elements || [];
+
+    // Fallback: If no elements with state=APPROVED, try without state parameter
+    if (!elements || elements.length === 0) {
+      console.log("[LinkedIn] Trying ACLs query without state filter...");
+      const fallbackRes = await fetch(
+        "https://api.linkedin.com/v2/organizationalEntityAcls?q=roleAssignee",
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "X-Restli-Protocol-Version": "2.0.0"
+          }
+        }
+      );
+      const fallbackData = await fallbackRes.json();
+      console.log("[LinkedIn] organizationalEntityAcls (fallback):", JSON.stringify(fallbackData));
+      if (fallbackData.elements && fallbackData.elements.length > 0) {
+        elements = fallbackData.elements;
+      }
+    }
+
+    if (elements && elements.length > 0) {
+      const orgUrnSet = new Set();
+      for (const el of elements) {
+        const target = el.organizationalTarget || el.organization || "";
+        if (target) orgUrnSet.add(target);
+      }
+
+      console.log(`[LinkedIn] Found ${orgUrnSet.size} organization targets:`, Array.from(orgUrnSet));
+
+      for (const targetUrn of orgUrnSet) {
+        const match = targetUrn.match(/urn:li:(?:organization|organizationBrand):([0-9]+)/);
+        const orgId = match ? match[1] : targetUrn.replace(/[^0-9]/g, "");
+
+        if (!orgId) continue;
+
+        try {
+          // Fetch organization details (Name, Vanity Name, Logo)
+          let orgRes = await fetch(
+            `https://api.linkedin.com/v2/organizations/${orgId}?projection=(id,name,localizedName,vanityName,logoV2(original~:playableStreams))`,
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                "X-Restli-Protocol-Version": "2.0.0"
+              }
+            }
+          );
+          let orgData = await orgRes.json();
+
+          if (orgData.error || !orgData.id) {
+            console.log(`[LinkedIn] Trying basic organization endpoint for Org ${orgId}...`);
+            orgRes = await fetch(`https://api.linkedin.com/v2/organizations/${orgId}`, {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                "X-Restli-Protocol-Version": "2.0.0"
+              }
+            });
+            orgData = await orgRes.json();
+          }
+
+          console.log(`[LinkedIn] Org ${orgId} details:`, JSON.stringify(orgData));
+
+          let orgName =
+            orgData.localizedName ||
+            orgData.name?.localized?.en_US ||
+            (orgData.name && typeof orgData.name === "string" ? orgData.name : null) ||
+            orgData.vanityName ||
+            `LinkedIn Company Page (${orgId})`;
+
+          let vanity = orgData.vanityName || null;
+          let logoUrl = null;
+
+          try {
+            const streams = orgData.logoV2?.["original~"]?.elements;
+            if (streams && streams.length > 0) {
+              logoUrl = streams[0].identifiers?.[0]?.identifier || null;
+            }
+          } catch (e) {
+            // Logo parsing fallback
+          }
+
+          organizations.push({
+            id: orgId,
+            urn: `urn:li:organization:${orgId}`,
+            name: orgName,
+            vanityName: vanity,
+            avatar: logoUrl
+          });
+        } catch (orgErr) {
+          console.error(`[LinkedIn] Error fetching Org ${orgId}:`, orgErr);
+          organizations.push({
+            id: orgId,
+            urn: `urn:li:organization:${orgId}`,
+            name: `LinkedIn Page (${orgId})`,
+            vanityName: null,
+            avatar: null
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[LinkedIn] Exception in fetchAllLinkedInOrganizations:", err);
+  }
+
+  return organizations;
 }
 
 export async function GET(req, { params }) {
@@ -618,59 +762,127 @@ export async function GET(req, { params }) {
         throw new Error(err.message || "Failed to fetch Meta accounts");
       }
 
-    // ── Threads ──────────────────────────────────────────────────────────────
+    // ── Threads (Full Profile & Handle Sync) ──────────────────────────────────
     } else if (provider === "threads" && tokenData.access_token) {
-      let name = null;
-      let providerAccountId = null;
+      let name = "Threads User";
+      let username = null;
+      let avatar = null;
+      let providerAccountId = tokenData.user_id || null;
+
       try {
         const userRes = await fetch(
-          `https://graph.threads.net/v1.0/me?fields=id,username,threads_profile_picture_url&access_token=${tokenData.access_token}`
+          `https://graph.threads.net/v1.0/me?fields=id,username,name,threads_profile_picture_url,threads_biography&access_token=${tokenData.access_token}`
         );
         const userData = await userRes.json();
+        console.log("[Threads] /v1.0/me response:", JSON.stringify(userData));
         if (userData.username || userData.id) {
-          name = userData.username || "Threads User";
-          providerAccountId = userData.id;
+          name = userData.name || userData.username || "Threads User";
+          username = userData.username || null;
+          providerAccountId = userData.id || providerAccountId;
+          avatar = userData.threads_profile_picture_url || null;
         }
       } catch (err) {
         console.error("Failed to fetch Threads user info", err);
       }
+
       await upsertAccount({
         platform: "threads",
-        providerAccountId,
+        providerAccountId: providerAccountId || `threads_${Date.now()}`,
+        threadsUserId: providerAccountId,
         userId,
         accessToken: tokenData.access_token,
         refreshToken: tokenData.refresh_token || null,
-        name,
+        name: name,
+        username: username ? `@${username.replace(/^@/, "")}` : name,
+        avatar: avatar,
+        accountType: "Threads Profile",
         connectedAt: new Date().toISOString(),
         raw: tokenData
       });
 
-    // ── Pinterest ─────────────────────────────────────────────────────────────
+    // ── Pinterest (User Profile + All Boards Discovery) ───────────────────────
     } else if (provider === "pinterest" && tokenData.access_token) {
-      let name = null;
-      let providerAccountId = null;
+      let username = "Pinterest User";
+      let businessName = null;
+      let profileImage = null;
+      let accountType = "Creator";
+
       try {
         const userRes = await fetch("https://api.pinterest.com/v5/user_account", {
           headers: { Authorization: `Bearer ${tokenData.access_token}` }
         });
         const userData = await userRes.json();
+        console.log("[Pinterest] /v5/user_account response:", JSON.stringify(userData));
         if (userData.username) {
-          name = userData.username;
-          providerAccountId = userData.username;
+          username = userData.username;
+          businessName = userData.business_name || null;
+          profileImage = userData.profile_image || null;
+          accountType = userData.account_type || "Creator";
         }
       } catch (err) {
         console.error("Failed to fetch Pinterest user info", err);
       }
-      await upsertAccount({
+
+      const upsertPromises = [];
+      const savedBoards = [];
+      let defaultBoardId = null;
+
+      // Fetch all Boards created by this user
+      try {
+        const boardsRes = await fetch("https://api.pinterest.com/v5/boards", {
+          headers: { Authorization: `Bearer ${tokenData.access_token}` }
+        });
+        const boardsData = await boardsRes.json();
+        console.log("[Pinterest] /v5/boards response:", JSON.stringify(boardsData));
+
+        if (boardsData.items && boardsData.items.length > 0) {
+          defaultBoardId = boardsData.items[0].id;
+
+          for (const board of boardsData.items) {
+            const boardAccount = {
+              platform: "pinterest",
+              providerAccountId: `board_${board.id}`,
+              boardId: board.id,
+              boardName: board.name,
+              isBoard: true,
+              userId,
+              accessToken: tokenData.access_token,
+              refreshToken: tokenData.refresh_token || null,
+              name: `${businessName || username} • ${board.name}`,
+              username: `@${username}/${board.name}`,
+              avatar: board.media?.image_cover_url || profileImage || null,
+              accountType: `Board: ${board.name}`,
+              connectedAt: new Date().toISOString(),
+              raw: { ...tokenData, boardId: board.id, boardName: board.name }
+            };
+            upsertPromises.push(upsertAccount(boardAccount));
+            savedBoards.push(board.name);
+          }
+        }
+      } catch (boardsErr) {
+        console.error("[Pinterest] Error fetching boards:", boardsErr);
+      }
+
+      // Also save the primary profile account card (with default board attached)
+      const primaryAccount = {
         platform: "pinterest",
-        providerAccountId,
+        providerAccountId: `pin_${username}`,
+        boardId: defaultBoardId,
+        isPrimary: true,
         userId,
         accessToken: tokenData.access_token,
         refreshToken: tokenData.refresh_token || null,
-        name,
+        name: businessName || username || "Pinterest Account",
+        username: `@${username}`,
+        avatar: profileImage,
+        accountType: "Pinterest Account",
         connectedAt: new Date().toISOString(),
         raw: tokenData
-      });
+      };
+      upsertPromises.push(upsertAccount(primaryAccount));
+
+      await Promise.all(upsertPromises);
+      console.log(`[Pinterest] Saved primary account + ${savedBoards.length} boards: [${savedBoards.join(", ")}]`);
 
     // ── Twitter ───────────────────────────────────────────────────────────────
     } else if (provider === "twitter" && tokenData.access_token) {
@@ -699,32 +911,104 @@ export async function GET(req, { params }) {
         raw: tokenData
       });
 
-    // ── LinkedIn ─────────────────────────────────────────────────────────────
+    // ── LinkedIn (Personal Profile + All Company Pages / Organizations) ──────
     } else if (provider === "linkedin" && tokenData.access_token) {
-      let name = null;
-      let providerAccountId = null;
+      let personalName = "LinkedIn User";
+      let personalSub = null;
+      let personalPicture = null;
+      let personalEmail = null;
+
       try {
         const userRes = await fetch("https://api.linkedin.com/v2/userinfo", {
           headers: { Authorization: `Bearer ${tokenData.access_token}` }
         });
         const userData = await userRes.json();
-        if (userData.name) {
-          name = userData.name;
-          providerAccountId = userData.sub;
+        console.log("[LinkedIn] /v2/userinfo response:", JSON.stringify(userData));
+        if (userData.name || userData.sub) {
+          personalName =
+            userData.name ||
+            `${userData.given_name || ""} ${userData.family_name || ""}`.trim() ||
+            "LinkedIn User";
+          personalSub = userData.sub;
+          personalPicture = userData.picture || null;
+          personalEmail = userData.email || null;
         }
       } catch (err) {
-        console.error("Failed to fetch LinkedIn user name", err);
+        console.error("Failed to fetch LinkedIn personal user info", err);
       }
-      await upsertAccount({
-        platform: "linkedin",
-        providerAccountId,
-        userId,
-        accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token || null,
-        name,
-        connectedAt: new Date().toISOString(),
-        raw: tokenData
-      });
+
+      const upsertPromises = [];
+      const savedAccounts = [];
+
+      // 1. Save Personal LinkedIn Profile
+      if (personalSub) {
+        const personalAccount = {
+          platform: "linkedin",
+          providerAccountId: personalSub,
+          personUrn: `urn:li:person:${personalSub}`,
+          authorUrn: `urn:li:person:${personalSub}`,
+          isOrganization: false,
+          userId,
+          accessToken: tokenData.access_token,
+          refreshToken: tokenData.refresh_token || null,
+          name: personalName,
+          username: personalEmail || personalName,
+          avatar: personalPicture,
+          accountType: "Personal Profile",
+          connectedAt: new Date().toISOString(),
+          raw: tokenData
+        };
+        upsertPromises.push(upsertAccount(personalAccount));
+        savedAccounts.push(`Personal: ${personalName}`);
+      }
+
+      // 2. Fetch and Save ALL LinkedIn Company Pages (Organizations)
+      try {
+        const organizations = await fetchAllLinkedInOrganizations(tokenData.access_token);
+        console.log(`[LinkedIn] Total organizations fetched: ${organizations.length}`);
+
+        for (const org of organizations) {
+          const orgAccount = {
+            platform: "linkedin",
+            providerAccountId: `org_${org.id}`,
+            organizationId: org.id,
+            isOrganization: true,
+            orgUrn: org.urn,
+            authorUrn: org.urn,
+            personUrn: org.urn,
+            userId,
+            accessToken: tokenData.access_token,
+            refreshToken: tokenData.refresh_token || null,
+            name: org.name,
+            username: org.vanityName ? `linkedin.com/company/${org.vanityName}` : org.name,
+            avatar: org.avatar || null,
+            accountType: "Company Page",
+            connectedAt: new Date().toISOString(),
+            raw: { ...tokenData, orgId: org.id, isOrganization: true }
+          };
+          upsertPromises.push(upsertAccount(orgAccount));
+          savedAccounts.push(`Company Page: ${org.name} (${org.id})`);
+        }
+      } catch (orgFetchErr) {
+        console.error("[LinkedIn] Error fetching organization pages:", orgFetchErr);
+      }
+
+      if (upsertPromises.length > 0) {
+        await Promise.all(upsertPromises);
+        console.log(`[LinkedIn] Saved ${savedAccounts.length} LinkedIn accounts: [${savedAccounts.join(", ")}]`);
+      } else {
+        // Fallback if neither personalSub nor orgs found
+        await upsertAccount({
+          platform: "linkedin",
+          providerAccountId: `linkedin_${Date.now()}`,
+          userId,
+          accessToken: tokenData.access_token,
+          refreshToken: tokenData.refresh_token || null,
+          name: "LinkedIn Account",
+          connectedAt: new Date().toISOString(),
+          raw: tokenData
+        });
+      }
 
     // ── Generic fallback (TikTok, etc.) ──────────────────────────────────────
     } else if (tokenData.access_token) {

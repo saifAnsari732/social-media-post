@@ -384,13 +384,20 @@ function AccountsContent() {
 
                     {/* Account Name & Info */}
                     <div className="mt-3.5 space-y-1">
-                      <h4 className="text-sm font-bold text-slate-950 truncate" title={acc.name || acc.accountName}>
-                        {acc.name || acc.accountName || `${platform.name} Channel`}
-                      </h4>
+                      <div className="flex items-center justify-between gap-1.5">
+                        <h4 className="text-sm font-bold text-slate-950 truncate" title={acc.name || acc.accountName}>
+                          {acc.name || acc.accountName || `${platform.name} Channel`}
+                        </h4>
+                        {acc.accountType && (
+                          <span className="px-1.5 py-0.5 rounded bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold shrink-0">
+                            {acc.accountType}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium truncate">
                         <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
                         <span className="font-semibold text-indigo-600 truncate">
-                          {acc.handle || (acc.username ? `@${acc.username.replace(/^@/, '')}` : "Connected")}
+                          {acc.handle || (acc.username ? `${acc.username.startsWith('@') || acc.username.includes('.') ? acc.username : `@${acc.username}`}` : "Connected")}
                         </span>
                         {acc.followersFormatted && (
                           <span className="text-slate-400 text-[11px] shrink-0 font-normal">• {acc.followersFormatted}</span>

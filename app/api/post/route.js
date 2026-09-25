@@ -326,16 +326,26 @@ export async function POST(req) {
           });
           break;
 
-        case "linkedin":
+        case "linkedin": {
+          const authorUrn =
+            account.authorUrn ||
+            account.orgUrn ||
+            account.personUrn ||
+            (account.isOrganization || account.accountType === "Company Page"
+              ? `urn:li:organization:${account.organizationId || account.providerAccountId.replace("org_", "")}`
+              : `urn:li:person:${account.providerAccountId}`);
+
           results[accountId] = await postToLinkedIn({
             accessToken: account.accessToken,
-            personUrn: account.personUrn || `urn:li:person:${account.providerAccountId}`,
+            personUrn: authorUrn,
+            authorUrn: authorUrn,
             videoBuffer: buffer,
             title,
             description,
             isVideo
           });
           break;
+        }
 
         case "tiktok":
           if (!isVideo) throw new Error("TikTok requires a video file");
