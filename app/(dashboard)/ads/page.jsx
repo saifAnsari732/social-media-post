@@ -1078,6 +1078,7 @@ export default function MetaAdsPage() {
   const totalImpressions = currentCampaignsList.reduce((acc, curr) => acc + (Number(curr.impressions) || 0), 0);
   const totalClicks = currentCampaignsList.reduce((acc, curr) => acc + (Number(curr.clicks) || 0), 0);
   const totalPurchases = currentCampaignsList.reduce((acc, curr) => acc + (Number(curr.purchases) || 0), 0);
+  const isMetaAdsUnlocked = Boolean(limits?.hasMetaAds || user?.role === "admin");
 
   return (
     <div className="p-4 md:p-6 w-full max-w-full space-y-6 font-sans">
