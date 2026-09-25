@@ -1310,11 +1310,18 @@ export default function PublisherPage() {
               {Object.entries(results).map(([accountId, r]) => {
                 const acc = accounts.find(a => a._id === accountId) || {};
                 return (
-                  <div key={accountId} className="flex items-center justify-between text-[11px]">
-                    <span className="font-medium text-slate-800">{acc.name || accountId}</span>
-                    <span className={r.success ? "text-emerald-600 font-bold" : "text-rose-600 font-bold"}>
-                      {r.success ? "✓ Published" : "✕ Error"}
-                    </span>
+                  <div key={accountId} className="space-y-0.5">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-medium text-slate-800">{acc.name || accountId}</span>
+                      <span className={r.success ? "text-emerald-600 font-bold" : "text-rose-600 font-bold"}>
+                        {r.success ? "✓ Published" : "✕ Error"}
+                      </span>
+                    </div>
+                    {!r.success && r.error && (
+                      <p className="text-[10px] text-rose-600 font-medium break-words leading-tight bg-rose-50/90 p-1.5 rounded-lg border border-rose-200">
+                        {r.error}
+                      </p>
+                    )}
                   </div>
                 );
               })}

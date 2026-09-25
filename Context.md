@@ -327,10 +327,16 @@ POST   /api/admin/system              # System health & reset actions
   - Updated `/api/auth/connect/threads` to route directly through Meta OAuth Dialog, discovering Instagram accounts and automatically registering linked Threads profiles without standalone Threads App ID mismatch errors.
   - Enabled instant server cache invalidation (`serverCache.delete` and `serverCache.invalidateTag("accounts")`) on OAuth callback completion.
 
-* **LinkedIn Multi-Company Pages (Organizations) Discovery:**
-  - Upgraded LinkedIn OAuth scopes to include `w_organization_social`, `rw_organization_admin`, and `r_organization_social`.
-  - Implemented multi-tier organization discovery across `/v2/organizationalEntityAcls` (state-filtered & unfiltered) and `/v2/organizationAcls` endpoints.
-  - Added dedicated company page account cards with individual logo and title resolution for targeted multi-channel publishing.
+## 19. Facebook Multi-Strategy Video/Photo Dispatcher & Dynamic Error Reporting
+
+* **Facebook Multi-Strategy Upload Pipeline (`lib/platforms/facebook.js`):**
+  - **Strategy 1 (`file_url` CDN Direct):** Passes ImageKit CDN HTTPS URL directly to Facebook Graph Video (`/videos`) or Graph Photo (`/photos`) API, eliminating payload timeouts and Vercel limits.
+  - **Strategy 2 (`videoBuffer` Binary Fallback):** If `file_url` returns an error or CDN access times out, automatically falls back to binary chunk buffer (`source: Blob([videoBuffer])`).
+  - **Strategy 3 (`feed` Text Fallback):** In the event of media-less posts, dispatches standard Graph `/feed` message.
+  - **Safe Page ID Resolution:** Automatically falls back across `account.pageId || account.providerAccountId` in `/api/post`.
+
+* **Publish Confirmation UI Diagnostics (`publisher/page.jsx`):**
+  - Rendered detailed per-channel error message blocks under channel names in the Publish Confirmation summary box whenever a platform returns an error, giving the user immediate real-time visibility into exact API rejection causes.
 
 ---
 

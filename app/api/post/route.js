@@ -269,7 +269,23 @@ export async function POST(req) {
   if (file) {
     const arrayBuffer = await file.arrayBuffer();
     buffer = Buffer.from(arrayBuffer);
-    isVideo = file.type.startsWith("video");
+    isVideo = file.type?.startsWith("video");
+  } else if (mediaUrl && (mediaUrl.startsWith("http://") || mediaUrl.startsWith("https://"))) {
+    // If client uploaded directly to ImageKit CDN, fetch buffer for platforms that require binary buffer
+    try {
+      const mediaRes = await fetch(mediaUrl);
+      if (mediaRes.ok) {
+        const arrayBuffer = await mediaRes.arrayBuffer();
+        buffer = Buffer.from(arrayBuffer);
+        const fetchedContentType = mediaRes.headers.get("content-type") || "";
+        if (fetchedContentType.startsWith("video/") || mediaType === "video" || mediaUrl.match(/\.(mp4|mov|webm|avi|m4v|mkv)/i)) {
+          isVideo = true;
+          mediaType = "video";
+        }
+      }
+    } catch (fetchErr) {
+      console.error("Error fetching media buffer from CDN:", fetchErr);
+    }
   }
 
   for (const accountId of selectedAccountIds) {
@@ -301,9 +317,10 @@ export async function POST(req) {
 
         case "facebook":
           results[accountId] = await postToFacebook({
-            pageId: account.pageId,
+            pageId: account.pageId || account.providerAccountId,
             pageAccessToken: account.accessToken,
             videoBuffer: buffer,
+            mediaUrl: mediaUrl,
             title,
             description,
             isVideo
@@ -328,7 +345,7 @@ export async function POST(req) {
             videoBuffer: buffer,
             text: `${title}\n\n${description}`,
             isVideo,
-            mimeType: file ? file.type : "video/mp4"
+            mimeType: isVideo ? "video/mp4" : "image/jpeg"
           });
           break;
 
@@ -392,6 +409,10 @@ export async function POST(req) {
     }
   }
 
+  const allFailed = selectedAccountIds.length > 0 && selectedAccountIds.every(id => results[id] && !results[id].success);
+  const someFailed = selectedAccountIds.some(id => results[id] && !results[id].success);
+  const postStatus = allFailed ? "Failed" : (someFailed ? "Partial" : "Published");
+
   await addPost({
     id: Date.now().toString(),
     userId,
@@ -401,7 +422,7 @@ export async function POST(req) {
     mediaUrl,
     mediaType,
     accountIds: selectedAccountIds,
-    status: "Published",
+    status: postStatus,
     results,
     createdAt: new Date().toISOString()
   });
