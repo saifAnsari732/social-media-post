@@ -9,6 +9,7 @@ import {
   Lock,
   TrendingUp,
   DollarSign,
+  Activity,
   Eye,
   MousePointerClick,
   ShoppingBag,
