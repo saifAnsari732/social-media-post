@@ -273,23 +273,47 @@ export default function Sidebar() {
                 .filter(item => !item.adminOnly || isAdminUser)
                 .map((item) => {
                   const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+                  const isMetaAds = item.href === "/ads";
+
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
                       className={`flex items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-[14px] transition-all no-underline ${
-                        isActive
-                          ? 'bg-indigo-50 text-indigo-700 font-bold border-l-4 border-indigo-600 shadow-2xs'
-                          : 'text-slate-800 hover:bg-slate-100 hover:text-slate-950 font-semibold'
+                        isMetaAds
+                          ? isActive
+                            ? "bg-rose-600 text-white font-black border-2 border-rose-400 shadow-md shadow-rose-600/30 scale-[1.01]"
+                            : "bg-rose-50 hover:bg-rose-100/90 text-rose-950 font-extrabold border-2 border-rose-400/90 shadow-2xs"
+                          : isActive
+                          ? "bg-indigo-50 text-indigo-700 font-bold border-l-4 border-indigo-600 shadow-2xs"
+                          : "text-slate-800 hover:bg-slate-100 hover:text-slate-950 font-semibold"
                       }`}
                       title={collapsed ? item.name : undefined}
                     >
-                      <item.icon className={`h-5 w-5 shrink-0 transition-colors ${isActive ? 'text-indigo-600 stroke-[2.5]' : 'text-slate-700 stroke-[2]'}`} />
+                      <item.icon
+                        className={`h-5 w-5 shrink-0 transition-colors ${
+                          isMetaAds
+                            ? isActive
+                              ? "text-white stroke-[2.5]"
+                              : "text-rose-600 stroke-[2.5]"
+                            : isActive
+                            ? "text-indigo-600 stroke-[2.5]"
+                            : "text-slate-700 stroke-[2]"
+                        }`}
+                      />
                       {!collapsed && (
                         <div className="flex-1 flex items-center justify-between min-w-0">
                           <span className="truncate">{item.name}</span>
                           {item.badge && (
-                            <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-purple-100 text-purple-700 border border-purple-200 shrink-0">
+                            <span
+                              className={`ml-1.5 px-2 py-0.5 rounded-md text-[9.5px] font-black uppercase tracking-wider shrink-0 ${
+                                isMetaAds
+                                  ? isActive
+                                    ? "bg-rose-800 text-white border border-rose-400"
+                                    : "bg-rose-600 text-white border border-rose-500 shadow-2xs animate-pulse"
+                                  : "bg-purple-100 text-purple-700 border border-purple-200"
+                              }`}
+                            >
                               {item.badge}
                             </span>
                           )}

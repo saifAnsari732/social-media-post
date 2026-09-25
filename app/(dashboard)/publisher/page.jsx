@@ -700,7 +700,7 @@ export default function PublisherPage() {
                 onClick={handleIncreaseTitleLength}
                 className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[10.5px] font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1"
               >
-                ✨ Generate Long Catchy Title
+                 Generate Long Catchy Title
               </button>
             </div>
           </div>
@@ -738,7 +738,7 @@ export default function PublisherPage() {
                 onClick={() => handleGenerate(topic || title || "Quick Takeaway", "short", "description")}
                 className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-[10.5px] font-bold transition-all cursor-pointer shadow-2xs"
               >
-                ⚡ Shorten Caption
+                Shorten Caption
               </button>
             </div>
           </div>
@@ -764,7 +764,7 @@ export default function PublisherPage() {
                 onClick={handleIncreaseHashtags}
                 className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[10.5px] font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1"
               >
-                🏷️ Generate 25+ Trending Hashtags
+                 Generate 25+ Trending Hashtags
               </button>
             </div>
           </div>
