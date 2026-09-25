@@ -408,27 +408,60 @@ export default function PublisherPage() {
       }
 
       // CREATE NEW POST / DRAFT
-      const form = new FormData();
-      if (file) form.append("file", file);
-      if (finalMediaUrl) form.append("mediaUrl", finalMediaUrl);
-      if (finalMediaType) form.append("mediaType", finalMediaType);
+      let res;
+      const isHostedMedia = finalMediaUrl && (finalMediaUrl.startsWith("http://") || finalMediaUrl.startsWith("https://"));
 
-      form.append("title", title || (effectiveMode === "draft" ? "Draft Post" : "Social Post"));
-      form.append("description", description || "");
-      form.append("tags", tags || "");
-      form.append("accountIds", JSON.stringify(selectedIds));
-      form.append("publishMode", effectiveMode);
-      if (effectiveMode === "schedule") {
-        const scheduledDateTime = scheduleDate ? `${scheduleDate}T${scheduleTime || "12:00"}:00` : new Date().toISOString();
-        form.append("scheduledAt", scheduledDateTime);
+      // If saving a draft, scheduling, or if media is already hosted on ImageKit, send fast lightweight JSON
+      if (effectiveMode === "draft" || effectiveMode === "schedule" || isHostedMedia || !file) {
+        res = await fetch("/api/post", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": activeUserId || ""
+          },
+          body: JSON.stringify({
+            title: title || (effectiveMode === "draft" ? "Draft Post" : "Social Post"),
+            description: description || "",
+            tags: tags || "",
+            accountIds: selectedIds,
+            publishMode: effectiveMode,
+            scheduledAt: effectiveMode === "schedule" ? (scheduleDate ? `${scheduleDate}T${scheduleTime || "12:00"}:00` : new Date().toISOString()) : null,
+            mediaUrl: finalMediaUrl,
+            mediaType: finalMediaType
+          })
+        });
+      } else {
+        const form = new FormData();
+        if (file) form.append("file", file);
+        if (finalMediaUrl) form.append("mediaUrl", finalMediaUrl);
+        if (finalMediaType) form.append("mediaType", finalMediaType);
+
+        form.append("title", title || "Social Post");
+        form.append("description", description || "");
+        form.append("tags", tags || "");
+        form.append("accountIds", JSON.stringify(selectedIds));
+        form.append("publishMode", effectiveMode);
+
+        res = await fetch("/api/post", {
+          method: "POST",
+          body: form,
+          headers: { "x-user-id": activeUserId || "" }
+        });
       }
-      
-      const res = await fetch("/api/post", {
-        method: "POST",
-        body: form,
-        headers: { "x-user-id": activeUserId || "" }
-      });
-      const data = await res.json();
+
+      let data = {};
+      const rawText = await res.text().catch(() => "");
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch (jsonErr) {
+        if (res.status === 413 || rawText.toLowerCase().includes("large") || rawText.toLowerCase().includes("entity")) {
+          toast.error("File size too large for direct upload. ImageKit upload in progress.");
+        } else {
+          toast.error("Server communication error. Please try again.");
+        }
+        setPosting(false);
+        return;
+      }
 
       if (!res.ok || data.error) {
         toast.error(data.error || "Failed to publish or save post.");

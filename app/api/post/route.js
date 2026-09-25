@@ -142,7 +142,10 @@ export async function POST(req) {
     const json = await req.json();
     title = json.title || "";
     description = json.content || json.description || "";
-    tags = json.tags || [];
+    const rawTags = json.tags || [];
+    tags = Array.isArray(rawTags)
+      ? rawTags
+      : String(rawTags).split(",").map(t => t.trim().replace(/^#/, '')).filter(Boolean);
     selectedAccountIds = json.accountIds || json.platforms || [];
     publishMode = json.publishMode || (json.scheduledAt ? "schedule" : "draft");
     scheduledAt = json.scheduledAt || null;
