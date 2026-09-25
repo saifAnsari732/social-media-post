@@ -72,6 +72,7 @@ export default function PublisherPage() {
 
   const [recentPosts, setRecentPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
 
   useEffect(() => {
     const activeUser = getStoredUser();
@@ -196,11 +197,31 @@ export default function PublisherPage() {
     }
   }
 
-  function handleFileChange(e) {
+  async function handleFileChange(e) {
     const f = e.target.files?.[0];
-    if (f) {
-      setFile(f);
-      setFilePreview(URL.createObjectURL(f));
+    if (!f) return;
+    setFile(f);
+    setFilePreview(URL.createObjectURL(f));
+    setUploadingMedia(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", f);
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        setFilePreview(data.url);
+        toast.success(`⚡ Uploaded ${data.mediaType === 'video' ? 'video' : 'photo'} to ImageKit!`);
+      } else {
+        toast.error(data.error || "ImageKit upload failed");
+      }
+    } catch (err) {
+      console.error("ImageKit upload error:", err);
+    } finally {
+      setUploadingMedia(false);
     }
   }
 
@@ -280,24 +301,6 @@ export default function PublisherPage() {
       let finalMediaUrl = filePreview || editingPost?.mediaUrl || null;
       let finalMediaType = isVideo ? "video" : (filePreview ? "image" : (editingPost?.mediaType || null));
 
-      // Convert local file object to persistent base64 if user uploaded a file
-      if (file) {
-        try {
-          const base64Str = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target?.result);
-            reader.onerror = () => resolve(null);
-            reader.readAsDataURL(file);
-          });
-          if (base64Str) {
-            finalMediaUrl = base64Str;
-            finalMediaType = file.type?.startsWith("video") ? "video" : "image";
-          }
-        } catch (e) {
-          console.error("FileReader conversion error:", e);
-        }
-      }
-
       // UPDATE EXISTING DRAFT / POST
       if (editingPost) {
         const res = await fetch("/api/post", {
@@ -372,6 +375,13 @@ export default function PublisherPage() {
     "Engaging Discussion Poll",
     "Behind the Scenes Story"
   ];
+
+  // Live Count Calculations
+  const titleCharCount = title.length;
+  const titleWordCount = title.trim() ? title.trim().split(/\s+/).length : 0;
+  const descCharCount = description.length;
+  const descWordCount = description.trim() ? description.trim().split(/\s+/).length : 0;
+  const hashtagCount = tags ? tags.split(",").map(t => t.trim()).filter(Boolean).length : 0;
 
   return (
     <div className="space-y-7 max-w-7xl mx-auto font-sans">
@@ -505,10 +515,15 @@ export default function PublisherPage() {
             </div>
           </div>
 
-          {/* Media File Upload Area */}
+          {/* Media File Upload Area (ImageKit Enabled) */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-900 flex items-center justify-between">
-              <span>Media Attachment (Photo or Video)</span>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                <span>Media Attachment (Photo or Video)</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-violet-100 text-violet-700 border border-violet-200">
+                  ImageKit CDN
+                </span>
+              </label>
               {filePreview && (
                 <button
                   type="button"
@@ -518,9 +533,15 @@ export default function PublisherPage() {
                   <Trash2 className="w-3 h-3" /> Remove File
                 </button>
               )}
-            </label>
+            </div>
 
-            {filePreview ? (
+            {uploadingMedia ? (
+              <div className="border-2 border-slate-200 rounded-2xl p-8 text-center bg-violet-50/50 space-y-3">
+                <RefreshCw className="w-8 h-8 text-violet-600 animate-spin mx-auto" />
+                <p className="text-xs font-bold text-slate-900">Uploading media to ImageKit CDN...</p>
+                <p className="text-[11px] text-slate-500">Optimizing photo & video for ultra-fast social delivery</p>
+              </div>
+            ) : filePreview ? (
               <div className="relative rounded-2xl overflow-hidden border-2 border-slate-200 bg-slate-900 group max-h-64 flex items-center justify-center">
                 {isVideo ? (
                   <video src={filePreview} controls className="w-full max-h-60 object-contain" />
@@ -534,6 +555,9 @@ export default function PublisherPage() {
                 >
                   <X className="w-4 h-4" />
                 </button>
+                <div className="absolute bottom-2 left-2 px-2.5 py-1 rounded-md bg-slate-950/80 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1">
+                  <span>{isVideo ? "📹 Video Asset" : "🖼️ Image Asset"}</span>
+                </div>
               </div>
             ) : (
               <div
@@ -546,7 +570,7 @@ export default function PublisherPage() {
                 <div>
                   <p className="text-xs font-bold text-slate-900">Click or drag & drop media here</p>
                   <p className="text-[11px] text-slate-500 font-normal mt-0.5">
-                    Supports MP4, MOV, PNG, JPG (High Quality up to 500MB)
+                    Supports MP4, MOV, PNG, JPG (Hosted live via ImageKit CDN)
                   </p>
                 </div>
                 <button
@@ -566,11 +590,14 @@ export default function PublisherPage() {
             />
           </div>
 
-          {/* Post Title */}
+          {/* Post Title with Character & Word Count Badge */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-slate-900">Post Title / Headline</label>
-              <span className="text-[11px] font-medium text-slate-400">{title.length} characters</span>
+              <div className="flex items-center gap-1.5 text-[10.5px] font-bold text-slate-500">
+                <span className="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{titleCharCount} chars</span>
+                <span className="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{titleWordCount} words</span>
+              </div>
             </div>
             <input
               type="text"
@@ -581,24 +608,36 @@ export default function PublisherPage() {
             />
           </div>
 
-          {/* Caption & Content */}
+          {/* Caption & Content with Large Text Count Badge */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-slate-900">Caption & Content</label>
-              <span className="text-[11px] font-medium text-slate-400">{description.length}/2,200</span>
+              <div className="flex items-center gap-1.5 text-[10.5px] font-bold">
+                <span className={`px-2 py-0.5 rounded border ${descCharCount > 2200 ? "bg-rose-100 text-rose-700 border-rose-300 font-extrabold" : "bg-slate-100 text-slate-600 border-slate-200"}`}>
+                  {descCharCount}/2,200 chars
+                </span>
+                <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">
+                  {descWordCount} words
+                </span>
+              </div>
             </div>
             <textarea
-              rows={5}
-              placeholder="Write your post caption, hook, details, and call to action..."
+              rows={6}
+              placeholder="Write your post caption, hook, details, bullet points, and call to action..."
               value={description}
               onChange={e => setDescription(e.target.value)}
               className="w-full p-3.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all shadow-2xs placeholder:text-slate-400 resize-none leading-relaxed"
             />
           </div>
 
-          {/* Hashtags */}
+          {/* Hashtags & Tags with Hashtag Count Badge */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-900">Hashtags & Tags</label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-900">Hashtags & Tags</label>
+              <span className="text-[10.5px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200">
+                {hashtagCount} hashtags
+              </span>
+            </div>
             <input
               type="text"
               placeholder="e.g. socialgrowth, contentcreator, viralpost"
@@ -621,13 +660,13 @@ export default function PublisherPage() {
           </div>
 
           {/* Platform Switcher Tabs */}
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 border border-slate-200/80 overflow-x-auto">
-            {["instagram", "facebook", "youtube", "linkedin"].map((p) => (
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 border border-slate-200/80 overflow-x-auto custom-scrollbar">
+            {["instagram", "facebook", "youtube", "linkedin", "twitter", "tiktok", "pinterest"].map((p) => (
               <button
                 key={p}
                 type="button"
                 onClick={() => setPreviewTab(p)}
-                className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap capitalize ${
+                className={`py-1.5 px-2.5 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap capitalize ${
                   previewTab === p
                     ? "bg-white text-slate-900 shadow-2xs border border-slate-200/80"
                     : "text-slate-500 hover:text-slate-900"
@@ -639,70 +678,232 @@ export default function PublisherPage() {
             ))}
           </div>
 
-          {/* Phone Frame Live Mockup */}
+          {/* Platform-Specific Mockup Rendering */}
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3 shadow-inner">
             
-            {/* Header: User Profile Avatar */}
-            <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                  {user?.name ? user.name.slice(0, 2).toUpperCase() : "PF"}
-                </div>
-                <div className="min-w-0">
-                  <h4 className="text-xs font-bold text-slate-900 truncate">{user?.name || "Postfly Creator"}</h4>
-                  <p className="text-[10px] text-slate-400 capitalize truncate">{previewTab} Feed • Just Now</p>
-                </div>
-              </div>
-              <MoreHorizontal className="w-4 h-4 text-slate-400" />
-            </div>
-
-            {/* Mockup Media Frame */}
-            <div className="rounded-xl overflow-hidden bg-slate-900 border border-slate-200/90 aspect-square flex items-center justify-center relative group">
-              {filePreview ? (
-                isVideo ? (
-                  <video src={filePreview} controls className="w-full h-full object-cover" />
-                ) : (
-                  <img src={filePreview} alt="Live Preview" className="w-full h-full object-cover" />
-                )
-              ) : (
-                <div className="text-center p-6 space-y-2 text-slate-400">
-                  <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center mx-auto text-indigo-400">
-                    <PlatformIcon platform={previewTab} className="w-6 h-6" />
+            {/* INSTAGRAM PREVIEW */}
+            {previewTab === "instagram" && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                      {user?.name ? user.name.slice(0, 2).toUpperCase() : "IG"}
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-bold text-slate-900 truncate">{user?.name ? user.name.toLowerCase().replace(/\s+/g, '') : "creator_hub"}</h4>
+                      <p className="text-[10px] text-slate-400">Instagram Feed • Just Now</p>
+                    </div>
                   </div>
-                  <p className="text-xs font-medium text-slate-300">Add media to preview on {previewTab}</p>
+                  <MoreHorizontal className="w-4 h-4 text-slate-400" />
                 </div>
-              )}
-            </div>
 
-            {/* Interaction Icons Bar */}
-            <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs space-y-2">
-              <div className="flex items-center justify-between text-slate-700">
-                <div className="flex items-center gap-3">
-                  <Heart className="w-4 h-4 hover:text-rose-500 cursor-pointer transition-colors" />
-                  <MessageCircle className="w-4 h-4 hover:text-indigo-600 cursor-pointer transition-colors" />
-                  <Share2 className="w-4 h-4 hover:text-indigo-600 cursor-pointer transition-colors" />
+                <div className="rounded-xl overflow-hidden bg-slate-900 border border-slate-200/90 aspect-square flex items-center justify-center relative group">
+                  {filePreview ? (
+                    isVideo ? (
+                      <video src={filePreview} controls className="w-full h-full object-cover" />
+                    ) : (
+                      <img src={filePreview} alt="Live Preview" className="w-full h-full object-cover" />
+                    )
+                  ) : (
+                    <div className="text-center p-6 space-y-2 text-slate-400">
+                      <PlatformIcon platform="instagram" className="w-8 h-8 mx-auto text-rose-500" />
+                      <p className="text-xs font-medium text-slate-300">Add photo/video to preview on Instagram</p>
+                    </div>
+                  )}
                 </div>
-                <Bookmark className="w-4 h-4 hover:text-amber-500 cursor-pointer transition-colors" />
+
+                <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs space-y-2">
+                  <div className="flex items-center justify-between text-slate-700">
+                    <div className="flex items-center gap-3">
+                      <Heart className="w-4 h-4 hover:text-rose-500 cursor-pointer transition-colors" />
+                      <MessageCircle className="w-4 h-4 hover:text-indigo-600 cursor-pointer transition-colors" />
+                      <Share2 className="w-4 h-4 hover:text-indigo-600 cursor-pointer transition-colors" />
+                    </div>
+                    <Bookmark className="w-4 h-4 hover:text-amber-500 cursor-pointer transition-colors" />
+                  </div>
+                  <div className="text-[11px] font-bold text-slate-900">1,482 likes</div>
+                  <div className="text-xs text-slate-800 leading-relaxed font-normal whitespace-pre-wrap">
+                    <span className="font-bold mr-1 text-slate-900">{user?.name ? user.name.toLowerCase().replace(/\s+/g, '') : "creator_hub"}</span>
+                    {title && <span className="font-bold block text-slate-950 mb-0.5">{title}</span>}
+                    {description || <span className="text-slate-400 italic">Your Instagram caption will render here...</span>}
+                  </div>
+                  {tags && (
+                    <div className="text-[11px] font-semibold text-indigo-600">
+                      {tags.split(",").map(t => `#${t.trim().replace(/^#/, '')}`).join(" ")}
+                    </div>
+                  )}
+                </div>
               </div>
+            )}
 
-              <div className="text-[11px] font-bold text-slate-900">1,482 likes</div>
+            {/* FACEBOOK PREVIEW */}
+            {previewTab === "facebook" && (
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                      {user?.name ? user.name.slice(0, 2).toUpperCase() : "FB"}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900">{user?.name || "Official Brand Page"}</h4>
+                      <p className="text-[10px] text-slate-400 flex items-center gap-1">
+                        Just Now • <Globe className="w-3 h-3" />
+                      </p>
+                    </div>
+                  </div>
+                  <MoreHorizontal className="w-4 h-4 text-slate-400" />
+                </div>
 
-              {/* Caption Render */}
-              <div className="text-xs text-slate-800 leading-relaxed font-normal">
-                <span className="font-bold mr-1.5 text-slate-900">{user?.name ? user.name.toLowerCase().replace(/\s+/g, '') : "creator"}</span>
-                {description ? (
-                  <span>{description}</span>
-                ) : (
-                  <span className="text-slate-400 italic">Your live caption will appear here...</span>
+                <div className="text-xs text-slate-800 leading-relaxed font-normal whitespace-pre-wrap">
+                  {title && <h4 className="font-bold text-slate-950 text-sm mb-1">{title}</h4>}
+                  {description || <span className="text-slate-400 italic">Your Facebook post text will render here...</span>}
+                </div>
+
+                {filePreview && (
+                  <div className="rounded-xl overflow-hidden bg-slate-900 max-h-64 flex items-center justify-center">
+                    {isVideo ? (
+                      <video src={filePreview} controls className="w-full max-h-60 object-contain" />
+                    ) : (
+                      <img src={filePreview} alt="FB Media" className="w-full max-h-60 object-cover" />
+                    )}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-around pt-2 border-t border-slate-100 text-slate-600 text-xs font-bold">
+                  <button className="flex items-center gap-1.5 hover:text-blue-600"><ThumbsUp className="w-4 h-4" /> Like</button>
+                  <button className="flex items-center gap-1.5 hover:text-blue-600"><MessageCircle className="w-4 h-4" /> Comment</button>
+                  <button className="flex items-center gap-1.5 hover:text-blue-600"><Share2 className="w-4 h-4" /> Share</button>
+                </div>
+              </div>
+            )}
+
+            {/* YOUTUBE PREVIEW */}
+            {previewTab === "youtube" && (
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs space-y-3">
+                <div className="rounded-xl overflow-hidden bg-slate-950 aspect-video flex items-center justify-center relative group">
+                  {filePreview ? (
+                    isVideo ? (
+                      <video src={filePreview} controls className="w-full h-full object-cover" />
+                    ) : (
+                      <img src={filePreview} alt="YouTube Thumbnail" className="w-full h-full object-cover" />
+                    )
+                  ) : (
+                    <div className="text-center p-6 space-y-2 text-slate-400">
+                      <PlatformIcon platform="youtube" className="w-10 h-10 mx-auto text-red-600" />
+                      <p className="text-xs font-medium text-slate-300">Upload video to preview YouTube Player</p>
+                    </div>
+                  )}
+                  {isVideo && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
+                      <div className="w-12 h-12 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg">
+                        <Play className="w-6 h-6 fill-white ml-0.5" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <h4 className="text-xs font-bold text-slate-900 leading-snug">
+                    {title || "Enter Video Title above..."}
+                  </h4>
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 pb-2 border-b border-slate-100">
+                    <span>{user?.name || "YouTube Channel"} • 0 views • Just now</span>
+                    <button className="px-2.5 py-1 rounded-full bg-red-600 text-white font-bold text-[10px]">Subscribe</button>
+                  </div>
+                  <p className="text-[11.5px] text-slate-600 line-clamp-3 leading-relaxed whitespace-pre-wrap">
+                    {description || "Video description text will render here..."}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* LINKEDIN PREVIEW */}
+            {previewTab === "linkedin" && (
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-full bg-blue-700 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                    {user?.name ? user.name.slice(0, 2).toUpperCase() : "IN"}
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900">{user?.name || "Professional Creator"}</h4>
+                    <p className="text-[10px] text-slate-500">Industry Leader • Just Now • 🌐</p>
+                  </div>
+                </div>
+
+                <div className="text-xs text-slate-800 leading-relaxed font-normal whitespace-pre-wrap">
+                  {title && <h4 className="font-bold text-slate-950 text-xs mb-1">{title}</h4>}
+                  {description || <span className="text-slate-400 italic">LinkedIn professional copy will render here...</span>}
+                </div>
+
+                {filePreview && (
+                  <div className="rounded-xl overflow-hidden bg-slate-900 max-h-60 flex items-center justify-center">
+                    {isVideo ? (
+                      <video src={filePreview} controls className="w-full max-h-56 object-contain" />
+                    ) : (
+                      <img src={filePreview} alt="LinkedIn Media" className="w-full max-h-56 object-cover" />
+                    )}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-around pt-2 border-t border-slate-100 text-slate-600 text-[11px] font-bold">
+                  <button className="hover:text-blue-700">👍 Like</button>
+                  <button className="hover:text-blue-700">💬 Comment</button>
+                  <button className="hover:text-blue-700">🔄 Repost</button>
+                  <button className="hover:text-blue-700">📤 Send</button>
+                </div>
+              </div>
+            )}
+
+            {/* TWITTER / X PREVIEW */}
+            {previewTab === "twitter" && (
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs space-y-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                    {user?.name ? user.name.slice(0, 2).toUpperCase() : "X"}
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900">{user?.name || "Creator"}</h4>
+                    <p className="text-[10px] text-slate-400">@{user?.name ? user.name.toLowerCase().replace(/\s+/g, '') : "creator"} • Just Now</p>
+                  </div>
+                </div>
+
+                <div className="text-xs text-slate-900 leading-relaxed whitespace-pre-wrap">
+                  {title && <p className="font-bold mb-1">{title}</p>}
+                  {description || <span className="text-slate-400 italic">Tweet body text will render here...</span>}
+                </div>
+
+                {filePreview && (
+                  <div className="rounded-xl overflow-hidden bg-slate-950 max-h-56 flex items-center justify-center">
+                    {isVideo ? (
+                      <video src={filePreview} controls className="w-full max-h-52 object-contain" />
+                    ) : (
+                      <img src={filePreview} alt="Tweet Media" className="w-full max-h-52 object-cover" />
+                    )}
+                  </div>
                 )}
               </div>
+            )}
 
-              {tags && (
-                <div className="text-[11px] font-semibold text-indigo-600">
-                  {tags.split(",").map(t => `#${t.trim().replace(/^#/, '')}`).join(" ")}
+            {/* TIKTOK / PINTEREST FALLBACK PREVIEW */}
+            {(previewTab === "tiktok" || previewTab === "pinterest") && (
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs text-center space-y-3">
+                <div className="rounded-xl overflow-hidden bg-slate-900 aspect-[9/16] max-h-80 mx-auto flex items-center justify-center relative">
+                  {filePreview ? (
+                    isVideo ? (
+                      <video src={filePreview} controls className="w-full h-full object-cover" />
+                    ) : (
+                      <img src={filePreview} alt="Vertical Asset" className="w-full h-full object-cover" />
+                    )
+                  ) : (
+                    <div className="text-slate-400 space-y-2 p-4">
+                      <PlatformIcon platform={previewTab} className="w-10 h-10 mx-auto text-indigo-500" />
+                      <p className="text-xs font-medium text-slate-300">Upload 9:16 vertical video or photo for {previewTab}</p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+                <h4 className="text-xs font-bold text-slate-900 truncate">{title || "Post Title"}</h4>
+              </div>
+            )}
 
           </div>
 

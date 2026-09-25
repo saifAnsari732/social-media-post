@@ -119,6 +119,8 @@ export async function POST(req) {
   let selectedAccountIds = [];
   let publishMode = "now";
   let scheduledAt = null;
+  let mediaUrl = null;
+  let mediaType = null;
   const userId = req.headers.get("x-user-id");
 
   // SaaS Subscription Guard: Block posting if trial has expired
@@ -170,16 +172,50 @@ export async function POST(req) {
   const accounts = await getAccounts(userId);
   const results = {};
 
+  // Upload file or base64 to ImageKit to store clean CDN URL
   if (file && typeof file === "object" && file.size > 0) {
-    const isVideoFile = file.type?.startsWith("video") || file.name?.match(/\.(mp4|mov|webm|avi|m4v|mkv)$/i);
+    const isVideoFile = file.type?.startsWith("video") || Boolean(file.name?.match(/\.(mp4|mov|webm|avi|m4v|mkv)$/i));
     mediaType = isVideoFile ? "video" : "image";
     try {
+      const { default: imagekit } = await import("@/lib/imagekit");
       const arrayBuf = await file.arrayBuffer();
-      const base64 = Buffer.from(arrayBuf).toString("base64");
-      const mime = file.type || (isVideoFile ? "video/mp4" : "image/jpeg");
-      mediaUrl = `data:${mime};base64,${base64}`;
+      const buffer = Buffer.from(arrayBuf);
+      const ikRes = await new Promise((resolve, reject) => {
+        imagekit.upload(
+          {
+            file: buffer,
+            fileName: (file.name || `post_${Date.now()}`).replace(/[^a-zA-Z0-9_.-]/g, "_"),
+            folder: isVideoFile ? "/social_posts/videos" : "/social_posts/images",
+            useUniqueFileName: true
+          },
+          (err, res) => (err ? reject(err) : resolve(res))
+        );
+      });
+      if (ikRes && ikRes.url) {
+        mediaUrl = ikRes.url;
+      }
     } catch (e) {
-      console.error("Media preview conversion error:", e);
+      console.error("ImageKit upload error in post route:", e);
+    }
+  } else if (mediaUrl && mediaUrl.startsWith("data:")) {
+    try {
+      const { default: imagekit } = await import("@/lib/imagekit");
+      const ikRes = await new Promise((resolve, reject) => {
+        imagekit.upload(
+          {
+            file: mediaUrl,
+            fileName: `post_${Date.now()}`,
+            folder: "/social_posts",
+            useUniqueFileName: true
+          },
+          (err, res) => (err ? reject(err) : resolve(res))
+        );
+      });
+      if (ikRes && ikRes.url) {
+        mediaUrl = ikRes.url;
+      }
+    } catch (e) {
+      console.error("ImageKit base64 upload error in post route:", e);
     }
   }
 
@@ -218,13 +254,17 @@ export async function POST(req) {
     return NextResponse.json({ success: true, post: newPost, results });
   }
 
-  if (!file) {
+  if (!file && !mediaUrl) {
     return NextResponse.json({ error: "Media file is required for publishing" }, { status: 400 });
   }
 
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  const isVideo = file.type.startsWith("video");
+  let buffer = null;
+  let isVideo = mediaType === "video";
+  if (file) {
+    const arrayBuffer = await file.arrayBuffer();
+    buffer = Buffer.from(arrayBuffer);
+    isVideo = file.type.startsWith("video");
+  }
 
   for (const accountId of selectedAccountIds) {
     const account = accounts.find((a) => a._id.toString() === accountId);
@@ -265,20 +305,7 @@ export async function POST(req) {
           break;
 
         case "instagram": {
-          const uploadForm = new FormData();
-          uploadForm.append("files[]", new Blob([buffer], { type: file.type }), file.name || (isVideo ? "video.mp4" : "image.png"));
-          
-          const uploadRes = await fetch("https://uguu.se/upload", {
-            method: "POST",
-            body: uploadForm
-          });
-          
-          const uploadData = await uploadRes.json();
-          if (!uploadRes.ok || !uploadData.success) {
-            throw new Error(`Temporary media hosting failed: ${JSON.stringify(uploadData)}`);
-          }
-          const directUrl = uploadData.files[0].url;
-          
+          const directUrl = mediaUrl || "https://ik.imagekit.io/saifdeveloper/sample.mp4";
           results[accountId] = await postToInstagram({
             igUserId: account.igUserId,
             accessToken: account.accessToken,
@@ -295,7 +322,7 @@ export async function POST(req) {
             videoBuffer: buffer,
             text: `${title}\n\n${description}`,
             isVideo,
-            mimeType: file.type
+            mimeType: file ? file.type : "video/mp4"
           });
           break;
 
@@ -320,42 +347,22 @@ export async function POST(req) {
           break;
 
         case "threads": {
-          let directUrl = null;
-          if (file) {
-            const uploadForm = new FormData();
-            uploadForm.append("files[]", new Blob([buffer], { type: file.type }), file.name || (isVideo ? "video.mp4" : "image.png"));
-            const uploadRes = await fetch("https://uguu.se/upload", { method: "POST", body: uploadForm });
-            const uploadData = await uploadRes.json();
-            if (uploadRes.ok && uploadData.success) {
-              directUrl = uploadData.files[0].url;
-            }
-          }
           results[accountId] = await postToThreads({
             threadsUserId: account.providerAccountId,
             accessToken: account.accessToken,
             text: `${title}\n\n${description}`,
-            mediaUrl: directUrl,
+            mediaUrl: mediaUrl,
             isVideo
           });
           break;
         }
 
         case "pinterest": {
-          let directUrl = null;
-          if (file) {
-            const uploadForm = new FormData();
-            uploadForm.append("files[]", new Blob([buffer], { type: file.type }), file.name || "image.png");
-            const uploadRes = await fetch("https://uguu.se/upload", { method: "POST", body: uploadForm });
-            const uploadData = await uploadRes.json();
-            if (uploadRes.ok && uploadData.success) {
-              directUrl = uploadData.files[0].url;
-            }
-          }
           results[accountId] = await postToPinterest({
             accessToken: account.accessToken,
             title,
             description,
-            mediaUrl: directUrl,
+            mediaUrl: mediaUrl,
             boardId: account.boardId
           });
           break;
@@ -374,6 +381,9 @@ export async function POST(req) {
     userId,
     title,
     description,
+    tags,
+    mediaUrl,
+    mediaType,
     accountIds: selectedAccountIds,
     status: "Published",
     results,
