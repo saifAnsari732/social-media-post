@@ -235,7 +235,7 @@ export default function PublisherPage() {
     setSelectedIds(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
   }
 
-  const [selectedLength, setSelectedLength] = useState("long"); // 'short' | 'medium' | 'long' | 'epic'
+  const [selectedLength, setSelectedLength] = useState("short"); // 'short' | 'medium' | 'long' | 'epic'
   const [selectedHashtagCount, setSelectedHashtagCount] = useState(15); // 5 | 15 | 25 | 30
 
   async function handleGenerate(customTopic, overrideLength, overrideType, overrideHashtags) {
@@ -546,10 +546,9 @@ export default function PublisherPage() {
                 <span className="text-[11px] font-bold text-indigo-950">Text Length:</span>
                 <div className="flex items-center gap-1">
                   {[
-                    { id: "short", label: "⚡ Short (~50w)" },
-                    { id: "medium", label: "📄 Medium (~180w)" },
-                    { id: "long", label: "🚀 Long (500+w)" },
-                    { id: "epic", label: "💎 Epic Guide" }
+                    { id: "short", label: " (50w)" },
+                    { id: "medium", label: "(180w)" },
+                    { id: "long", label: "(500+w)" },
                   ].map(l => (
                     <button
                       key={l.id}
