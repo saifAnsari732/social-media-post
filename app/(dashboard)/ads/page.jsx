@@ -3260,25 +3260,31 @@ export default function MetaAdsPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <p className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Registered MCP Tools (6 Ready):</p>
+                  <p className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Registered MCP Tools (6 Active):</p>
                   <div className="grid grid-cols-2 gap-2 text-[11px]">
-                    <div className="p-2.5 rounded-xl bg-white border border-slate-200 font-mono text-slate-800 flex items-center gap-1.5 shadow-2xs">
-                      <span className="text-rose-500">⚡</span> meta_ads_list_accounts
+                    <div className="p-2.5 rounded-xl bg-white border border-slate-200 font-mono text-slate-800 flex items-center gap-2 shadow-2xs">
+                      <Layers className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                      <span>meta_ads_list_accounts</span>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-white border border-slate-200 font-mono text-slate-800 flex items-center gap-1.5 shadow-2xs">
-                      <span className="text-indigo-500">📊</span> meta_ads_get_campaigns
+                    <div className="p-2.5 rounded-xl bg-white border border-slate-200 font-mono text-slate-800 flex items-center gap-2 shadow-2xs">
+                      <BarChart3 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                      <span>meta_ads_get_campaigns</span>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-white border border-slate-200 font-mono text-slate-800 flex items-center gap-1.5 shadow-2xs">
-                      <span className="text-emerald-500">🎯</span> meta_ads_get_roas_insights
+                    <div className="p-2.5 rounded-xl bg-white border border-slate-200 font-mono text-slate-800 flex items-center gap-2 shadow-2xs">
+                      <Target className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>meta_ads_get_roas_insights</span>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-white border border-slate-200 font-mono text-slate-800 flex items-center gap-1.5 shadow-2xs">
-                      <span className="text-amber-500">💰</span> meta_ads_update_campaign
+                    <div className="p-2.5 rounded-xl bg-white border border-slate-200 font-mono text-slate-800 flex items-center gap-2 shadow-2xs">
+                      <DollarSign className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>meta_ads_update_campaign</span>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-white border border-slate-200 font-mono text-slate-800 flex items-center gap-1.5 shadow-2xs">
-                      <span className="text-purple-500">🚀</span> meta_ads_create_campaign
+                    <div className="p-2.5 rounded-xl bg-white border border-slate-200 font-mono text-slate-800 flex items-center gap-2 shadow-2xs">
+                      <PlusCircle className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                      <span>meta_ads_create_campaign</span>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-white border border-slate-200 font-mono text-slate-800 flex items-center gap-1.5 shadow-2xs">
-                      <span className="text-blue-500">🔗</span> meta_ads_link_account
+                    <div className="p-2.5 rounded-xl bg-white border border-slate-200 font-mono text-slate-800 flex items-center gap-2 shadow-2xs">
+                      <Link2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      <span>meta_ads_link_account</span>
                     </div>
                   </div>
                 </div>

@@ -425,10 +425,10 @@ export default function MetaAdsLogsPage() {
         <div className="flex flex-wrap items-center gap-2 pt-1">
           {[
             { id: "all", label: `All Events (${logs.length})` },
-            { id: "insights", label: "📊 200 OK Insights" },
-            { id: "mutation", label: "⚡ POST Mutations" },
-            { id: "audit", label: "🔍 Audits & AdSets" },
-            { id: "pixel", label: "🎯 CAPI Conversions" }
+            { id: "insights", label: "200 OK Insights" },
+            { id: "mutation", label: "POST Mutations" },
+            { id: "audit", label: "Audits & AdSets" },
+            { id: "pixel", label: "CAPI Conversions" }
           ].map((tab) => (
             <button
               key={tab.id}
