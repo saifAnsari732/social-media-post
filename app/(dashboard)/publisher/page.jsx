@@ -547,8 +547,8 @@ export default function PublisherPage() {
                 <div className="flex items-center gap-1">
                   {[
                     { id: "short", label: " (50w)" },
-                    { id: "medium", label: "(180w)" },
-                    { id: "long", label: "(500+w)" },
+                    { id: "medium", label: "(100w)" },
+                    { id: "long", label: "(300+w)" },
                   ].map(l => (
                     <button
                       key={l.id}
@@ -698,9 +698,9 @@ export default function PublisherPage() {
               <button
                 type="button"
                 onClick={handleIncreaseTitleLength}
-                className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[10.5px] font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1"
+                className=""
               >
-                 Generate Long Catchy Title
+
               </button>
             </div>
           </div>
@@ -725,20 +725,20 @@ export default function PublisherPage() {
               onChange={e => setDescription(e.target.value)}
               className="w-full p-3.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all shadow-2xs placeholder:text-slate-400 resize-none leading-relaxed"
             />
-            <div className="flex flex-wrap items-center justify-between gap-1 pt-0.5">
+            <div className="flex flex-wrap items-center justify-between">
               <button
                 type="button"
                 onClick={handleIncreaseCaptionLength}
-                className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[10.5px] font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1"
+                className=""
               >
-                📈 Make Caption Longer (Add 500+ Words & Bullet Points)
+               
               </button>
               <button
                 type="button"
                 onClick={() => handleGenerate(topic || title || "Quick Takeaway", "short", "description")}
-                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-[10.5px] font-bold transition-all cursor-pointer shadow-2xs"
+                className=""
               >
-                Shorten Caption
+             
               </button>
             </div>
           </div>
@@ -762,9 +762,9 @@ export default function PublisherPage() {
               <button
                 type="button"
                 onClick={handleIncreaseHashtags}
-                className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[10.5px] font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1"
+                className=""
               >
-                 Generate 25+ Trending Hashtags
+              
               </button>
             </div>
           </div>
