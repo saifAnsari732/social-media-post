@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import toast from "react-hot-toast";
 import { getStoredUser, getUserPlanLimits } from "@/lib/user";
 import {
   Megaphone,
@@ -50,7 +51,10 @@ import {
   Users,
   BrainCircuit,
   Send,
-  MessageSquare
+  MessageSquare,
+  Copy,
+  Sparkles,
+  TrendingDown
 } from "lucide-react";
 import { PlatformIcon } from "@/components/ui/SocialIcons";
 
@@ -128,6 +132,12 @@ export default function MetaAdsPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editCampaignData, setEditCampaignData] = useState(null);
   const [updatingCampaign, setUpdatingCampaign] = useState(false);
+
+  // Quick Budget Edit State
+  const [quickBudgetModalOpen, setQuickBudgetModalOpen] = useState(false);
+  const [quickBudgetCampaign, setQuickBudgetCampaign] = useState(null);
+  const [quickBudgetAmount, setQuickBudgetAmount] = useState(1500);
+  const [updatingBudget, setUpdatingBudget] = useState(false);
 
   // Delete Campaign State
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -596,9 +606,129 @@ export default function MetaAdsPage() {
           status: nextStatus
         })
       });
+      toast.success(`Campaign status updated to ${nextStatus}!`);
     } catch (err) {
       console.error("Failed to toggle campaign status:", err);
     }
+  };
+
+  const handleOpenQuickBudgetModal = (campaign, e) => {
+    if (e) e.stopPropagation();
+    if (!checkPlanActive("Adjust Campaign Budget")) return;
+    setQuickBudgetCampaign(campaign);
+    setQuickBudgetAmount(campaign.dailyBudget || 1500);
+    setQuickBudgetModalOpen(true);
+  };
+
+  const handleQuickBudgetSubmit = async () => {
+    if (!quickBudgetCampaign) return;
+    setUpdatingBudget(true);
+    try {
+      const res = await fetch("/api/ads/campaigns", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user?.userId || "guest"
+        },
+        body: JSON.stringify({
+          accountId: selectedAccount,
+          campaignId: quickBudgetCampaign.id,
+          dailyBudget: Number(quickBudgetAmount)
+        })
+      });
+      const data = await res.json();
+      if (data?.success) {
+        setRealCampaigns((prev) =>
+          prev.map((c) => (c.id === quickBudgetCampaign.id ? { ...c, dailyBudget: Number(quickBudgetAmount) } : c))
+        );
+        toast.success(`Budget updated to ₹${Number(quickBudgetAmount).toLocaleString("en-IN")}/day for "${quickBudgetCampaign.name}"`);
+        setQuickBudgetModalOpen(false);
+      } else {
+        toast.error(data?.error || "Failed to update budget");
+      }
+    } catch (err) {
+      toast.error("Error updating budget");
+    } finally {
+      setUpdatingBudget(false);
+    }
+  };
+
+  const handleDuplicateScaleCampaign = async (campaign, e) => {
+    if (e) e.stopPropagation();
+    if (!checkPlanActive("Duplicate & Scale Meta Campaign")) return;
+    const scaledBudget = Math.round((campaign.dailyBudget || 1500) * 1.25);
+    const scaledName = `${campaign.name} (Scaled 1.25x)`;
+    try {
+      const res = await fetch("/api/ads/campaigns", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user?.userId || "guest"
+        },
+        body: JSON.stringify({
+          accountId: selectedAccount,
+          name: scaledName,
+          objective: campaign.objective || "Conversions (Sales)",
+          dailyBudget: scaledBudget,
+          platform: campaign.platform || "instagram"
+        })
+      });
+      const data = await res.json();
+      if (data?.success && data?.campaign) {
+        setRealCampaigns([data.campaign, ...realCampaigns]);
+        toast.success(`🚀 Scaled clone created: "${scaledName}" with ₹${scaledBudget.toLocaleString("en-IN")}/day!`);
+      } else {
+        toast.error(data?.error || "Failed to scale campaign");
+      }
+    } catch (err) {
+      toast.error("Error scaling campaign");
+    }
+  };
+
+  const handleLaunchStrategyCampaign = async () => {
+    if (!strategistReport) return;
+    if (!checkPlanActive("Launch Strategy Campaign")) return;
+    try {
+      const res = await fetch("/api/ads/campaigns", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user?.userId || "guest"
+        },
+        body: JSON.stringify({
+          accountId: selectedAccount,
+          name: strategistReport.strategyTitle,
+          objective: "Conversions (Sales)",
+          dailyBudget: Number(strategistBudget) || 2500,
+          platform: "instagram"
+        })
+      });
+      const data = await res.json();
+      if (data?.success && data?.campaign) {
+        setRealCampaigns([data.campaign, ...realCampaigns]);
+        toast.success(`🚀 AI Strategy Campaign "${data.campaign.name}" created & launched!`);
+        setActiveTab("campaigns");
+      } else {
+        toast.error("Failed to launch strategy campaign");
+      }
+    } catch (e) {
+      toast.error("Error launching strategy campaign");
+    }
+  };
+
+  const handleUseAudienceInCampaign = () => {
+    if (!aiAudienceBlueprint) return;
+    setNewCampaignName(`Campaign - ${aiAudienceBlueprint.niche}`);
+    setNewCampaignObjective("Conversions (Sales)");
+    setCreateModalOpen(true);
+    toast.success("AI Audience targeting applied to new campaign generator!");
+  };
+
+  const handleUseCopyInCampaign = (copy) => {
+    setNewCampaignName(copy.headline || "New Meta Ad Campaign");
+    setNewCampaignObjective("Conversions (Sales)");
+    setCreateModalOpen(true);
+    toast.success("Ad copy framework loaded into campaign generator!");
   };
 
   const handleOpenDeleteModal = (campaign, e) => {
@@ -979,33 +1109,65 @@ export default function MetaAdsPage() {
               </span>
             </div>
 
+            {/* Live Context Summary Widget */}
+            <div className="p-3 rounded-2xl bg-slate-900 text-white space-y-2 shadow-2xs">
+              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-rose-300 border-b border-slate-800 pb-1.5">
+                <span className="flex items-center gap-1"><Cpu className="w-3 h-3 text-rose-400" /> Account Live Telemetry</span>
+                <span className="font-mono text-slate-300">{selectedAccount}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px] font-medium">
+                <div>
+                  <span className="text-slate-400 block text-[9.5px] uppercase">Total Spend</span>
+                  <span className="text-white font-extrabold text-xs">₹{totalSpend.toLocaleString("en-IN")}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[9.5px] uppercase">Active Campaigns</span>
+                  <span className="text-emerald-400 font-extrabold text-xs">
+                    {currentCampaignsList.filter((c) => c.status === "ACTIVE").length} / {currentCampaignsList.length}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             {/* Quick Action Chips */}
             <div className="space-y-1.5">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick Commands</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Live AI Commands</p>
               <div className="flex flex-wrap gap-1.5">
                 <button
-                  onClick={() => handleSendChatMessage("Audit all active campaigns & ROAS")}
+                  onClick={() => handleSendChatMessage("Audit all active campaigns & ROAS performance")}
                   className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
                 >
                   ⚡ Audit ROAS
                 </button>
                 <button
-                  onClick={() => handleSendChatMessage("Suggest optimal daily budget allocation")}
+                  onClick={() => handleSendChatMessage("Suggest optimal daily budget allocation across campaigns")}
                   className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
                 >
                   💰 Budget Split
                 </button>
                 <button
-                  onClick={() => handleSendChatMessage("Generate high-converting audience targeting keywords")}
+                  onClick={() => handleSendChatMessage("Generate high-converting Meta audience targeting keywords")}
                   className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
                 >
                   🎯 Audience
                 </button>
                 <button
-                  onClick={() => handleSendChatMessage("Write high-converting PAS ad copy")}
+                  onClick={() => handleSendChatMessage("Write high-converting PAS & AIDA ad copies")}
                   className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
                 >
                   ✍️ Write Copy
+                </button>
+                <button
+                  onClick={() => handleSendChatMessage("Which campaign is winning and how should I scale it?")}
+                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
+                >
+                  🚀 Scale Winner
+                </button>
+                <button
+                  onClick={() => handleSendChatMessage("How to fix low CTR and creative ad fatigue?")}
+                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
+                >
+                  🔄 Fix Low CTR
                 </button>
               </div>
             </div>
@@ -1305,15 +1467,46 @@ export default function MetaAdsPage() {
                             {cam.status}
                           </span>
                         </td>
-                        <td className="p-4 font-semibold text-slate-900">₹{cam.dailyBudget.toLocaleString("en-IN")}/day</td>
-                        <td className="p-4 font-semibold text-slate-900">₹{cam.spent.toLocaleString("en-IN")}</td>
+                        <td className="p-4 font-semibold text-slate-900">
+                          <div className="flex items-center gap-1.5">
+                            <span>₹{cam.dailyBudget?.toLocaleString("en-IN")}/day</span>
+                            <button
+                              type="button"
+                              onClick={(e) => handleOpenQuickBudgetModal(cam, e)}
+                              className="p-1 rounded-md bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-500 transition-colors cursor-pointer"
+                              title="Quick Budget Adjustment"
+                            >
+                              <Sliders className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </td>
+                        <td className="p-4 font-semibold text-slate-900">₹{cam.spent?.toLocaleString("en-IN")}</td>
                         <td className="p-4">
-                          <div className="font-bold text-slate-900">{cam.clicks.toLocaleString("en-IN")}</div>
+                          <div className="font-bold text-slate-900">{cam.clicks?.toLocaleString("en-IN")}</div>
                           <div className="text-[10px] font-bold text-emerald-600">{cam.ctr}</div>
                         </td>
                         <td className="p-4 font-bold text-rose-700 text-sm">{cam.roas}</td>
                         <td className="p-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleInspectCampaign(cam);
+                              }}
+                              title="Deep Audit & Inspection"
+                              className="p-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all cursor-pointer"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+
+                            <button
+                              onClick={(e) => handleDuplicateScaleCampaign(cam, e)}
+                              title="1-Click Scale & Clone (+25% Budget)"
+                              className="p-1.5 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition-all cursor-pointer"
+                            >
+                              <Zap className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
+                            </button>
+
                             <button
                               onClick={(e) => toggleCampaignStatus(cam.id, e)}
                               title={cam.status === "ACTIVE" ? "Pause Campaign" : "Resume Campaign"}
@@ -2186,6 +2379,92 @@ export default function MetaAdsPage() {
                 </>
               )}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* QUICK BUDGET EDIT MODAL */}
+      {quickBudgetModalOpen && quickBudgetCampaign && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-6 shadow-2xl relative border border-slate-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-emerald-600" /> Quick Daily Budget Edit
+              </h3>
+              <button
+                onClick={() => setQuickBudgetModalOpen(false)}
+                className="text-slate-400 hover:text-slate-900 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+                <div className="font-bold text-slate-900 truncate">{quickBudgetCampaign.name}</div>
+                <div className="text-slate-500 font-medium">Current Budget: ₹{(quickBudgetCampaign.dailyBudget || 1500).toLocaleString("en-IN")}/day</div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs text-slate-700 font-bold uppercase tracking-wider block">Quick Presets</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => setQuickBudgetAmount(Math.round((quickBudgetCampaign.dailyBudget || 1500) * 1.1))}
+                    className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 font-bold text-xs text-slate-700 transition-all cursor-pointer"
+                  >
+                    +10% Boost
+                  </button>
+                  <button
+                    onClick={() => setQuickBudgetAmount(Math.round((quickBudgetCampaign.dailyBudget || 1500) * 1.2))}
+                    className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 font-bold text-xs text-slate-700 transition-all cursor-pointer"
+                  >
+                    +20% Scale
+                  </button>
+                  <button
+                    onClick={() => setQuickBudgetAmount(Math.round((quickBudgetCampaign.dailyBudget || 1500) * 1.5))}
+                    className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 font-bold text-xs text-slate-700 transition-all cursor-pointer"
+                  >
+                    +50% Aggressive
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs text-slate-700 font-bold uppercase tracking-wider block">Custom Daily Budget (₹)</label>
+                <input
+                  type="number"
+                  value={quickBudgetAmount}
+                  onChange={(e) => setQuickBudgetAmount(Number(e.target.value))}
+                  className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setQuickBudgetModalOpen(false)}
+                className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleQuickBudgetSubmit}
+                disabled={updatingBudget}
+                className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                {updatingBudget ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Updating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    <span>Save New Budget</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

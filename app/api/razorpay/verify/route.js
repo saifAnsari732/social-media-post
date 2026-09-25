@@ -30,9 +30,10 @@ export async function POST(req) {
     const isAuthentic = expectedSignature === razorpay_signature;
 
     if (isAuthentic || process.env.NODE_ENV === "development") {
+      let updatedUser = null;
       // 1. Update user's plan in DB & store transaction history
       if (userId) {
-        await updateUserPlan(userId, planName, {
+        updatedUser = await updateUserPlan(userId, planName, {
           orderId: razorpay_order_id,
           paymentId: razorpay_payment_id,
           signature: razorpay_signature,
@@ -48,6 +49,33 @@ export async function POST(req) {
       // 2. Increment coupon usage if used
       if (couponCode) {
         await incrementCouponUsage(couponCode);
+      }
+
+      // 3. Auto-send Welcome & Tax Invoice email to subscriber
+      try {
+        const userEmail = updatedUser?.email || (userId && userId.includes("@") ? userId : null);
+        const userName = updatedUser?.name || "Valued Subscriber";
+        if (userEmail) {
+          const { sendInvoiceEmail } = await import("@/lib/email");
+          sendInvoiceEmail({
+            invoiceId: `INV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+            userName,
+            userEmail,
+            userId: userId || "N/A",
+            planName: planName || "Pro Unlimited Subscription",
+            originalAmount: Number(originalAmount) || 4999,
+            discountAmount: Number(discountAmount) || 0,
+            amountPaid: Number(amountPaid) || 1,
+            couponCode: couponCode || null,
+            paymentId: razorpay_payment_id,
+            orderId: razorpay_order_id,
+            paymentMethod: "Razorpay (Online Payment)",
+            billingCycle: billingCycle || "monthly",
+            createdAt: new Date().toISOString()
+          }).catch((err) => console.error("[Razorpay Verify] Background email error:", err));
+        }
+      } catch (emailErr) {
+        console.error("[Razorpay Verify] Failed to dispatch welcome email:", emailErr);
       }
 
       return NextResponse.json({

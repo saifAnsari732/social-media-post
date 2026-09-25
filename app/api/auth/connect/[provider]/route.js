@@ -7,6 +7,7 @@ export async function GET(req, { params }) {
   const state = Buffer.from(JSON.stringify({ userId, provider, returnTo })).toString("base64url");
 
   const metaAppId = process.env.META_APP_ID || "1401279338528045";
+  const threadsAppId = process.env.THREADS_APP_ID || process.env.NEXT_PUBLIC_THREADS_APP_ID || process.env.META_APP_ID || "1401279338528045";
   const metaRedirectUri = process.env.META_REDIRECT_URI || "https://social-media-post-eta.vercel.app/api/auth/callback/facebook";
   const threadsRedirectUri = process.env.THREADS_REDIRECT_URI || "https://social-media-post-eta.vercel.app/api/auth/callback/threads";
 
@@ -41,7 +42,7 @@ export async function GET(req, { params }) {
         "openid profile w_member_social"
       )}`,
     threads: () =>
-      `https://www.threads.net/oauth/authorize?client_id=${metaAppId}&redirect_uri=${encodeURIComponent(
+      `https://threads.net/oauth/authorize?client_id=${threadsAppId}&app_id=${threadsAppId}&redirect_uri=${encodeURIComponent(
         threadsRedirectUri
       )}&response_type=code&scope=${encodeURIComponent(
         "threads_basic,threads_content_publish"

@@ -87,7 +87,8 @@ async function exchangeToken(provider, code) {
       return res.json();
     }
     case "threads": {
-      const appId = process.env.META_APP_ID || "1401279338528045";
+      const appId = process.env.THREADS_APP_ID || process.env.NEXT_PUBLIC_THREADS_APP_ID || process.env.META_APP_ID || "1401279338528045";
+      const appSecret = process.env.THREADS_APP_SECRET || process.env.META_APP_SECRET;
       const redirectUri =
         process.env.THREADS_REDIRECT_URI ||
         "https://social-media-post-eta.vercel.app/api/auth/callback/threads";
@@ -96,7 +97,7 @@ async function exchangeToken(provider, code) {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
           client_id: appId,
-          client_secret: process.env.META_APP_SECRET,
+          client_secret: appSecret,
           grant_type: "authorization_code",
           redirect_uri: redirectUri,
           code
@@ -446,6 +447,7 @@ export async function GET(req, { params }) {
         const upsertPromises = [];
         const savedFBPages = [];
         const savedIGAccounts = [];
+        const savedThreadsAccounts = [];
 
         if (pages.length > 0) {
           for (const page of pages) {
@@ -478,7 +480,7 @@ export async function GET(req, { params }) {
               savedFBPages.push(page.name);
             }
 
-            // ── Save Instagram Business Account (if linked to this page) ──
+            // ── Save Instagram Business Account & Threads Account (if linked to this page) ──
             if (page.instagram_business_account) {
               const igAcc = page.instagram_business_account;
               const igFollowers = igAcc.followers_count || 0;
@@ -507,16 +509,68 @@ export async function GET(req, { params }) {
               };
               upsertPromises.push(upsertAccount(igAccount));
               savedIGAccounts.push(igAcc.username || igAcc.id);
+
+              // Auto-connect Threads profile associated with this IG Business account
+              const threadsAccount = {
+                platform: "threads",
+                providerAccountId: igAcc.id,
+                threadsUserId: igAcc.id,
+                linkedPageId: page.id,
+                linkedPageName: page.name,
+                userId,
+                accessToken: page.access_token,
+                name: igAcc.name || igAcc.username || `${page.name} Threads`,
+                username: igAcc.username || null,
+                avatar: igAcc.profile_picture_url || page.picture?.data?.url || null,
+                biography: igAcc.biography || null,
+                website: igAcc.website || null,
+                followers: igFollowers,
+                followersFormatted:
+                  igFollowers > 1000000
+                    ? `${(igFollowers / 1000000).toFixed(1)}M`
+                    : igFollowers > 1000
+                    ? `${(igFollowers / 1000).toFixed(1)}K`
+                    : `${igFollowers}`,
+                connectedAt: new Date().toISOString(),
+                raw: { page_id: page.id, ig_id: igAcc.id }
+              };
+              upsertPromises.push(upsertAccount(threadsAccount));
+              savedThreadsAccounts.push(igAcc.username || igAcc.id);
             } else {
               console.log(
                 `[Meta] Page "${page.name}" (${page.id}) has no linked Instagram Business Account`
               );
+              // Save a Threads profile entry for the Facebook page if no Instagram is linked
+              if (page.access_token) {
+                const threadsAccount = {
+                  platform: "threads",
+                  providerAccountId: `threads_page_${page.id}`,
+                  threadsUserId: page.id,
+                  linkedPageId: page.id,
+                  linkedPageName: page.name,
+                  userId,
+                  accessToken: page.access_token,
+                  name: `${page.name} (Threads)`,
+                  username: page.name.toLowerCase().replace(/[^a-z0-9._]/g, ""),
+                  avatar: page.picture?.data?.url || null,
+                  followers: page.fan_count || 0,
+                  followersFormatted:
+                    (page.fan_count || 0) > 1000
+                      ? `${((page.fan_count || 0) / 1000).toFixed(1)}K`
+                      : `${page.fan_count || 0}`,
+                  connectedAt: new Date().toISOString(),
+                  raw: { page_id: page.id }
+                };
+                upsertPromises.push(upsertAccount(threadsAccount));
+                savedThreadsAccounts.push(page.name);
+              }
             }
           }
 
           console.log(
             `[Meta] Saving: ${savedFBPages.length} FB pages [${savedFBPages.join(", ")}], ` +
-              `${savedIGAccounts.length} IG accounts [${savedIGAccounts.join(", ")}]`
+              `${savedIGAccounts.length} IG accounts [${savedIGAccounts.join(", ")}], ` +
+              `${savedThreadsAccounts.length} Threads accounts [${savedThreadsAccounts.join(", ")}]`
           );
 
           if (upsertPromises.length > 0) {

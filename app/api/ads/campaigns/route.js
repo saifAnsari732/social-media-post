@@ -154,23 +154,27 @@ export async function PUT(req) {
   try {
     let userId = req.headers.get("x-user-id") || null;
     const body = await req.json();
-    const { id, status, dailyBudget, name } = body;
+    const targetId = body.id || body.campaignId;
+    const { status, dailyBudget, name, objective, platform } = body;
 
-    if (!id) {
+    if (!targetId) {
       return NextResponse.json({ success: false, error: "Campaign ID is required" }, { status: 400 });
     }
 
     const existingList = await getAdCampaigns(null, userId);
-    const existing = existingList.find((c) => c.id === id);
+    const existing = existingList.find((c) => c.id === targetId || c._id === targetId);
 
     const updated = {
-      ...(existing || { id }),
+      ...(existing || { id: targetId }),
+      id: targetId,
       userId: userId || "guest"
     };
 
     if (status) updated.status = status;
     if (dailyBudget !== undefined) updated.dailyBudget = Number(dailyBudget);
     if (name) updated.name = name.trim();
+    if (objective) updated.objective = objective.trim();
+    if (platform) updated.platform = platform;
 
     await upsertAdCampaign(updated);
 
@@ -188,13 +192,13 @@ export async function DELETE(req) {
   try {
     let userId = req.headers.get("x-user-id") || null;
     const body = await req.json();
-    const { id } = body;
+    const targetId = body.id || body.campaignId;
 
-    if (!id) {
+    if (!targetId) {
       return NextResponse.json({ success: false, error: "Campaign ID is required" }, { status: 400 });
     }
 
-    await removeAdCampaign(id, userId);
+    await removeAdCampaign(targetId, userId);
 
     return NextResponse.json({
       success: true,

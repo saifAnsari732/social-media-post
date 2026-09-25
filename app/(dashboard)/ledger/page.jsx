@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { getStoredUser } from "@/lib/user";
+import InvoiceModal from "@/components/modals/InvoiceModal";
 
 export default function LedgerPage() {
   const [user, setUser] = useState(null);
@@ -263,96 +264,11 @@ export default function LedgerPage() {
       </div>
 
       {/* TAX INVOICE RECEIPT MODAL */}
-      {selectedInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs font-sans">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-xl w-full p-6 shadow-2xl space-y-5">
-            <div className="flex items-start justify-between border-b border-slate-200 pb-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-black text-xs">
-                    P
-                  </div>
-                  <span className="text-lg font-black tracking-tight text-slate-950">Postfly Technologies</span>
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1">Official SaaS Tax Invoice & Payment Receipt</p>
-              </div>
-
-              <div className="text-right">
-                <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold block mb-1">
-                  VERIFIED & PAID ✓
-                </span>
-                <span className="text-[11px] font-mono font-bold text-slate-500 block">{selectedInvoice.invoiceId || "INV-2026-092301"}</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-                <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400 block">Billed To (Customer)</span>
-                <h4 className="font-bold text-slate-950">{selectedInvoice.userName || selectedInvoice.user}</h4>
-                <span className="text-slate-600 block truncate">{selectedInvoice.userEmail || "user@example.com"}</span>
-                <span className="text-slate-500 block text-[11px]">{selectedInvoice.billingAddress || "Mumbai, Maharashtra, India"}</span>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1 font-mono text-[11px]">
-                <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400 block font-sans">Payment Details</span>
-                <div><span className="text-slate-400">Payment ID:</span> <span className="font-bold text-slate-800">{selectedInvoice.paymentId || selectedInvoice.payId}</span></div>
-                <div><span className="text-slate-400">Order ID:</span> <span className="text-slate-700">{selectedInvoice.orderId || "order_PO9821"}</span></div>
-                <div><span className="text-slate-400">Status:</span> <span className="text-emerald-700 font-bold">{selectedInvoice.status || "PAID"}</span></div>
-              </div>
-            </div>
-
-            <div className="border border-slate-200 rounded-xl overflow-hidden text-xs">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 font-bold uppercase tracking-wider text-[10.5px] text-slate-500 border-b border-slate-200">
-                    <th className="p-3">Item Description</th>
-                    <th className="p-3 text-right">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                  <tr>
-                    <td className="p-3">
-                      <span className="font-bold text-slate-950 block">{selectedInvoice.planName || selectedInvoice.plan} Subscription</span>
-                      <span className="text-[11px] text-slate-500">1 Month Recurring SaaS License</span>
-                    </td>
-                    <td className="p-3 text-right font-bold text-slate-900">₹{selectedInvoice.originalAmount || selectedInvoice.amount || 0}</td>
-                  </tr>
-                  {selectedInvoice.discountAmount > 0 && (
-                    <tr className="bg-amber-50/50">
-                      <td className="p-3 text-amber-900 font-bold">
-                        Promo Discount ({selectedInvoice.couponCode || 'PROMO'})
-                      </td>
-                      <td className="p-3 text-right font-bold text-amber-700">-₹{selectedInvoice.discountAmount}</td>
-                    </tr>
-                  )}
-                  <tr className="bg-indigo-50/60 font-black text-slate-950 text-sm">
-                    <td className="p-3.5">Total Amount Charged</td>
-                    <td className="p-3.5 text-right text-indigo-700">₹{selectedInvoice.amountPaid || selectedInvoice.amount || 0}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div className="pt-2 flex items-center justify-between border-t border-slate-100 text-xs">
-              <span className="text-slate-400 text-[11px]">Official Tax Invoice • Verified Gateway Signature</span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => window.print()}
-                  className="px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-800 font-bold hover:bg-slate-50 cursor-pointer"
-                >
-                  Print / Download PDF
-                </button>
-                <button
-                  onClick={() => setSelectedInvoice(null)}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold cursor-pointer"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <InvoiceModal
+        invoice={selectedInvoice}
+        isOpen={!!selectedInvoice}
+        onClose={() => setSelectedInvoice(null)}
+      />
 
     </div>
   );
