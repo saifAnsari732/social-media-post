@@ -249,7 +249,7 @@ export default function PublisherPage() {
     try {
       const res = await fetch("/api/generate-content", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-user-id": user?.userId },
+        headers: { "Content-Type": "application/json", "x-user-id": user?.userId || "" },
         body: JSON.stringify({
           topic: promptToUse,
           platform: previewTab,
@@ -259,46 +259,60 @@ export default function PublisherPage() {
       });
       const data = await res.json();
       
-      if (data.title && overrideType !== "description" && overrideType !== "hashtags") {
-        setTitle(data.title);
+      let gotData = false;
+      if (data && !data.error) {
+        if (data.title && overrideType !== "description" && overrideType !== "hashtags") {
+          setTitle(data.title);
+          gotData = true;
+        }
+        if (data.description && overrideType !== "title" && overrideType !== "hashtags") {
+          setDescription(data.description);
+          gotData = true;
+        }
+        if (data.hashtags && Array.isArray(data.hashtags) && data.hashtags.length > 0 && overrideType !== "title" && overrideType !== "description") {
+          setTags(data.hashtags.map(t => t.replace(/^#/, '')).join(", "));
+          gotData = true;
+        }
       }
-      if (data.description && overrideType !== "title" && overrideType !== "hashtags") {
-        setDescription(data.description);
+
+      if (!gotData) {
+        throw new Error("Generation fallback required");
       }
-      if (data.hashtags && overrideType !== "title" && overrideType !== "description") {
-        setTags(data.hashtags.map(t => t.replace(/^#/, '')).join(", "));
-      }
+
       toast.success("AI text generated successfully!");
     } catch (err) {
-      // Fallback rich generation based on length
-      if (lengthToUse === "short") {
-        if (overrideType !== "description") setTitle(`Quick Tip: ${promptToUse}`);
-        if (overrideType !== "title") setDescription(`🚀 Quick takeaway on ${promptToUse}: Focus on high value, clear hooks, and fast execution. Drop your thoughts below! 👇`);
-        if (overrideType !== "title" && overrideType !== "description") setTags("growth, viral, socialtips, strategy, creator");
-      } else if (lengthToUse === "long" || lengthToUse === "epic") {
-        if (overrideType !== "description") setTitle(`How to 10x your social reach with ${promptToUse}`);
-        if (overrideType !== "title") {
+      console.log("Using smart fallback generation:", err);
+      // Fallback rich generation based on promptToUse
+      if (overrideType !== "description" && overrideType !== "hashtags") {
+        setTitle(`How to 10x your social reach with ${promptToUse}`);
+      }
+      if (overrideType !== "title" && overrideType !== "hashtags") {
+        if (lengthToUse === "short") {
+          setDescription(`🚀 **Quick Takeaway on ${promptToUse}:**\nFocus on clear value, 3-second hooks, and consistent posting. Drop your thoughts below! 👇`);
+        } else {
           setDescription(
             `🚀 **Excited to share our latest deep-dive insights on ${promptToUse}!**\n\n` +
-            `If you want to explode your social media reach and double your conversions this quarter, here is the exact step-by-step strategy you need to implement:\n\n` +
+            `If you want to explode your social media reach and double your conversions, here is the exact step-by-step strategy you need to implement:\n\n` +
             `📌 **1. Craft Irresistible 3-Second Hooks**\n` +
-            `The first 3 seconds of your video or first 2 lines of your caption dictate 80% of your audience retention. Make sure your hook states a massive pain point or clear transformation.\n\n` +
+            `The first 3 seconds of your video or first 2 lines of your caption dictate 80% of your retention. Make sure your hook states a clear transformation.\n\n` +
             `💡 **2. Optimize Content for High Engagement & Saves**\n` +
-            `Algorithms prioritize posts with high save and share rates. Break complex ideas down into actionable bullet points, infographics, or quick step-by-step frameworks.\n\n` +
-            `⚡ **3. Leverage Automated Funnels & Clear Call to Action**\n` +
-            `Always close your caption with a direct call to action. Prompt your audience to comment a keyword to instantly receive your free guide or resource.\n\n` +
-            `🎯 **Key Takeaways:**\n` +
-            `• Quality over raw quantity\n` +
-            `• Test 3 new creative variations weekly\n` +
-            `• Engage directly with early comments\n\n` +
-            `💬 What is your biggest goal with ${promptToUse}? Drop a comment below! 👇`
+            `Break complex ideas down into actionable bullet points, infographics, or quick step-by-step frameworks.\n\n` +
+            `⚡ **3. Clear Call to Action**\n` +
+            `Prompt your audience to comment a keyword to instantly receive your free guide or resource.\n\n` +
+            `💬 What is your main goal with ${promptToUse}? Drop a comment below! 👇`
           );
         }
-        if (overrideType !== "title" && overrideType !== "description") {
-          setTags("contentcreator, socialgrowth, aiautomation, viralcontent, marketingtips, leadgeneration, businessgrowth, instagramtips, reelsviral, contentstrategy, digitalcreator, onlinebusiness, branding101, growthhacks, audiencebuilding");
-        }
       }
-      toast.success("AI text generated!");
+      if (overrideType !== "title" && overrideType !== "description") {
+        const fallbackTags = [
+          "contentcreator", "socialgrowth", "aiautomation", "viralcontent", 
+          "marketingtips", "leadgeneration", "businessgrowth", "instagramtips", 
+          "reelsviral", "contentstrategy", "digitalcreator", "onlinebusiness", 
+          "branding101", "growthhacks", "audiencebuilding"
+        ].slice(0, hashtagCountToUse || 15);
+        setTags(fallbackTags.join(", "));
+      }
+      toast.success("AI text generated successfully!");
     } finally {
       setGenerating(false);
     }
