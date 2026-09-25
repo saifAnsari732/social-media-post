@@ -79,7 +79,46 @@ export default function MediaPage() {
     if (!file) return;
 
     setUploading(true);
+    const isVideo = file.type?.startsWith("video/") || Boolean(file.name?.match(/\.(mp4|mov|webm|avi|m4v|mkv|3gp)$/i));
+
     try {
+      // Step 1: Get ImageKit authentication parameters from backend
+      const authRes = await fetch("/api/upload/auth");
+      const authData = await authRes.json();
+
+      if (authData && authData.signature && authData.token) {
+        // Step 2: Upload DIRECTLY to ImageKit CDN (Bypasses Vercel 4.5MB limit completely!)
+        const ikFormData = new FormData();
+        ikFormData.append("file", file);
+        ikFormData.append("fileName", (file.name || `media_${Date.now()}`).replace(/[^a-zA-Z0-9_.-]/g, "_"));
+        ikFormData.append("publicKey", authData.publicKey || "public_zA/OEOHQn+iEQFNIGyzHV7g3e+s=");
+        ikFormData.append("signature", authData.signature);
+        ikFormData.append("expire", String(authData.expire));
+        ikFormData.append("token", authData.token);
+        ikFormData.append("folder", isVideo ? "/social_posts/videos" : "/social_posts/images");
+        ikFormData.append("useUniqueFileName", "true");
+
+        const ikRes = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
+          method: "POST",
+          body: ikFormData
+        });
+        const ikResult = await ikRes.json();
+
+        if (ikResult && ikResult.url) {
+          toast.success(`⚡ Uploaded ${isVideo ? 'video' : 'photo'} directly to ImageKit CDN!`);
+          const newItem = {
+            id: Date.now().toString(),
+            name: ikResult.name || file.name,
+            type: isVideo ? "Video" : "Image",
+            date: "Just Now",
+            url: ikResult.url
+          };
+          setMediaItems(prev => [newItem, ...prev]);
+          return;
+        }
+      }
+
+      // Fallback: If direct upload failed, upload via server route
       const formData = new FormData();
       formData.append("file", file);
       const res = await fetch("/api/upload", {
@@ -102,7 +141,7 @@ export default function MediaPage() {
       }
     } catch (err) {
       console.error(err);
-      toast.error("Upload error");
+      toast.error("Upload error: " + (err.message || "Failed to upload media"));
     } finally {
       setUploading(false);
     }
