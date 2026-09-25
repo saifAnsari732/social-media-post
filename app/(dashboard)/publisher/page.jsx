@@ -154,7 +154,7 @@ export default function PublisherPage() {
   }
 
   async function handlePublishDraft(postId) {
-    if (!user) return;
+    const activeUserId = user?.userId || getStoredUser()?.userId;
     const allowed = checkPlanAccess({ action: "publish_post", router, toast });
     if (!allowed) return;
     try {
@@ -162,19 +162,19 @@ export default function PublisherPage() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "x-user-id": user.userId
+          "x-user-id": activeUserId || ""
         },
         body: JSON.stringify({ postId, action: "publish_now" })
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.success || res.ok) {
         toast.success("Draft published successfully!");
-        fetchRecentPosts(user.userId);
+        fetchRecentPosts(activeUserId);
       } else {
-        toast.error("Failed to publish draft");
+        toast.error(data.error || "Failed to publish draft");
       }
     } catch (err) {
-      toast.error("Error publishing draft");
+      toast.error(err?.message || "Error publishing draft");
     }
   }
 
