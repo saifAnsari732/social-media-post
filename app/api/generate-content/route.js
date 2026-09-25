@@ -4,7 +4,7 @@ import { getUserById, isUserTrialExpired } from "@/lib/db";
 
 export async function POST(req) {
   try {
-    const { topic, tone } = await req.json();
+    const { topic, tone, length, type, hashtagCount } = await req.json();
     const userId = req.headers.get("x-user-id");
 
     if (userId) {
@@ -19,7 +19,7 @@ export async function POST(req) {
     if (!topic) {
       return NextResponse.json({ error: "topic required" }, { status: 400 });
     }
-    const content = await generateContent({ topic, tone, userId });
+    const content = await generateContent({ topic, tone, length, type, hashtagCount, userId });
     return NextResponse.json(content);
   } catch (err) {
     console.error("Gemini Generation Error:", err);

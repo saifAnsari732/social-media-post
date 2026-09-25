@@ -294,22 +294,43 @@ export default function PostsPage() {
                       </td>
 
                       {/* Channels Badges */}
-                      <td className="py-4 px-4">
-                        <div className="flex flex-wrap gap-1.5">
-                          {post.channelDetails && post.channelDetails.length > 0 ? (
-                            post.channelDetails.map((channel, i) => (
+                      <td className="py-4 px-4 max-w-[260px]">
+                        {post.channelDetails && post.channelDetails.length > 0 ? (
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {post.channelDetails.slice(0, 2).map((channel, i) => (
                               <span
                                 key={i}
                                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 font-semibold text-[11px] text-slate-800 shadow-2xs"
                               >
-                                <PlatformIcon platform={channel.platform} className="w-3.5 h-3.5" />
-                                <span className="max-w-[110px] truncate">{channel.name}</span>
+                                <PlatformIcon platform={channel.platform} className="w-3.5 h-3.5 shrink-0" />
+                                <span className="max-w-[90px] truncate">{channel.name}</span>
                               </span>
-                            ))
-                          ) : (
-                            <span className="text-slate-400 text-xs italic">All Connected Channels</span>
-                          )}
-                        </div>
+                            ))}
+                            {post.channelDetails.length > 2 && (
+                              <div className="relative group/ch">
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 font-extrabold text-[10.5px] cursor-pointer hover:bg-indigo-100 shadow-2xs transition-all">
+                                  +{post.channelDetails.length - 2} channels
+                                </span>
+                                {/* Hover Popover List */}
+                                <div className="absolute left-0 bottom-full mb-1.5 hidden group-hover/ch:flex flex-col gap-1.5 p-2.5 bg-slate-900 text-white rounded-xl shadow-xl z-30 min-w-[180px] max-w-[230px] text-[11px] border border-slate-700 animate-in fade-in duration-150">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800 pb-1">
+                                    Target Channels ({post.channelDetails.length})
+                                  </span>
+                                  <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+                                    {post.channelDetails.map((ch, idx) => (
+                                      <div key={idx} className="flex items-center gap-1.5 truncate text-slate-200 py-0.5">
+                                        <PlatformIcon platform={ch.platform} className="w-3.5 h-3.5 shrink-0" />
+                                        <span className="truncate">{ch.name}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 text-xs italic">All Connected Channels</span>
+                        )}
                       </td>
 
                       {/* Status Pill */}

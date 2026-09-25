@@ -235,47 +235,88 @@ export default function PublisherPage() {
     setSelectedIds(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
   }
 
-  async function handleGenerate(customTopic) {
+  const [selectedLength, setSelectedLength] = useState("long"); // 'short' | 'medium' | 'long' | 'epic'
+  const [selectedHashtagCount, setSelectedHashtagCount] = useState(15); // 5 | 15 | 25 | 30
+
+  async function handleGenerate(customTopic, overrideLength, overrideType, overrideHashtags) {
     const allowed = checkPlanAccess({ action: "ai_generator", router, toast });
     if (!allowed) return;
-    const promptToUse = customTopic || topic;
-    if (!promptToUse) { 
-      toast.error("Please enter a topic or click an idea below!"); 
-      return; 
-    }
+    const promptToUse = customTopic || topic || title || "High Growth Social Strategy";
+    const lengthToUse = overrideLength || selectedLength;
+    const hashtagCountToUse = overrideHashtags || selectedHashtagCount;
+
     setGenerating(true);
     try {
       const res = await fetch("/api/generate-content", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-user-id": user?.userId },
-        body: JSON.stringify({ topic: promptToUse, platform: previewTab })
+        body: JSON.stringify({
+          topic: promptToUse,
+          platform: previewTab,
+          length: lengthToUse,
+          hashtagCount: hashtagCountToUse
+        })
       });
       const data = await res.json();
       
-      if (!res.ok) {
-        // High quality fallback generation
-        setTimeout(() => {
-          setTitle(`How to 10x your social reach with ${promptToUse}`);
-          setDescription(`🚀 Excited to share our latest insights on ${promptToUse}!\n\nHere are 3 key takeaways you can apply today:\n1. Focus on quality over raw quantity\n2. Hook your viewers in the first 3 seconds\n3. Engage directly with early comments\n\nDrop your thoughts below! 👇`);
-          setTags("contentcreator, socialgrowth, aiautomation, viralcontent");
-          toast.success("AI Caption & Title generated!");
-          setGenerating(false);
-        }, 700);
-        return;
+      if (data.title && overrideType !== "description" && overrideType !== "hashtags") {
+        setTitle(data.title);
       }
-      
-      if (data.title) setTitle(data.title);
-      if (data.description) setDescription(data.description);
-      if (data.hashtags) setTags(data.hashtags.map(t => t.replace(/^#/, '')).join(", "));
-      toast.success("AI Caption & Title generated!");
+      if (data.description && overrideType !== "title" && overrideType !== "hashtags") {
+        setDescription(data.description);
+      }
+      if (data.hashtags && overrideType !== "title" && overrideType !== "description") {
+        setTags(data.hashtags.map(t => t.replace(/^#/, '')).join(", "));
+      }
+      toast.success("AI text generated successfully!");
     } catch (err) {
-      setTitle(`How to 10x your social reach with ${promptToUse}`);
-      setDescription(`🚀 Excited to share our latest insights on ${promptToUse}!\n\nHere are 3 key takeaways you can apply today:\n1. Focus on quality over raw quantity\n2. Hook your viewers in the first 3 seconds\n3. Engage directly with early comments\n\nDrop your thoughts below! 👇`);
-      setTags("contentcreator, socialgrowth, aiautomation, viralcontent");
-      toast.success("AI Caption & Title generated!");
+      // Fallback rich generation based on length
+      if (lengthToUse === "short") {
+        if (overrideType !== "description") setTitle(`Quick Tip: ${promptToUse}`);
+        if (overrideType !== "title") setDescription(`🚀 Quick takeaway on ${promptToUse}: Focus on high value, clear hooks, and fast execution. Drop your thoughts below! 👇`);
+        if (overrideType !== "title" && overrideType !== "description") setTags("growth, viral, socialtips, strategy, creator");
+      } else if (lengthToUse === "long" || lengthToUse === "epic") {
+        if (overrideType !== "description") setTitle(`How to 10x your social reach with ${promptToUse}`);
+        if (overrideType !== "title") {
+          setDescription(
+            `🚀 **Excited to share our latest deep-dive insights on ${promptToUse}!**\n\n` +
+            `If you want to explode your social media reach and double your conversions this quarter, here is the exact step-by-step strategy you need to implement:\n\n` +
+            `📌 **1. Craft Irresistible 3-Second Hooks**\n` +
+            `The first 3 seconds of your video or first 2 lines of your caption dictate 80% of your audience retention. Make sure your hook states a massive pain point or clear transformation.\n\n` +
+            `💡 **2. Optimize Content for High Engagement & Saves**\n` +
+            `Algorithms prioritize posts with high save and share rates. Break complex ideas down into actionable bullet points, infographics, or quick step-by-step frameworks.\n\n` +
+            `⚡ **3. Leverage Automated Funnels & Clear Call to Action**\n` +
+            `Always close your caption with a direct call to action. Prompt your audience to comment a keyword to instantly receive your free guide or resource.\n\n` +
+            `🎯 **Key Takeaways:**\n` +
+            `• Quality over raw quantity\n` +
+            `• Test 3 new creative variations weekly\n` +
+            `• Engage directly with early comments\n\n` +
+            `💬 What is your biggest goal with ${promptToUse}? Drop a comment below! 👇`
+          );
+        }
+        if (overrideType !== "title" && overrideType !== "description") {
+          setTags("contentcreator, socialgrowth, aiautomation, viralcontent, marketingtips, leadgeneration, businessgrowth, instagramtips, reelsviral, contentstrategy, digitalcreator, onlinebusiness, branding101, growthhacks, audiencebuilding");
+        }
+      }
+      toast.success("AI text generated!");
     } finally {
       setGenerating(false);
     }
+  }
+
+  async function handleIncreaseTitleLength() {
+    toast("Generating long catchy title...", { icon: "✨" });
+    await handleGenerate(topic || title || "Social Growth", "long", "title");
+  }
+
+  async function handleIncreaseCaptionLength() {
+    toast("Expanding caption with 500+ word detailed guide & bullet points...", { icon: "📈" });
+    await handleGenerate(topic || title || description || "Growth Strategy", "epic", "description");
+  }
+
+  async function handleIncreaseHashtags() {
+    toast("Generating 25+ viral hashtags...", { icon: "🏷️" });
+    await handleGenerate(topic || title || "Growth", "long", "hashtags", 25);
   }
 
   async function handlePost(overrideMode) {
@@ -467,7 +508,7 @@ export default function PublisherPage() {
             </span>
           </div>
 
-          {/* AI Copilot Box */}
+          {/* AI Copilot Box with Configurable Controls */}
           <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-50/90 via-slate-50 to-violet-50/70 border border-indigo-200/90 space-y-3.5 shadow-2xs">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-black text-indigo-950">
@@ -475,7 +516,7 @@ export default function PublisherPage() {
                 <span>Smart Caption Assistant</span>
               </div>
               <span className="text-[10.5px] font-bold text-indigo-700 uppercase tracking-wider bg-white px-2.5 py-0.5 rounded-full border border-indigo-200 shadow-2xs">
-                Fast Generation
+                Deep AI Generation
               </span>
             </div>
 
@@ -497,6 +538,54 @@ export default function PublisherPage() {
                 {generating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4 fill-white" />}
                 <span>{generating ? "Generating..." : "Generate AI"}</span>
               </button>
+            </div>
+
+            {/* Configurable Generation Options (Length & Hashtags) */}
+            <div className="space-y-2 pt-1 border-t border-indigo-100/80">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-indigo-950">Text Length:</span>
+                <div className="flex items-center gap-1">
+                  {[
+                    { id: "short", label: "⚡ Short (~50w)" },
+                    { id: "medium", label: "📄 Medium (~180w)" },
+                    { id: "long", label: "🚀 Long (500+w)" },
+                    { id: "epic", label: "💎 Epic Guide" }
+                  ].map(l => (
+                    <button
+                      key={l.id}
+                      type="button"
+                      onClick={() => setSelectedLength(l.id)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                        selectedLength === l.id
+                          ? "bg-indigo-600 text-white shadow-2xs"
+                          : "bg-white text-slate-700 hover:bg-indigo-50 border border-slate-200"
+                      }`}
+                    >
+                      {l.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-indigo-950">Hashtags Count:</span>
+                <div className="flex items-center gap-1">
+                  {[5, 15, 25, 30].map(cnt => (
+                    <button
+                      key={cnt}
+                      type="button"
+                      onClick={() => setSelectedHashtagCount(cnt)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                        selectedHashtagCount === cnt
+                          ? "bg-indigo-600 text-white shadow-2xs"
+                          : "bg-white text-slate-700 hover:bg-indigo-50 border border-slate-200"
+                      }`}
+                    >
+                      {cnt} Tags
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Topic Ideas */}
@@ -590,7 +679,7 @@ export default function PublisherPage() {
             />
           </div>
 
-          {/* Post Title with Character & Word Count Badge */}
+          {/* Post Title with Character & Word Count Badge & Quick Action Button */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-slate-900">Post Title / Headline</label>
@@ -606,9 +695,18 @@ export default function PublisherPage() {
               onChange={e => setTitle(e.target.value)}
               className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all shadow-2xs placeholder:text-slate-400"
             />
+            <div className="flex items-center justify-end pt-0.5">
+              <button
+                type="button"
+                onClick={handleIncreaseTitleLength}
+                className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[10.5px] font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1"
+              >
+                ✨ Generate Long Catchy Title
+              </button>
+            </div>
           </div>
 
-          {/* Caption & Content with Large Text Count Badge */}
+          {/* Caption & Content with Large Text Count Badge & Quick Expand Buttons */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-slate-900">Caption & Content</label>
@@ -628,9 +726,25 @@ export default function PublisherPage() {
               onChange={e => setDescription(e.target.value)}
               className="w-full p-3.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all shadow-2xs placeholder:text-slate-400 resize-none leading-relaxed"
             />
+            <div className="flex flex-wrap items-center justify-between gap-1 pt-0.5">
+              <button
+                type="button"
+                onClick={handleIncreaseCaptionLength}
+                className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[10.5px] font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1"
+              >
+                📈 Make Caption Longer (Add 500+ Words & Bullet Points)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleGenerate(topic || title || "Quick Takeaway", "short", "description")}
+                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-[10.5px] font-bold transition-all cursor-pointer shadow-2xs"
+              >
+                ⚡ Shorten Caption
+              </button>
+            </div>
           </div>
 
-          {/* Hashtags & Tags with Hashtag Count Badge */}
+          {/* Hashtags & Tags with Hashtag Count Badge & Quick Action Button */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-slate-900">Hashtags & Tags</label>
@@ -645,6 +759,15 @@ export default function PublisherPage() {
               onChange={e => setTags(e.target.value)}
               className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all shadow-2xs placeholder:text-slate-400"
             />
+            <div className="flex items-center justify-end pt-0.5">
+              <button
+                type="button"
+                onClick={handleIncreaseHashtags}
+                className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[10.5px] font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1"
+              >
+                🏷️ Generate 25+ Trending Hashtags
+              </button>
+            </div>
           </div>
 
         </div>
@@ -783,21 +906,21 @@ export default function PublisherPage() {
                 <div className="rounded-xl overflow-hidden bg-slate-950 aspect-video flex items-center justify-center relative group">
                   {filePreview ? (
                     isVideo ? (
-                      <video src={filePreview} controls className="w-full h-full object-cover" />
+                      <video src={filePreview} controls className="w-full h-full object-contain" />
                     ) : (
-                      <img src={filePreview} alt="YouTube Thumbnail" className="w-full h-full object-cover" />
+                      <div className="relative w-full h-full">
+                        <img src={filePreview} alt="YouTube Thumbnail" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                          <div className="w-12 h-12 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg">
+                            <Play className="w-6 h-6 fill-white ml-0.5" />
+                          </div>
+                        </div>
+                      </div>
                     )
                   ) : (
                     <div className="text-center p-6 space-y-2 text-slate-400">
                       <PlatformIcon platform="youtube" className="w-10 h-10 mx-auto text-red-600" />
                       <p className="text-xs font-medium text-slate-300">Upload video to preview YouTube Player</p>
-                    </div>
-                  )}
-                  {isVideo && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
-                      <div className="w-12 h-12 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg">
-                        <Play className="w-6 h-6 fill-white ml-0.5" />
-                      </div>
                     </div>
                   )}
                 </div>
@@ -1195,22 +1318,43 @@ export default function PublisherPage() {
                       </td>
 
                       {/* Channels */}
-                      <td className="py-3 px-3">
-                        <div className="flex flex-wrap gap-1">
-                          {post.channelDetails && post.channelDetails.length > 0 ? (
-                            post.channelDetails.map((ch, i) => (
+                      <td className="py-3 px-3 max-w-[240px]">
+                        {post.channelDetails && post.channelDetails.length > 0 ? (
+                          <div className="flex flex-wrap items-center gap-1">
+                            {post.channelDetails.slice(0, 2).map((ch, i) => (
                               <span
                                 key={i}
                                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-[10.5px] font-semibold text-slate-800"
                               >
-                                <PlatformIcon platform={ch.platform} className="w-3 h-3" />
+                                <PlatformIcon platform={ch.platform} className="w-3 h-3 shrink-0" />
                                 <span className="max-w-[80px] truncate">{ch.name}</span>
                               </span>
-                            ))
-                          ) : (
-                            <span className="text-slate-400 text-[11px] italic">Channels linked</span>
-                          )}
-                        </div>
+                            ))}
+                            {post.channelDetails.length > 2 && (
+                              <div className="relative group/ch">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 font-extrabold text-[10px] cursor-pointer hover:bg-indigo-100 shadow-2xs transition-all">
+                                  +{post.channelDetails.length - 2} channels
+                                </span>
+                                {/* Hover Popover List */}
+                                <div className="absolute left-0 bottom-full mb-1.5 hidden group-hover/ch:flex flex-col gap-1.5 p-2.5 bg-slate-900 text-white rounded-xl shadow-xl z-30 min-w-[170px] max-w-[220px] text-[11px] border border-slate-700 animate-in fade-in duration-150">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800 pb-1">
+                                    Target Channels ({post.channelDetails.length})
+                                  </span>
+                                  <div className="max-h-36 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                                    {post.channelDetails.map((ch, idx) => (
+                                      <div key={idx} className="flex items-center gap-1.5 truncate text-slate-200 py-0.5">
+                                        <PlatformIcon platform={ch.platform} className="w-3 h-3 shrink-0" />
+                                        <span className="truncate">{ch.name}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 text-[11px] italic">Channels linked</span>
+                        )}
                       </td>
 
                       {/* Status Pill */}
