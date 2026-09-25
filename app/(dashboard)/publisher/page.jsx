@@ -426,21 +426,35 @@ export default function PublisherPage() {
       const res = await fetch("/api/post", {
         method: "POST",
         body: form,
-        headers: { "x-user-id": activeUserId }
+        headers: { "x-user-id": activeUserId || "" }
       });
       const data = await res.json();
+
+      if (!res.ok || data.error) {
+        toast.error(data.error || "Failed to publish or save post.");
+        if (data.isExpired) {
+          router.push("/billing");
+        }
+        return;
+      }
+
       setResults(data.results);
       if (effectiveMode === "schedule") {
         toast.success("📅 Post scheduled successfully for " + scheduleDate);
       } else if (effectiveMode === "draft") {
         toast.success("📌 Post saved to drafts successfully!");
       } else {
-        toast.success("🚀 Post published successfully!");
+        const hasFailures = data.results && Object.values(data.results).some(r => !r.success);
+        if (hasFailures) {
+          toast.error("⚠️ Some channels failed to publish. Check details below.");
+        } else {
+          toast.success("🚀 Post published successfully to all channels!");
+        }
       }
       // Instant update bottom list
       await fetchRecentPosts(activeUserId);
     } catch (err) {
-      toast.error("Failed to publish or save post.");
+      toast.error(err?.message || "Failed to publish or save post.");
     } finally {
       setPosting(false);
     }
