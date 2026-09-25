@@ -169,15 +169,14 @@ export default function Sidebar() {
       <div className="flex flex-col h-full min-h-0">
         
         {/* Header & Logo - Large Brand Logo Only (No Name Text) */}
-        <div className="px-4 py-3 border-b border-slate-200/80 flex items-center justify-between bg-white min-h-[68px]">
+        <div className="px-4  border-b border-slate-200/80 flex items-center justify-between bg-white min-h-[68px]">
           <Link href="/dashboard" className="flex items-center no-underline overflow-hidden group flex-1 mr-2">
-            <div className="flex items-center group-hover:scale-105 transition-transform duration-200">
               <img 
                 src="/postflyLOGO.png" 
                 alt="Postfly" 
-                className={collapsed ? "h-9 w-9 object-contain" : "h-11 sm:h-12 w-auto max-w-[190px] object-contain"} 
+                style={{ maxHeight: collapsed ? "36px" : "48px", maxWidth: collapsed ? "36px" : "180px", width: "auto" }}
+                className={collapsed ? "h-9 w-9 object-contain" : "h-11 sm:h-12 w-auto max-w-[180px] object-contain"} 
               />
-            </div>
           </Link>
 
           <button

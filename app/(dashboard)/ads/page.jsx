@@ -1245,12 +1245,13 @@ export default function MetaAdsPage() {
           <div className="flex items-center gap-2 text-[11px]">
             <span>Today's Real-Time Spend Log: <strong className="text-rose-600 font-bold">₹1,248.50</strong></span>
             <span>•</span>
-            <button
-              onClick={() => setActiveTab("logs")}
-              className="text-rose-600 hover:text-rose-700 font-bold underline cursor-pointer"
+            <Link
+              href="/ads/logs"
+              className="text-rose-600 hover:text-rose-700 font-bold underline flex items-center gap-1 cursor-pointer"
             >
-              View Today's Meta Logs →
-            </button>
+              <span>View Today's Meta Logs</span>
+              <span>→</span>
+            </Link>
           </div>
         </div>
       </div>
@@ -2366,13 +2367,22 @@ export default function MetaAdsPage() {
                 </p>
               </div>
 
-              <button
-                onClick={() => toast.success("Live Meta logs refreshed!")}
-                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span>Refresh Live Logs</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/ads/logs"
+                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 no-underline shadow-xs shadow-rose-200 cursor-pointer"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Open Full Dedicated Logs Page</span>
+                </Link>
+                <button
+                  onClick={() => toast.success("Live Meta logs refreshed!")}
+                  className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Refresh</span>
+                </button>
+              </div>
             </div>
 
             {/* Account Spend Overview Cards */}
