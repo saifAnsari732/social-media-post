@@ -45,12 +45,22 @@ export async function GET(req, { params }) {
         process.env.LINKEDIN_REDIRECT_URI || "https://social-media-post-eta.vercel.app/api/auth/callback/linkedin"
       )}&state=${state}&scope=${encodeURIComponent(linkedinScope)}`;
     },
-    threads: () =>
-      `https://threads.net/oauth/authorize?client_id=${threadsAppId}&app_id=${threadsAppId}&redirect_uri=${encodeURIComponent(
-        threadsRedirectUri
-      )}&response_type=code&scope=${encodeURIComponent(
-        "threads_basic,threads_content_publish"
-      )}&state=${state}`,
+    threads: () => {
+      const hasDedicatedThreadsApp = process.env.THREADS_APP_ID && process.env.THREADS_APP_ID !== metaAppId;
+      if (hasDedicatedThreadsApp) {
+        return `https://threads.net/oauth/authorize?client_id=${process.env.THREADS_APP_ID}&redirect_uri=${encodeURIComponent(
+          threadsRedirectUri
+        )}&response_type=code&scope=${encodeURIComponent(
+          "threads_basic,threads_content_publish"
+        )}&state=${state}`;
+      }
+      // Meta Unified Flow: Connects Instagram and automatically resolves Threads profile!
+      return `https://www.facebook.com/v20.0/dialog/oauth?client_id=${metaAppId}&redirect_uri=${encodeURIComponent(
+        metaRedirectUri
+      )}&state=${state}&auth_type=rerequest&scope=${encodeURIComponent(
+        "pages_show_list,pages_read_engagement,pages_manage_posts,pages_manage_metadata,instagram_basic,instagram_content_publish,instagram_manage_messages,instagram_manage_comments,instagram_manage_insights,business_management"
+      )}`;
+    },
     pinterest: () =>
       `https://www.pinterest.com/oauth/?client_id=${process.env.PINTEREST_CLIENT_ID}&redirect_uri=${encodeURIComponent(
         process.env.PINTEREST_REDIRECT_URI

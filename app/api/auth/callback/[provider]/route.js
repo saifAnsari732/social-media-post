@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { upsertAccount, upsertAdAccount } from "@/lib/db";
+import { serverCache } from "@/lib/cache";
 
 async function exchangeToken(provider, code) {
   switch (provider) {
@@ -1023,6 +1024,14 @@ export async function GET(req, { params }) {
         raw: tokenData
       });
     }
+
+    // Invalidate account cache so new channels appear instantly
+    try {
+      serverCache.delete(`accounts:${userId || 'all'}`);
+      serverCache.delete("accounts:all");
+      serverCache.invalidateTag("accounts");
+      serverCache.invalidateTag(`user:${userId}`);
+    } catch (e) {}
 
     // Use originalProvider in success redirect so the UI shows the right platform toast
     return NextResponse.redirect(
