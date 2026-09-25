@@ -46,15 +46,7 @@ export async function GET(req, { params }) {
       )}&state=${state}&scope=${encodeURIComponent(linkedinScope)}`;
     },
     threads: () => {
-      const hasDedicatedThreadsApp = process.env.THREADS_APP_ID && process.env.THREADS_APP_ID !== metaAppId;
-      if (hasDedicatedThreadsApp) {
-        return `https://threads.net/oauth/authorize?client_id=${process.env.THREADS_APP_ID}&redirect_uri=${encodeURIComponent(
-          threadsRedirectUri
-        )}&response_type=code&scope=${encodeURIComponent(
-          "threads_basic,threads_content_publish"
-        )}&state=${state}`;
-      }
-      // Meta Unified Flow: Connects Instagram and automatically resolves Threads profile!
+      // Direct Meta Connection -> Redirects to Meta OAuth Dialog and automatically discovers Instagram & Threads!
       return `https://www.facebook.com/v20.0/dialog/oauth?client_id=${metaAppId}&redirect_uri=${encodeURIComponent(
         metaRedirectUri
       )}&state=${state}&auth_type=rerequest&scope=${encodeURIComponent(
