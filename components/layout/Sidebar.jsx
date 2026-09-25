@@ -169,19 +169,25 @@ export default function Sidebar() {
       <div className="flex flex-col h-full min-h-0">
         
         {/* Header & Logo - Large Brand Logo Only (No Name Text) */}
-        <div className="px-4  border-b border-slate-200/80 flex items-center justify-between bg-white min-h-[68px]">
-          <Link href="/dashboard" className="flex items-center no-underline overflow-hidden group flex-1 mr-2">
+        <div className={`border-b border-slate-200/80 flex items-center justify-between bg-white min-h-[72px] transition-all ${
+          collapsed ? "px-2 justify-center" : "px-4"
+        }`}>
+          <Link href="/dashboard" className="flex items-center no-underline overflow-hidden group flex-1 mr-1">
               <img 
                 src="/postflyLOGO.png" 
                 alt="Postfly" 
-                style={{ maxHeight: collapsed ? "36px" : "48px", maxWidth: collapsed ? "36px" : "180px", width: "auto" }}
-                className={collapsed ? "h-9 w-9 object-contain" : "h-11 sm:h-12 w-auto max-w-[180px] object-contain"} 
+                style={{ 
+                  maxHeight: collapsed ? "54px" : "74px", 
+                  maxWidth: collapsed ? "54px" : "270px",
+                  width: "auto"
+                }}
+                className={collapsed ? "h-11 w-11 object-contain" : "h-36 w-auto max-w-[270px] object-contain transition-transform group-hover:scale-[1.02]"} 
               />
           </Link>
 
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="p-1.5 rounded-lg border border-slate-300 bg-slate-50 text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition-all hidden md:flex cursor-pointer shrink-0"
+            className="p-1.5 rounded-lg border border-slate-300 bg-slate-50 text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition-all hidden md:flex cursor-pointer shrink-0 ml-1"
             title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
             {collapsed ? <ChevronRight className="w-4 h-4 stroke-[2.5]" /> : <ChevronLeft className="w-4 h-4 stroke-[2.5]" />}

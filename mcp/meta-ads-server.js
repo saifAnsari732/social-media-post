@@ -86,9 +86,7 @@ let activeCampaigns = [
 ];
 
 let adAccounts = [
-  { id: "act_982402198", name: "Main E-Commerce Ads", status: "Active", currency: "INR" },
-  { id: "act_40912830", name: "Brand Retargeting Account", status: "Active", currency: "INR" },
-  { id: "act_77123901", name: "Agency Client Account #1", status: "Active", currency: "INR" }
+  { id: "act_1796071777698019", name: "Kisan Kumar (Primary Meta Ads)", status: "Active", currency: "INR" }
 ];
 
 // ----------------------------------------------------------------------------

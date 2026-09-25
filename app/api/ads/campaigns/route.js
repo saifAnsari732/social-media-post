@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDb, getAdAccounts, getAdCampaigns, upsertAdCampaign, removeAdCampaign } from "@/lib/db";
+import { getDb, getAdAccounts, getAdCampaigns, upsertAdCampaign, removeAdCampaign, getUserById } from "@/lib/db";
 import clientPromise from "@/lib/mongodb";
 
 export const dynamic = "force-dynamic";
@@ -74,14 +74,24 @@ export async function GET(req) {
       }
     }
 
-    // 3. Fetch user-created / persistent campaigns from MongoDB
+    // 3. Fetch user-created campaigns from MongoDB
     const dbCampaigns = await getAdCampaigns(formattedAccountId, userId);
+
+    // Filter out any mock/seeded campaign IDs (e.g. starting with cmp_act_ or cmp_live_)
+    const validDbCampaigns = (dbCampaigns || []).filter(
+      (c) =>
+        c.id &&
+        !c.id.startsWith("cmp_act_") &&
+        !c.id.startsWith("cmp_live_") &&
+        !c.name.includes("Official Viral Reels & Video Catalog") &&
+        !c.name.includes("High-Converting Retargeting & Add-To-Cart")
+    );
 
     // Merge Meta Live + DB campaigns deduplicating by ID
     const seenIds = new Set();
     const mergedCampaigns = [];
 
-    for (const c of [...liveMetaCampaigns, ...dbCampaigns]) {
+    for (const c of [...liveMetaCampaigns, ...validDbCampaigns]) {
       const id = c.id || c._id;
       if (id && !seenIds.has(id)) {
         seenIds.add(id);
@@ -133,7 +143,7 @@ export async function POST(req) {
       ctr: "0.00%",
       purchases: 0,
       roas: "0.0x",
-      userId: userId || "guest",
+      userId: userId || "current_user",
       createdAt: new Date().toISOString()
     };
 
@@ -151,23 +161,31 @@ export async function POST(req) {
 }
 
 export async function PUT(req) {
+  return handleUpdate(req);
+}
+
+export async function PATCH(req) {
+  return handleUpdate(req);
+}
+
+async function handleUpdate(req) {
   try {
     let userId = req.headers.get("x-user-id") || null;
     const body = await req.json();
     const targetId = body.id || body.campaignId;
-    const { status, dailyBudget, name, objective, platform } = body;
+    const { status, dailyBudget, name, objective, platform, accountId } = body;
 
     if (!targetId) {
       return NextResponse.json({ success: false, error: "Campaign ID is required" }, { status: 400 });
     }
 
-    const existingList = await getAdCampaigns(null, userId);
+    const existingList = await getAdCampaigns(accountId, userId);
     const existing = existingList.find((c) => c.id === targetId || c._id === targetId);
 
     const updated = {
       ...(existing || { id: targetId }),
       id: targetId,
-      userId: userId || "guest"
+      userId: userId || "current_user"
     };
 
     if (status) updated.status = status;
@@ -175,6 +193,10 @@ export async function PUT(req) {
     if (name) updated.name = name.trim();
     if (objective) updated.objective = objective.trim();
     if (platform) updated.platform = platform;
+    if (accountId) {
+      updated.accountId = accountId;
+      updated.adAccountId = accountId;
+    }
 
     await upsertAdCampaign(updated);
 
@@ -183,7 +205,7 @@ export async function PUT(req) {
       campaign: updated
     });
   } catch (err) {
-    console.error("[Ads Campaigns PUT] Error:", err);
+    console.error("[Ads Campaigns UPDATE] Error:", err);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }

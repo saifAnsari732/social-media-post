@@ -52,8 +52,8 @@ export async function POST(req) {
       const db = client.db();
       const newCampaign = {
         id: `cam_${Date.now()}`,
-        accountId: selectedAccount || "act_982402198",
-        userId: userId || "guest",
+        accountId: selectedAccount || "act_1796071777698019",
+        userId: userId || "current_user",
         name,
         objective: "Conversions (Sales)",
         status: "ACTIVE",

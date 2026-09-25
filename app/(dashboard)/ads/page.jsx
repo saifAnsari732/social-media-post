@@ -82,12 +82,8 @@ export default function MetaAdsPage() {
   const [activeTab, setActiveTab] = useState("campaigns");
 
   // Accounts List
-  const [adAccounts, setAdAccounts] = useState([
-    { id: "act_982402198", name: "Main E-Commerce Ads", status: "Active", currency: "INR" },
-    { id: "act_40912830", name: "Brand Retargeting Account", status: "Active", currency: "INR" },
-    { id: "act_77123901", name: "Agency Client Account #1", status: "Active", currency: "INR" }
-  ]);
-  const [selectedAccount, setSelectedAccount] = useState("act_982402198");
+  const [adAccounts, setAdAccounts] = useState([]);
+  const [selectedAccount, setSelectedAccount] = useState("act_1796071777698019");
 
   // Filter Status & Search
   const [statusFilter, setStatusFilter] = useState("all");
@@ -227,8 +223,24 @@ export default function MetaAdsPage() {
         });
         const data = await res.json();
         if (data?.accounts && data.accounts.length > 0) {
-          setAdAccounts(data.accounts);
-          setSelectedAccount((prev) => (data.accounts.some((a) => a.id === prev) ? prev : data.accounts[0].id));
+          const cleaned = data.accounts.filter(
+            (a) =>
+              !["act_982402198", "act_40912830", "act_77123901"].includes(a.id) &&
+              !["act_982402198", "act_40912830", "act_77123901"].includes(a.accountId)
+          );
+          const finalAccounts = cleaned.length > 0 ? cleaned : data.accounts;
+          setAdAccounts(finalAccounts);
+
+          const savedActive = typeof window !== "undefined" ? localStorage.getItem("active_meta_ad_account") : null;
+          const defaultAcc =
+            savedActive && finalAccounts.some((a) => a.id === savedActive)
+              ? savedActive
+              : finalAccounts[0].id;
+
+          setSelectedAccount(defaultAcc);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("active_meta_ad_account", defaultAcc);
+          }
         }
       } catch (err) {
         console.error("Failed to load ad accounts from DB:", err);
@@ -293,8 +305,6 @@ export default function MetaAdsPage() {
     setShowUpgradeModal(true);
     return false;
   };
-
-  const currentCampaignsList = realCampaigns;
 
   // --------------------------------------------------------------------------
   // META ADS AI CHATBOT HANDLER (LEFT PANEL)
@@ -1055,19 +1065,19 @@ export default function MetaAdsPage() {
     );
   }
 
-  const isMetaAdsUnlocked = Boolean(limits?.hasMetaAds);
+  const currentCampaignsList = Array.isArray(realCampaigns) ? realCampaigns : [];
 
   const filteredCampaigns = currentCampaignsList.filter((c) => {
-    const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = c.name?.toLowerCase().includes(searchQuery.toLowerCase());
     if (statusFilter === "all") return matchesSearch;
-    return matchesSearch && c.status.toLowerCase() === statusFilter.toLowerCase();
+    return matchesSearch && c.status?.toLowerCase() === statusFilter.toLowerCase();
   });
 
-  // Calculate Metrics cleanly
-  const totalSpend = currentCampaignsList.reduce((acc, curr) => acc + (curr.spent || 0), 0);
-  const totalImpressions = currentCampaignsList.reduce((acc, curr) => acc + (curr.impressions || 0), 0);
-  const totalClicks = currentCampaignsList.reduce((acc, curr) => acc + (curr.clicks || 0), 0);
-  const totalPurchases = currentCampaignsList.reduce((acc, curr) => acc + (curr.purchases || 0), 0);
+  // Calculate Metrics cleanly from genuine real data
+  const totalSpend = currentCampaignsList.reduce((acc, curr) => acc + (Number(curr.spent) || 0), 0);
+  const totalImpressions = currentCampaignsList.reduce((acc, curr) => acc + (Number(curr.impressions) || 0), 0);
+  const totalClicks = currentCampaignsList.reduce((acc, curr) => acc + (Number(curr.clicks) || 0), 0);
+  const totalPurchases = currentCampaignsList.reduce((acc, curr) => acc + (Number(curr.purchases) || 0), 0);
 
   return (
     <div className="p-4 md:p-6 w-full max-w-full space-y-6 font-sans">
@@ -1170,6 +1180,9 @@ export default function MetaAdsPage() {
               onChange={(e) => {
                 if (checkPlanActive("Switch Meta Ad Account")) {
                   setSelectedAccount(e.target.value);
+                  if (typeof window !== "undefined") {
+                    localStorage.setItem("active_meta_ad_account", e.target.value);
+                  }
                 }
               }}
               className="bg-transparent text-slate-900 font-semibold text-xs focus:outline-none cursor-pointer pr-2"
@@ -1184,7 +1197,7 @@ export default function MetaAdsPage() {
 
           {/* PROMINENT TODAY'S LOGS & SPEND BUTTON */}
           <Link
-            href="/ads/logs"
+            href={`/ads/logs?accountId=${encodeURIComponent(selectedAccount)}`}
             className="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 no-underline cursor-pointer active:scale-95"
           >
             <Activity className="w-4 h-4 text-rose-400" />
@@ -1231,9 +1244,9 @@ export default function MetaAdsPage() {
 
           <div className="flex items-center gap-3 text-slate-700 text-xs flex-wrap">
             <span className="flex items-center gap-1">
-              Account spending limit: <strong className="text-slate-950 font-bold">₹1,54,067.72</strong> <Info className="w-3.5 h-3.5 text-slate-400" />
+              Account status: <strong className="text-emerald-700 font-bold">Active</strong> <Info className="w-3.5 h-3.5 text-slate-400" />
               <span className="text-slate-400 font-normal">|</span>
-              <strong className="text-rose-600 font-bold">₹1,52,478.49 spent</strong>
+              <strong className="text-slate-900 font-bold">₹{totalSpend.toFixed(2)} spent</strong>
             </span>
             <button
               onClick={() => toast.success("Live Meta logs & spending limits refreshed!")}
@@ -1247,15 +1260,15 @@ export default function MetaAdsPage() {
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-medium text-slate-600">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span>Amount spent in last 7 days: <strong className="text-emerald-700 font-bold">₹11,018.19</strong> <Info className="w-3.5 h-3.5 inline text-slate-400" /></span>
+            <span>Amount spent in last 7 days: <strong className="text-emerald-700 font-bold">₹{totalSpend.toFixed(2)}</strong> <Info className="w-3.5 h-3.5 inline text-slate-400" /></span>
             <span className="text-slate-300">•</span>
-            <span className="text-slate-600 font-semibold">0% spent in learning phase <Info className="w-3.5 h-3.5 inline text-slate-400" /></span>
+            <span className="text-slate-600 font-semibold">{totalSpend > 0 ? "Optimized delivery" : "0 active campaigns"} <Info className="w-3.5 h-3.5 inline text-slate-400" /></span>
           </div>
 
           <div className="flex items-center gap-3 text-xs">
-            <span>Today's Real-Time Spend: <strong className="text-rose-600 font-bold">₹1,248.50</strong></span>
+            <span>Today's Real-Time Spend: <strong className="text-rose-600 font-bold">₹{totalSpend.toFixed(2)}</strong></span>
             <Link
-              href="/ads/logs"
+              href={`/ads/logs?accountId=${encodeURIComponent(selectedAccount)}`}
               className="px-3 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 shadow-2xs transition-all flex items-center gap-1.5 no-underline cursor-pointer active:scale-95"
             >
               <Activity className="w-3.5 h-3.5 text-rose-600" />
