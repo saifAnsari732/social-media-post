@@ -327,6 +327,21 @@ export default function MetaAdsPage() {
       });
 
       const data = await res.json();
+
+      // Handle AI CRUD Actions on campaigns table state
+      if (data?.action === "CREATE_CAMPAIGN" && data?.campaign) {
+        setRealCampaigns((prev) => [data.campaign, ...prev]);
+        toast.success(`🚀 Campaign "${data.campaign.name}" created via AI!`);
+      } else if (data?.action === "UPDATE_CAMPAIGN" && data?.campaignId && data?.updatedFields) {
+        setRealCampaigns((prev) =>
+          prev.map((c) => (c.id === data.campaignId ? { ...c, ...data.updatedFields } : c))
+        );
+        toast.success(`⚡ Campaign updated via AI!`);
+      } else if (data?.action === "DELETE_CAMPAIGN" && data?.campaignId) {
+        setRealCampaigns((prev) => prev.filter((c) => c.id !== data.campaignId));
+        toast.success(`🗑️ Campaign deleted via AI!`);
+      }
+
       if (data?.text) {
         setChatMessages((prev) => [...prev, { sender: "ai", text: data.text }]);
       } else if (data?.description || data?.title) {
@@ -528,17 +543,103 @@ export default function MetaAdsPage() {
     if (!checkPlanActive("Run Performance Audit")) return;
     setAuditLoading(true);
     setTimeout(() => {
+      const spent = inspectCampaign.spent || 750;
+      const ctrVal = parseFloat(inspectCampaign.ctr) || 1.85;
+      const results = inspectCampaign.purchases || Math.round(spent / 22) || 12;
+      const cpl = (spent / Math.max(1, results)).toFixed(2);
+      const frequency = (1.15 + (spent % 40) / 100).toFixed(2);
+
+      const isHighSaturation = parseFloat(frequency) > 1.4;
+      const isHighCpl = parseFloat(cpl) > 20;
+
       setAuditResult({
-        performanceScore: inspectCampaign.spent > 10000 ? "92/100 (High Performer)" : "85/100 (Good Health)",
-        summary: `Campaign '${inspectCampaign.name}' is driving engagement on ${inspectCampaign.platform}. CTR stands at ${inspectCampaign.ctr || "4.50%"}.`,
+        performanceScore: isHighSaturation || isHighCpl ? "74/100 (Optimization Needed)" : "92/100 (Optimal Growth)",
+        summary: `Campaign '${inspectCampaign.name}' generated ${results} leads at ₹${cpl}/lead with ${ctrVal}% CTR. ${isHighSaturation ? "Audience frequency is reaching saturation." : "Engagement and hook rate remain healthy."}`,
+        pillars: [
+          {
+            title: "🎯 Audience & Saturation",
+            status: isHighSaturation ? `Warning (${frequency}x)` : `Healthy (${frequency}x)`,
+            detail: isHighSaturation ? "Audience is seeing this ad multiple times. Expand targeting or refresh creative." : "Audience reach is fresh with minimal overlap.",
+            badgeColor: isHighSaturation ? "amber" : "emerald"
+          },
+          {
+            title: "⚡ Cost Per Lead (CPL)",
+            status: `₹${cpl} / lead`,
+            detail: isHighCpl ? "CPL is higher than benchmark. Applying Cost Cap will protect your margin." : "CPL is well within target threshold.",
+            badgeColor: isHighCpl ? "rose" : "emerald"
+          },
+          {
+            title: "✍️ Creative Hook Rate",
+            status: `${ctrVal}% Link CTR`,
+            detail: ctrVal < 2.0 ? "Hook rate can be improved by adding strong headline text overlays in the first 3 sec." : "Strong creative resonance with target demographic.",
+            badgeColor: ctrVal < 2.0 ? "blue" : "emerald"
+          },
+          {
+            title: "💰 Budget Delivery Efficiency",
+            status: `₹${(inspectCampaign.dailyBudget || 0).toLocaleString("en-IN")}/day Active`,
+            detail: inspectCampaign.dailyBudget < 1000 ? "Campaign is budget constrained. Scaling by +25% will unlock higher impression share." : "Budget delivery is balanced across placements.",
+            badgeColor: "indigo"
+          }
+        ],
         recommendations: [
-          "💡 Scale Daily Budget: Increase budget by 20% to capture peak evening converter hours.",
-          "🎯 Creative Refresh: Add 2 video Reels variations to reduce audience fatigue.",
-          "⚡ Bidding Strategy: Keep Cost Cap at ₹15 per conversion for optimal ROAS."
+          "⚡ Apply Cost Cap Strategy (Cap at ₹15.00/lead to prevent overspending).",
+          "💰 Scale Daily Budget by +25% to capture peak converting hours.",
+          "🎯 Expand Lookalike Audience 1% to reach fresh high-intent users.",
+          "✍️ Generate 2 New PAS Ad Copy Variations to combat ad fatigue."
         ]
       });
       setAuditLoading(false);
     }, 1200);
+  };
+
+  const handleApplyAuditCostCap = async (campaign, recommendedCap = 15) => {
+    if (!checkPlanActive("Apply AI Cost Cap Strategy")) return;
+    try {
+      await fetch("/api/ads/campaigns", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user?.userId || "guest"
+        },
+        body: JSON.stringify({
+          accountId: selectedAccount,
+          campaignId: campaign.id,
+          bidStrategy: "COST_CAP",
+          costCap: recommendedCap
+        })
+      });
+      toast.success(`⚡ Cost Cap of ₹${recommendedCap}/lead applied to "${campaign.name}"!`);
+      setInspectModalOpen(false);
+    } catch (e) {
+      toast.error("Failed to apply Cost Cap strategy");
+    }
+  };
+
+  const handleApplyAuditBudgetScale = async (campaign, scalePercent = 25) => {
+    if (!checkPlanActive("Scale Campaign Budget")) return;
+    const current = campaign.dailyBudget || 1500;
+    const newBudget = Math.round(current * (1 + scalePercent / 100));
+    try {
+      await fetch("/api/ads/campaigns", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user?.userId || "guest"
+        },
+        body: JSON.stringify({
+          accountId: selectedAccount,
+          campaignId: campaign.id,
+          dailyBudget: newBudget
+        })
+      });
+      setRealCampaigns((prev) =>
+        prev.map((c) => (c.id === campaign.id ? { ...c, dailyBudget: newBudget } : c))
+      );
+      toast.success(`💰 Budget scaled by +${scalePercent}% to ₹${newBudget.toLocaleString("en-IN")}/day!`);
+      setInspectModalOpen(false);
+    } catch (e) {
+      toast.error("Failed to scale budget");
+    }
   };
 
   const handleOpenEditModal = (campaign, e) => {
@@ -1090,30 +1191,30 @@ export default function MetaAdsPage() {
 
         {/* LEFT SIDEBAR: META ADS AI CHAT BOT */}
         <div className="w-full xl:w-80 shrink-0 space-y-4">
-          <div className="bg-white rounded-3xl border border-rose-200/80 shadow-md p-4 space-y-4 sticky top-6">
-            <div className="flex items-center justify-between border-b border-rose-100 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold shadow-xs">
-                  <Compass className="w-4 h-4" />
+          <div className="bg-slate-900 rounded-3xl border border-slate-800 shadow-xl p-4 space-y-4 sticky top-6 text-slate-100">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold shadow-md shadow-rose-600/20">
+                  <Megaphone className="w-4 h-4" />
                 </span>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">Meta Ads Copilot</h3>
-                  <span className="text-[10px] text-rose-600 font-semibold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Live Meta Context
+                  <h3 className="text-sm font-bold text-white tracking-tight">Meta Ads Copilot</h3>
+                  <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Live Meta Context Sync
                   </span>
                 </div>
               </div>
-              <span className="text-[10px] font-bold bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full border border-rose-200">
-                Gemini 1.5
+              <span className="text-[10px] font-bold bg-slate-800 text-rose-400 px-2.5 py-0.5 rounded-full border border-slate-700">
+                Active Telemetry
               </span>
             </div>
 
             {/* Live Context Summary Widget */}
-            <div className="p-3 rounded-2xl bg-slate-900 text-white space-y-2 shadow-2xs">
-              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-rose-300 border-b border-slate-800 pb-1.5">
+            <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 text-white space-y-2 shadow-inner">
+              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-rose-400 border-b border-slate-800 pb-1.5">
                 <span className="flex items-center gap-1"><Cpu className="w-3 h-3 text-rose-400" /> Account Live Telemetry</span>
-                <span className="font-mono text-slate-300">{selectedAccount}</span>
+                <span className="font-mono text-slate-400">{selectedAccount}</span>
               </div>
               <div className="grid grid-cols-2 gap-2 text-[11px] font-medium">
                 <div>
@@ -1131,41 +1232,41 @@ export default function MetaAdsPage() {
 
             {/* Quick Action Chips */}
             <div className="space-y-1.5">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Live AI Commands</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Copilot Commands</p>
               <div className="flex flex-wrap gap-1.5">
                 <button
                   onClick={() => handleSendChatMessage("Audit all active campaigns & ROAS performance")}
-                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
+                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-rose-600 text-slate-200 hover:text-white border border-slate-700 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
                 >
                   ⚡ Audit ROAS
                 </button>
                 <button
                   onClick={() => handleSendChatMessage("Suggest optimal daily budget allocation across campaigns")}
-                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
+                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-rose-600 text-slate-200 hover:text-white border border-slate-700 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
                 >
                   💰 Budget Split
                 </button>
                 <button
                   onClick={() => handleSendChatMessage("Generate high-converting Meta audience targeting keywords")}
-                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
+                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-rose-600 text-slate-200 hover:text-white border border-slate-700 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
                 >
                   🎯 Audience
                 </button>
                 <button
                   onClick={() => handleSendChatMessage("Write high-converting PAS & AIDA ad copies")}
-                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
+                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-rose-600 text-slate-200 hover:text-white border border-slate-700 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
                 >
                   ✍️ Write Copy
                 </button>
                 <button
                   onClick={() => handleSendChatMessage("Which campaign is winning and how should I scale it?")}
-                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
+                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-rose-600 text-slate-200 hover:text-white border border-slate-700 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
                 >
                   🚀 Scale Winner
                 </button>
                 <button
                   onClick={() => handleSendChatMessage("How to fix low CTR and creative ad fatigue?")}
-                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
+                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-rose-600 text-slate-200 hover:text-white border border-slate-700 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
                 >
                   🔄 Fix Low CTR
                 </button>
@@ -1173,7 +1274,7 @@ export default function MetaAdsPage() {
             </div>
 
             {/* Chat History Container */}
-            <div className="h-96 overflow-y-auto space-y-3 p-3 bg-slate-50/80 rounded-xl border border-slate-200/70 text-xs font-normal scrollbar-thin">
+            <div className="h-96 overflow-y-auto space-y-3 p-3 bg-slate-950/60 rounded-xl border border-slate-800 text-xs font-normal scrollbar-thin">
               {chatMessages.map((msg, i) => (
                 <div
                   key={i}
@@ -1183,7 +1284,7 @@ export default function MetaAdsPage() {
                     className={`max-w-[90%] p-3 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap ${
                       msg.sender === "user"
                         ? "bg-rose-600 text-white rounded-br-none shadow-xs font-medium"
-                        : "bg-white text-slate-800 border border-rose-100 shadow-2xs rounded-bl-none font-normal"
+                        : "bg-slate-800 text-slate-100 border border-slate-700/80 shadow-2xs rounded-bl-none font-normal"
                     }`}
                   >
                     {msg.text}
@@ -1191,7 +1292,7 @@ export default function MetaAdsPage() {
                 </div>
               ))}
               {isChatLoading && (
-                <div className="flex items-center gap-2 text-rose-600 font-semibold text-xs p-2">
+                <div className="flex items-center gap-2 text-rose-400 font-semibold text-xs p-2">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                   <span>Analyzing Meta Ads Context...</span>
                 </div>
@@ -1208,10 +1309,10 @@ export default function MetaAdsPage() {
             >
               <input
                 type="text"
-                placeholder="Ask AI about your Meta ads..."
+                placeholder="Ask Meta Ads Copilot..."
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
-                className="flex-1 p-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none text-slate-900 bg-white"
+                className="flex-1 p-2.5 rounded-xl border border-slate-800 text-xs font-medium focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none text-white bg-slate-950 placeholder-slate-500"
               />
               <button
                 type="submit"

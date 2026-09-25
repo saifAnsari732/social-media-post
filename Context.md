@@ -22,6 +22,8 @@
 13. [Database Schemas & Collections](#13-database-schemas--collections)
 14. [API Endpoints Directory](#14-api-endpoints-directory)
 15. [Meta Ads Manager & AI Post Booster Hub (Pro Unlimited Exclusive)](#15-meta-ads-manager--ai-post-booster-hub-pro-unlimited-exclusive)
+16. [ImageKit CDN, AI Studio Expansion & UI Improvements](#16-imagekit-cdn-ai-studio-expansion--ui-improvements)
+17. [Threads Multi-Channel Auto-Connect & Automated Invoice Email System](#17-threads-multi-channel-auto-connect--automated-invoice-email-system)
 
 ---
 
@@ -267,6 +269,47 @@ POST   /api/admin/system              # System health & reset actions
   - **Read:** Deep Campaign Inspector with AI Campaign Auditor.
   - **Update:** Inline status toggle (ACTIVE / PAUSED) and modal editing for daily budget and schedule.
   - **Delete:** Archive campaign modal with permanent deletion safety.
+
+---
+
+## 16. ImageKit CDN, AI Studio Expansion & UI Improvements
+
+* **ImageKit Cloud Media & Video CDN Pipeline:**
+  - Integrated ImageKit Node SDK (`lib/imagekit.js` and `/api/upload`) for high-speed global CDN media hosting (`https://ik.imagekit.io/saifdeveloper`).
+  - Supports automatic draft saving, media re-population in Publisher edit mode, and CDN URL propagation to all social platform dispatchers.
+
+* **Advanced AI Content Studio (Configurable Length & Bullet Points):**
+  - **Customizable Generation Lengths:** Selectable output tiers: *Short (~50 words)*, *Medium (~150 words)*, *Long (~300 words)*, and *Epic Deep Dive (500+ words)*.
+  - **Dynamic Hashtag Controls:** Tailor hashtag count from 5 to 30 trending niche tags.
+  - **Enhanced Copywriting Format:** Prompts are heavily expanded into structured marketing concepts featuring clean bullet points and zero arbitrary emojis.
+
+* **Multi-Platform Live Previews & Content Library Redesign:**
+  - Real-time previews for Instagram, Facebook, Threads, YouTube Shorts, X/Twitter, LinkedIn, TikTok, and Pinterest.
+  - Fixed YouTube preview video player overlap issue.
+  - Redesigned Target Channels column in Content Library (`/posts`) with compact badges and hover popovers.
+  - Highlighted Meta Ads button in Sidebar navigation with a rose border and animated PRO badge.
+
+---
+
+## 17. Threads Multi-Channel Auto-Connect & Automated Invoice Email System
+
+* **Threads OAuth 2.0 Authorization Fix:**
+  - Fixed Threads OAuth `error_code: 4476002` ("No app ID was sent with the request") by supplying both `app_id=${threadsAppId}` and `client_id=${threadsAppId}` in `/api/auth/connect/[provider]`.
+  - Fallback logic configured across `THREADS_APP_ID`, `NEXT_PUBLIC_THREADS_APP_ID`, and `META_APP_ID`.
+
+* **Batch Multi-Channel Auto-Connect:**
+  - During Meta authentication (`/api/auth/callback/[provider]`), the system now automatically imports and stores all Facebook Pages, Instagram Business Accounts, and **all associated Threads profiles** (`platform: "threads"`) in a single batch.
+
+* **Unified SaaS Tax Invoice Modal (`InvoiceModal.jsx`):**
+  - Displays full subscriber info (*User Name, Email, User ID, Billing Address*).
+  - Displays platform metadata (*Postfly Social Automation Platform, Payment ID, Order ID, Date, Renewal Date*).
+  - Itemized pricing breakdown showing Subtotal, Promo Discounts, and Net Amount Charged.
+  - Direct actions for **Print / Download PDF** and **Send Email Receipt**.
+
+* **Automated Welcome & Tax Invoice Email Delivery (`lib/email.js`):**
+  - Configured with Nodemailer for automated HTML email delivery upon Razorpay plan purchase verification (`/api/razorpay/verify`).
+  - Contains a personalized welcome banner (*"🎉 Welcome to Postfly, [User Name]!"*), platform highlights, and an official tax invoice receipt.
+  - Dedicated API endpoint `/api/admin/send-invoice-email` allowing manual email dispatch at any time.
 
 ---
 
