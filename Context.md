@@ -340,4 +340,21 @@ POST   /api/admin/system              # System health & reset actions
 
 ---
 
+## 20. Video & Post Comment Moderation Controls (Turn Off Comments)
+
+* **Interactive Frontend Toggle (`publisher/page.jsx`):**
+  - Added a dedicated "Disable Comments" switch in Column 3 right above the Primary Action button.
+  - Controls public engagement and reply permissions before publishing.
+  - Automatically preserves and restores the `disableComments` state when loading/editing drafts.
+
+* **API & Database Integration (`app/api/post/route.js`):**
+  - Accepts `disableComments: Boolean` in both JSON and FormData payloads.
+  - Persists `disableComments` in MongoDB post documents for drafts, scheduled posts, and published posts.
+
+* **Platform-Level Comment Disabling:**
+  - **Instagram (`lib/platforms/instagram.js`):** Calls `POST /v20.0/{ig-media-id}` with `comment_enabled: false` immediately upon container publication to disable comments programmatically.
+  - **Twitter / X (`lib/platforms/twitter.js`):** Injects `reply_settings: "mentionedUsers"` into the tweet creation payload so only mentioned users can reply, effectively turning off public comments on the post.
+
+---
+
 *This document serves as the single source of truth for Postfly's system architecture, business logic, and feature set.*

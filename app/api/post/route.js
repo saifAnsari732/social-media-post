@@ -121,6 +121,7 @@ export async function POST(req) {
   let scheduledAt = null;
   let mediaUrl = null;
   let mediaType = null;
+  let disableComments = false;
   let rawUserId = req.headers.get("x-user-id");
   let userId = (rawUserId && rawUserId !== "undefined" && rawUserId !== "null" && rawUserId.trim() !== "") 
     ? rawUserId.trim() 
@@ -149,6 +150,7 @@ export async function POST(req) {
     selectedAccountIds = json.accountIds || json.platforms || [];
     publishMode = json.publishMode || (json.scheduledAt ? "schedule" : "draft");
     scheduledAt = json.scheduledAt || null;
+    disableComments = Boolean(json.disableComments);
     if (json.mediaUrl) {
       mediaUrl = json.mediaUrl;
       mediaType = json.mediaType || (json.mediaUrl.includes("video") ? "video" : "image");
@@ -169,6 +171,7 @@ export async function POST(req) {
     const mediaTypeFromForm = formData.get("mediaType") || "";
     publishMode = formData.get("publishMode") || "now";
     scheduledAt = formData.get("scheduledAt") || null;
+    disableComments = formData.get("disableComments") === "true";
     if (!file && mediaUrlFromForm) {
       mediaUrl = mediaUrlFromForm;
       mediaType = mediaTypeFromForm || (mediaUrlFromForm.includes("video") ? "video" : "image");
@@ -244,6 +247,7 @@ export async function POST(req) {
       tags,
       mediaUrl,
       mediaType,
+      disableComments: !!disableComments,
       accountIds: selectedAccountIds,
       status: publishMode === "schedule" ? "Scheduled" : "Draft",
       scheduledAt: scheduledAt || new Date().toISOString(),
@@ -334,7 +338,8 @@ export async function POST(req) {
             accessToken: account.accessToken,
             mediaUrl: directUrl,
             caption: `${title}\n\n${description}`,
-            isVideo
+            isVideo,
+            disableComments
           });
           break;
         }
@@ -345,7 +350,8 @@ export async function POST(req) {
             videoBuffer: buffer,
             text: `${title}\n\n${description}`,
             isVideo,
-            mimeType: isVideo ? "video/mp4" : "image/jpeg"
+            mimeType: isVideo ? "video/mp4" : "image/jpeg",
+            disableComments
           });
           break;
 
@@ -421,6 +427,7 @@ export async function POST(req) {
     tags,
     mediaUrl,
     mediaType,
+    disableComments: !!disableComments,
     accountIds: selectedAccountIds,
     status: postStatus,
     results,
@@ -480,6 +487,7 @@ export async function PUT(req) {
       if (body.status !== undefined) updatePayload.status = body.status;
       if (body.mediaUrl !== undefined) updatePayload.mediaUrl = body.mediaUrl;
       if (body.mediaType !== undefined) updatePayload.mediaType = body.mediaType;
+      if (body.disableComments !== undefined) updatePayload.disableComments = !!body.disableComments;
 
       const updated = await updatePost(postId, updatePayload);
       try {

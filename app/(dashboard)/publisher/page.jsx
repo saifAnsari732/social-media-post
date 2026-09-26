@@ -32,7 +32,8 @@ import {
   Edit3,
   Play,
   FileVideo,
-  Image as ImageIcon
+  Image as ImageIcon,
+  MessageSquareOff
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { PlatformIcon } from "@/components/ui/SocialIcons";
@@ -55,6 +56,7 @@ export default function PublisherPage() {
   const [publishMode, setPublishMode] = useState("draft"); // 'draft' (default) | 'now' | 'schedule'
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("18:30");
+  const [disableComments, setDisableComments] = useState(false);
   const [previewTab, setPreviewTab] = useState("instagram");
   const [editingPost, setEditingPost] = useState(null);
   const [previewMedia, setPreviewMedia] = useState(null);
@@ -116,6 +118,7 @@ export default function PublisherPage() {
     setTags(Array.isArray(post.tags) ? post.tags.join(", ") : post.tags || "");
     setSelectedIds(post.accountIds || []);
     setPublishMode(post.status === "Draft" ? "draft" : "now");
+    setDisableComments(Boolean(post.disableComments));
     setFile(null);
     if (post.mediaUrl) {
       setFilePreview(post.mediaUrl);
@@ -428,7 +431,8 @@ export default function PublisherPage() {
             accountIds: selectedIds,
             status: effectiveMode === "draft" ? "Draft" : (effectiveMode === "schedule" ? "Scheduled" : "Published"),
             mediaUrl: finalMediaUrl,
-            mediaType: finalMediaType
+            mediaType: finalMediaType,
+            disableComments: Boolean(disableComments)
           })
         });
         const data = await res.json();
@@ -460,7 +464,8 @@ export default function PublisherPage() {
             publishMode: effectiveMode,
             scheduledAt: effectiveMode === "schedule" ? (scheduleDate ? `${scheduleDate}T${scheduleTime || "12:00"}:00` : new Date().toISOString()) : null,
             mediaUrl: finalMediaUrl,
-            mediaType: finalMediaType
+            mediaType: finalMediaType,
+            disableComments: Boolean(disableComments)
           })
         });
       } else {
@@ -474,6 +479,7 @@ export default function PublisherPage() {
         form.append("tags", tags || "");
         form.append("accountIds", JSON.stringify(selectedIds));
         form.append("publishMode", effectiveMode);
+        form.append("disableComments", String(disableComments));
 
         res = await fetch("/api/post", {
           method: "POST",
@@ -1260,8 +1266,44 @@ export default function PublisherPage() {
             </div>
           )}
 
+          {/* Comment Moderation Control */}
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 space-y-1.5 transition-all">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${disableComments ? 'bg-rose-100 text-rose-700' : 'bg-slate-200/80 text-slate-600'}`}>
+                  <MessageSquareOff className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900">Disable Comments</h4>
+                  <p className="text-[10px] text-slate-500 font-medium">Turn off public comments & replies</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={disableComments}
+                onClick={() => setDisableComments(prev => !prev)}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  disableComments ? "bg-rose-600" : "bg-slate-300"
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                    disableComments ? "translate-x-4" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+            {disableComments && (
+              <div className="pt-1 border-t border-slate-200/60 flex items-center justify-between text-[10px] text-rose-600 font-semibold">
+                <span>Comments disabled on Instagram & X</span>
+                <span className="text-[9px] bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">Active</span>
+              </div>
+            )}
+          </div>
+
           {/* Primary Action Button */}
-          <div className="pt-2 space-y-2.5">
+          <div className="pt-1 space-y-2.5">
             <button
               onClick={() => handlePost()}
               disabled={posting || (publishMode !== "draft" && selectedIds.length === 0)}
