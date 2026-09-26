@@ -2029,6 +2029,715 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
           </div>
 
 
+          {/* UNIVERSAL CONTENT ANALYZER & RISK ENGINE (POWERED BY GEMINI AI) */}
+          {(() => {
+            const hasFairUse = Boolean(
+              description.toLowerCase().includes("section 107") ||
+              description.toLowerCase().includes("section 52") ||
+              description.toLowerCase().includes("fair use") ||
+              description.toLowerCase().includes("content declaration") ||
+              description.toLowerCase().includes("safe harbor")
+            );
+
+            const commercialMusicLabels = ["t-series", "tseries", "sony music", "zee music", "yrf", "universal music", "warnermusic", "speed records", "tips official"];
+            const hasCommercialMusicFlag = commercialMusicLabels.some(lbl => 
+              `${title} ${description} ${tags}`.toLowerCase().includes(lbl)
+            );
+
+            const hasMetaAudio = Boolean(
+              description.toLowerCase().includes("meta rights & audio") ||
+              description.toLowerCase().includes("audio declaration") ||
+              description.toLowerCase().includes("original sound") ||
+              description.toLowerCase().includes("original commentary") ||
+              description.toLowerCase().includes("original voice") ||
+              description.toLowerCase().includes("royalty-free") ||
+              description.toLowerCase().includes("creator voice") ||
+              hasFairUse
+            );
+
+            const isOriginalVoice = Boolean(
+              scanResultData?.audioAnalysis?.isOriginalVoice ||
+              description.toLowerCase().includes("original voice") ||
+              description.toLowerCase().includes("original audio") ||
+              description.toLowerCase().includes("original sound") ||
+              description.toLowerCase().includes("creator voice") ||
+              description.toLowerCase().includes("spoken commentary") ||
+              (!hasCommercialMusicFlag && isVideo)
+            );
+
+            const isYTProtected = !selectedIds.includes("youtube") || youtubePrivacy === "unlisted";
+
+            // Effective media origin & confidence from API result
+            const currentOrigin = scanResultData?.detectedMediaOrigin || detectedMediaOrigin || "real";
+            const currentConfidence = scanResultData?.mediaOriginConfidence || mediaOriginConfidence || 95;
+            const isAIMedia = currentOrigin === "ai";
+            const hasAIDisclosed = Boolean(
+              description.toLowerCase().includes("ai & synthetic media disclosure") ||
+              description.toLowerCase().includes("aigenerated") ||
+              description.toLowerCase().includes("syntheticmedia")
+            );
+
+            // Resolve active issues dynamically based on current post state
+            let activeIssues = [];
+            if (scanResultData?.issues && scanResultData.issues.length > 0) {
+              activeIssues = scanResultData.issues.filter(iss => {
+                if (iss.fixType === "safe_harbor" && hasFairUse) return false;
+                if (iss.fixType === "meta_audio" && (hasMetaAudio || !hasCommercialMusicFlag)) return false;
+                if (iss.fixType === "youtube_unlisted" && isYTProtected) return false;
+                if (iss.fixType === "ai_disclosure" && hasAIDisclosed) return false;
+                return true;
+              });
+            }
+
+            // If AI media is detected and disclosure label is missing, ensure active issue is present
+            if (isAIMedia && !hasAIDisclosed) {
+              const alreadyInIssues = activeIssues.some(i => i.id === "ai_disclosure_missing");
+              if (!alreadyInIssues) {
+                activeIssues.push({
+                  id: "ai_disclosure_missing",
+                  severity: "medium",
+                  title: "Missing Platform AI Transparency Label",
+                  desc: "AI-generated / 3D avatar media detected. Meta AI Info & YouTube Altered Content policies require transparent disclosure.",
+                  fixType: "ai_disclosure"
+                });
+              }
+            }
+
+            // Risk Engine: Use exact Content Risk Score returned by API
+            let currentRiskScore = scanResultData?.contentRiskScore !== undefined
+              ? scanResultData.contentRiskScore
+              : (activeIssues.length === 0 ? 12 : Math.min(85, 20 + activeIssues.length * 20));
+
+            if (isAIMedia && !hasAIDisclosed) {
+              currentRiskScore = Math.max(currentRiskScore, 42); // Review Recommended until disclosure tag is added!
+            }
+
+            const isLowRisk = currentRiskScore <= 29;
+            const currentTier = currentRiskScore <= 29 ? "low" : (currentRiskScore <= 59 ? "review" : (currentRiskScore <= 79 ? "high" : "critical"));
+
+            // Dynamic Component Safety Status
+            const repText = scanResultData?.safetyReport?.text || (hasFairUse 
+              ? { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" } 
+              : { status: "MEDIUM", badge: "⚠️ MEDIUM", color: "amber", icon: "⚠️" });
+
+            const repImage = (isAIMedia && !isVideo)
+              ? (hasAIDisclosed ? { status: "LOW", badge: "✓ AI DISCLOSED", color: "emerald", icon: "✓" } : { status: "MEDIUM", badge: "⚠️ AI LABEL NEEDED", color: "amber", icon: "⚠️" })
+              : (scanResultData?.safetyReport?.image || { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" });
+
+            const repVideo = (isAIMedia && isVideo)
+              ? (hasAIDisclosed ? { status: "LOW", badge: "✓ AI DISCLOSED", color: "emerald", icon: "✓" } : { status: "MEDIUM", badge: "⚠️ AI LABEL NEEDED", color: "amber", icon: "⚠️" })
+              : (scanResultData?.safetyReport?.video || { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" });
+
+            const repAudio = scanResultData?.safetyReport?.audio || (isVideo 
+              ? (hasCommercialMusicFlag ? { status: "HIGH", badge: "🔴 HIGH", color: "rose", icon: "🔴" } : { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" }) 
+              : { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" });
+
+            const repPolicy = (hasFairUse || activeIssues.length === 0 || scanResultData?.safetyReport?.platformPolicy?.status === "PASS")
+              ? { status: "PASS", badge: "✓ PASS", color: "emerald", icon: "✓" } 
+              : { status: "ACTION NEEDED", badge: "⚠️ ACTION NEEDED", color: "amber", icon: "⚠️" };
+
+            const hasContentToScan = Boolean(file || filePreview || description?.trim() || title?.trim());
+
+            // 0. IDLE / AWAITING CONTENT STATE: Show standby banner if no content or scan not started
+            if (!hasContentToScan || scanStatus === "idle") {
+              return (
+                <div className="rounded-2xl border-2 border-dashed border-teal-300/80 bg-gradient-to-r from-emerald-50/40 via-teal-50/30 to-slate-50 p-4 sm:p-5 shadow-2xs flex flex-wrap items-center justify-between gap-4 transition-all">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white flex items-center justify-center shadow-md shadow-teal-600/25 shrink-0">
+                      <ShieldCheck className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-2 flex-wrap">
+                        <span>Multi-Engine AI Content Safety Scanner</span>
+                        <span className="text-[10px] bg-teal-100 text-teal-800 px-2.5 py-0.5 rounded-full font-bold border border-teal-200">
+                          Gemini 2.5 Vision & Spectrum
+                        </span>
+                      </h3>
+                      <p className="text-[11.5px] text-slate-500 font-semibold mt-0.5">
+                        {hasContentToScan 
+                          ? "Content detected! Click below to run a deep Gemini AI audit on your media & caption." 
+                          : "Standby Mode — Upload a photo/video or enter caption text above to perform real-time Gemini AI safety audit."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleStartScan(true)}
+                      disabled={!hasContentToScan}
+                      className={`px-5 py-2.5 rounded-xl font-black text-xs flex items-center gap-2 transition-all ${
+                        hasContentToScan
+                          ? "bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:via-teal-500 hover:to-cyan-500 text-white shadow-lg shadow-teal-600/30 cursor-pointer active:scale-95"
+                          : "bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed opacity-75 shadow-none"
+                      }`}
+                      title={hasContentToScan ? "Run Deep AI Scan" : "Upload media or add caption text first"}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>{hasContentToScan ? "Run Deep AI Content Safety Scan" : "Upload Content to Scan"}</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
+            // 1. SCANNING STATE (5-STAGE COMPREHENSIVE LIVE AUDIT)
+            if (scanStatus === "scanning") {
+              const stages = [
+                {
+                  id: 1,
+                  name: "Digital Fingerprint & Safe Harbor",
+                  icon: <Fingerprint className="w-4 h-4 text-emerald-600" />,
+                  detail: "Validating SHA-256 metadata hash & statutory safe harbor (Sec 107/52)"
+                },
+                {
+                  id: 2,
+                  name: "AI & Synthetic Media Deep Vision Scan",
+                  icon: <Sparkles className="w-4 h-4 text-purple-600" />,
+                  detail: "Examining facial geometry, 3D character render & AI texture artifacts"
+                },
+                {
+                  id: 3,
+                  name: "Deepfake & Avatar Coherence Audit",
+                  icon: <Eye className="w-4 h-4 text-teal-600" />,
+                  detail: "Temporal boundary continuity, lip-sync & facial edge inspection"
+                },
+                {
+                  id: 4,
+                  name: "Audio Rights & Spectrum Risk",
+                  icon: <Volume2 className="w-4 h-4 text-blue-600" />,
+                  detail: "Commercial music labels, Content ID match & voice synthesis (TTS)"
+                },
+                {
+                  id: 5,
+                  name: "Multi-Platform Policy Verification",
+                  icon: <ShieldCheck className="w-4 h-4 text-indigo-600" />,
+                  detail: "YouTube Altered Content, Meta AI Info & regional muting checks"
+                }
+              ];
+
+              return (
+                <div className="rounded-2xl border-2 border-teal-300 bg-gradient-to-br from-white via-teal-50/20 to-slate-50 p-4 sm:p-5 shadow-lg space-y-4 animate-in fade-in duration-200">
+                  {/* Header */}
+                  <div className="flex items-center justify-between gap-3 border-b border-teal-100 pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white flex items-center justify-center animate-spin shadow-md shadow-teal-500/25 shrink-0">
+                        <RefreshCw className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-2">
+                          <span>Multi-Engine Content Risk & AI Scanner</span>
+                          <span className="text-[10px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full font-bold">
+                            Live Audit
+                          </span>
+                        </h4>
+                        <p className="text-[11px] text-teal-700 font-semibold mt-0.5">{scanStepText}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="text-sm font-black text-teal-800 bg-teal-100/80 px-3 py-1 rounded-full border border-teal-200">
+                        {scanProgress}%
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="w-full h-2.5 rounded-full bg-slate-200/80 overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 transition-all duration-500 rounded-full"
+                      style={{ width: `${scanProgress}%` }}
+                    />
+                  </div>
+
+                  {/* 5-Stage Step-by-Step Audit Checklist */}
+                  <div className="space-y-2 pt-1">
+                    {stages.map((st) => {
+                      const stStatus = stageStatuses[st.id] || (st.id < activeScanStage ? "passed" : (st.id === activeScanStage ? "running" : "pending"));
+                      const isRunning = stStatus === "running";
+                      const isPassed = stStatus === "passed";
+                      const isFlagged = stStatus === "flagged";
+                      const isPending = stStatus === "pending";
+
+                      return (
+                        <div 
+                          key={st.id}
+                          className={`rounded-xl border p-2.5 sm:p-3 flex items-center justify-between gap-3 transition-all ${
+                            isRunning 
+                              ? "bg-teal-50/90 border-teal-300 ring-2 ring-teal-400/30 shadow-xs" 
+                              : isPassed
+                              ? "bg-emerald-50/50 border-emerald-200"
+                              : isFlagged
+                              ? "bg-purple-50/70 border-purple-200"
+                              : "bg-white/60 border-slate-200 opacity-60"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-7 h-7 rounded-lg bg-white border border-slate-200/80 flex items-center justify-center shrink-0 shadow-2xs">
+                              {st.icon}
+                            </div>
+                            <div className="min-w-0">
+                              <p className={`text-xs font-bold truncate ${
+                                isRunning ? "text-teal-950 font-black" : isPassed ? "text-slate-800" : isFlagged ? "text-purple-950" : "text-slate-500"
+                              }`}>
+                                {st.name}
+                              </p>
+                              <p className="text-[10.5px] text-slate-500 truncate hidden sm:block">
+                                {st.detail}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="shrink-0">
+                            {isRunning && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-black text-teal-700 bg-white px-2.5 py-1 rounded-full border border-teal-300 shadow-2xs animate-pulse">
+                                <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-ping" />
+                                <span>Scanning...</span>
+                              </span>
+                            )}
+                            {isPassed && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-full border border-emerald-300">
+                                <span>✓ Passed</span>
+                              </span>
+                            )}
+                            {isFlagged && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-black text-purple-700 bg-purple-100 px-2.5 py-1 rounded-full border border-purple-300">
+                                <Sparkles className="w-3 h-3 text-purple-600" />
+                                <span>AI Signal</span>
+                              </span>
+                            )}
+                            {isPending && (
+                              <span className="text-[10px] font-bold text-slate-400 px-2 py-0.5">
+                                Queued
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            }
+
+            // 2. COMPLETED STATE (SHOW SCAN RESULTS IN THE SAME BOX)
+            if (scanStatus === "completed") {
+              const tierBadgeColor = currentTier === "low" 
+                ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                : currentTier === "review"
+                ? "bg-amber-100 text-amber-800 border-amber-300"
+                : currentTier === "high"
+                ? "bg-orange-100 text-orange-800 border-orange-300"
+                : "bg-rose-100 text-rose-800 border-rose-300";
+
+              const tierTitle = currentTier === "low"
+                ? "✅ Low Risk — Cleared to Publish"
+                : currentTier === "review"
+                ? "⚠️ Review Recommended — Adjustments Advised"
+                : currentTier === "high"
+                ? "🟠 High Risk — Revisions Advised"
+                : "🔴 Critical Risk — Strike Likely";
+
+              return (
+                <div className={`rounded-2xl border-2 ${
+                  isLowRisk 
+                    ? "border-emerald-400 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/60" 
+                    : currentTier === "review"
+                    ? "border-amber-300 bg-gradient-to-br from-amber-50/80 via-white to-orange-50/40"
+                    : "border-rose-400 bg-gradient-to-br from-rose-50/80 via-white to-amber-50/40"
+                } p-4.5 shadow-md space-y-3.5 animate-in fade-in duration-200`}>
+
+                  {/* ─── AI / REAL CONTENT DETECTION BANNER — ALWAYS AT TOP ─── */}
+                  {currentOrigin === "ai" || currentOrigin === "ai_assisted" ? (
+                    <div className="rounded-xl bg-purple-600 text-white px-4 py-3 flex items-center justify-between gap-3 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-white/20 text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <Sparkles className="w-5 h-5 text-purple-100" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-black">AI-Generated Content Detected</p>
+                            <span className="text-[10px] font-black bg-white/20 px-2 py-0.5 rounded-full border border-white/30">
+                              {currentConfidence}% Confidence
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-purple-200 mt-0.5">
+                            This video/image contains AI-generated or synthetic media (3D avatar / stylized character). Platform disclosure is <span className="font-black text-white">mandatory</span> — Meta & YouTube require this label.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {!description.includes("AI & SYNTHETIC MEDIA DISCLOSURE") && (
+                          <button
+                            type="button"
+                            onClick={handleApplyAIDisclosure}
+                            className="text-[10.5px] font-black bg-white text-purple-700 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-purple-50 transition-all shadow-xs flex items-center gap-1.5 active:scale-95"
+                          >
+                            <Sparkles className="w-3.5 h-3.5 text-purple-700" />
+                            <span>Add AI Label to Caption</span>
+                          </button>
+                        )}
+                        {description.includes("AI & SYNTHETIC MEDIA DISCLOSURE") && (
+                          <span className="text-[10.5px] font-black bg-green-400/30 text-white px-3 py-1 rounded-full border border-green-400/40">✓ Label Added</span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl bg-emerald-600 text-white px-4 py-3 flex items-center justify-between gap-3 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-white/20 text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <Camera className="w-5 h-5 text-emerald-100" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-black">100% Real Content Verified</p>
+                          <p className="text-[11px] text-emerald-200 mt-0.5">
+                            Natural camera recording detected — no synthetic or deepfake signatures found.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[10px] font-black bg-white/20 px-2.5 py-1 rounded-full border border-white/30">
+                          {currentConfidence}% Confidence
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ─── RISK SCORE HEADER (LARGE HIGHLIGHTED DISPLAY) ─── */}
+                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200/80 pb-4 pt-1">
+                    <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
+                      {/* LARGE PROMINENT RISK SCORE BADGE */}
+                      <div className={`px-4 py-2.5 rounded-2xl border-2 shadow-md flex items-center gap-3 shrink-0 ${
+                        isLowRisk 
+                          ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-400" 
+                          : currentTier === "review"
+                          ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-amber-300"
+                          : "bg-gradient-to-r from-rose-600 to-red-600 text-white border-rose-400"
+                      }`}>
+                        <div className="flex flex-col items-center">
+                          <span className="text-[9px] uppercase tracking-widest font-black opacity-90">Risk Score</span>
+                          <span className="text-2xl sm:text-3xl font-black leading-none">{currentRiskScore}<span className="text-xs font-bold opacity-80">/100</span></span>
+                        </div>
+                        <div className="h-8 w-px bg-white/30" />
+                        <div className="flex flex-col">
+                          <span className="text-xs font-black uppercase tracking-wider">{currentTier === "low" ? "LOW RISK" : currentTier.toUpperCase()}</span>
+                          <span className="text-[10px] font-bold opacity-90 whitespace-nowrap">{isLowRisk ? "✓ Cleared to Publish" : "⚠️ Action Needed"}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
+                          <span>{tierTitle}</span>
+                        </h4>
+                        <p className="text-[11.5px] font-semibold text-slate-600 mt-0.5 max-w-xl">
+                          {isLowRisk
+                            ? "Content passed Text, Visual, and Audio analysis. Safe for multi-channel publishing."
+                            : "Risk factors detected. See issues & solutions below — fix them before publishing."}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleStartScan(true)}
+                        className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-95"
+                        title="Run a new full deep scan"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5 text-slate-600" />
+                        <span>Re-Scan</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* DEDICATED CONTENT SAFETY REPORT TABLE */}
+
+                  <div className="rounded-xl border border-slate-200/90 bg-white p-3 sm:p-3.5 space-y-2 shadow-2xs">
+                    <div className="flex items-center justify-between border-b border-slate-200/70 pb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center text-[10px] font-black">
+                          🛡️
+                        </div>
+                        <span className="text-[11px] font-black tracking-wider uppercase text-slate-900">
+                          CONTENT SAFETY REPORT
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                        Weighted Risk Engine
+                      </span>
+                    </div>
+
+                    <div className="divide-y divide-slate-100 text-xs">
+                      {/* Text Row */}
+                      <div className="flex items-center justify-between py-2 px-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-slate-900 w-28">Text</span>
+                          <span className="text-[10px] text-slate-400 font-bold bg-slate-50 px-1.5 py-0.5 rounded">20% Weight</span>
+                        </div>
+                        <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
+                          repText.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
+                          repText.color === "amber" ? "bg-amber-50 text-amber-800 border-amber-300" :
+                          repText.color === "orange" ? "bg-orange-50 text-orange-800 border-orange-300" :
+                          "bg-rose-50 text-rose-700 border-rose-300"
+                        }`}>
+                          {repText.badge}
+                        </span>
+                      </div>
+
+                      {/* Image Row */}
+                      <div className="flex items-center justify-between py-2 px-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-slate-900 w-28">Image</span>
+                          <span className="text-[10px] text-slate-400 font-bold bg-slate-50 px-1.5 py-0.5 rounded">25% Weight</span>
+                        </div>
+                        <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
+                          repImage.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
+                          repImage.color === "amber" ? "bg-amber-50 text-amber-800 border-amber-300" :
+                          repImage.color === "orange" ? "bg-orange-50 text-orange-800 border-orange-300" :
+                          "bg-rose-50 text-rose-700 border-rose-300"
+                        }`}>
+                          {repImage.badge}
+                        </span>
+                      </div>
+
+                      {/* Video Row */}
+                      <div className="flex items-center justify-between py-2 px-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-slate-900 w-28">Video</span>
+                          <span className="text-[10px] text-slate-400 font-bold bg-slate-50 px-1.5 py-0.5 rounded">30% Weight</span>
+                        </div>
+                        <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
+                          repVideo.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
+                          repVideo.color === "amber" ? "bg-amber-50 text-amber-800 border-amber-300" :
+                          repVideo.color === "orange" ? "bg-orange-50 text-orange-800 border-orange-300" :
+                          "bg-rose-50 text-rose-700 border-rose-300"
+                        }`}>
+                          {repVideo.badge}
+                        </span>
+                      </div>
+
+                      {/* Audio Row */}
+                      <div className="flex items-center justify-between py-2.5 px-1 border-b border-slate-100">
+                        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                          <span className="font-extrabold text-slate-900 w-16 shrink-0 text-xs">Audio</span>
+                          <span className="text-[10px] text-slate-400 font-bold bg-slate-100/80 px-1.5 py-0.5 rounded">25% Weight</span>
+                          {isOriginalVoice && isVideo && (
+                            <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold inline-flex items-center gap-1 shrink-0 whitespace-nowrap">
+                              <span>🎙️ Real Voice</span>
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
+                            repAudio.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
+                            repAudio.color === "amber" ? "bg-amber-50 text-amber-800 border-amber-300" :
+                            repAudio.color === "orange" ? "bg-orange-50 text-orange-800 border-orange-300" :
+                            "bg-rose-50 text-rose-700 border-rose-300"
+                          }`}>
+                            {repAudio.badge}
+                          </span>
+                          {(!isOriginalVoice || hasCommercialMusicFlag || repAudio.color !== "emerald") && (
+                            <button
+                              type="button"
+                              onClick={() => setShowAudioGuideModal(true)}
+                              className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-[11px] font-bold cursor-pointer shadow-2xs flex items-center gap-1 transition-all active:scale-95"
+                              title="Open Audio & Music Rights Guide"
+                            >
+                              <Music className="w-3.5 h-3.5 text-slate-500" />
+                              <span>Audio Rights</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Platform Policy Row */}
+                      <div className="flex items-center justify-between py-2 px-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-slate-900 w-28">Platform Policy</span>
+                          <span className="text-[10px] text-slate-400 font-semibold">(Compliance & Safe Harbor)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
+                            repPolicy.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
+                            "bg-amber-50 text-amber-800 border-amber-300"
+                          }`}>
+                            {repPolicy.badge}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowCopyrightModal(true)}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10.5px] font-black cursor-pointer shadow-xs flex items-center gap-1 transition-all active:scale-95"
+                            title="Open Copyright & Fair Use Notice Modal"
+                          >
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            <span>Add Policy</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+
+                  {/* Detected Issues + Solutions (When Not Low Risk) */}
+                  {!isLowRisk && (
+                    <div className="space-y-3 pt-1 border-t-2 border-slate-100">
+
+                      {activeIssues.length > 0 && (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-md bg-rose-600 text-white flex items-center justify-center text-[10px] font-black">!</div>
+                            <p className="text-[11px] font-black text-slate-900 uppercase tracking-wider">
+                              Detected Issues ({activeIssues.length})
+                            </p>
+                          </div>
+
+                          {activeIssues.map((issue, idx) => {
+                            // Expanded solution lookup — covers all known issue types
+                            const solutionMap = {
+                              "Missing Statutory Fair Use Notice": {
+                                fix: "Add this to your caption:\n'This content is shared for educational/commentary purpose under Fair Use (§107 US / §52 India).'",
+                                canAutoFix: true,
+                              },
+                              "Audio Muting Risk (Instagram Reels / FB)": {
+                                fix: "Audio Process & Fixes:\n1. If this is your original verbal voice/speech: Click 'Audio Process' button above -> 'Declare Original Voice' (1-click set to LOW risk).\n2. If using commercial music: Add trending song in-app via Instagram/FB Audio Sticker to avoid muting.\n3. Or declare Royalty-Free audio clearance below.",
+                                canAutoFix: true,
+                              },
+                              "Commercial Record Label Match Detected": {
+                                fix: "Music Usage Process & Solutions:\n1. Instagram / FB Reels: Upload video with your original voice, then choose the song inside Instagram/FB app via 'Audio Sticker' (Meta handles all licensing & royalties — zero muting risk!).\n2. YouTube: Use YouTube Studio Audio Library or add via Shorts 'Add Sound'.\n3. Click 'Audio Process' above to declare Meta Sound clearance or add Fair Use transformative commentary.",
+                                canAutoFix: true,
+                              },
+                              "Third-Party Copyright Music Detected": {
+                                fix: "Music Usage Process & Solutions:\n1. Instagram / FB Reels: Select the track in-app via the Music sticker (Official Meta Licensing — zero copyright strike).\n2. YouTube / Long Form: Use royalty-free music from Meta Sound Collection or YouTube Audio Library.\n3. Transformative Audio: If reviewing or commenting, apply Section 107 Fair Use notice via 'Audio Process' button above.",
+                                canAutoFix: true,
+                              },
+                              "Missing Platform AI Transparency Label": {
+                                fix: "Add AI disclosure to caption: '🤖 AI-assisted content. Disclosed per Meta AI Info & YouTube Altered Content policies.'",
+                                canAutoFix: true,
+                              },
+                              "Broadcast Watermark Detected": {
+                                fix: "Manual Action Required:\n1. Remove the TV channel logo/watermark from your video using a video editor.\n2. Make sure you own original recording rights.\n3. Re-upload the cleaned video.",
+                                canAutoFix: false,
+                              },
+                              "Stock Image License Violation": {
+                                fix: "Manual Action Required:\n1. Remove the unlicensed stock image.\n2. Replace with your own photo OR download from free sources (Unsplash, Pexels).\n3. If you purchased a license, add: 'Image: Licensed via [source]' in caption.",
+                                canAutoFix: false,
+                              },
+                            };
+
+                            const matched = solutionMap[issue.title];
+                            const solution = issue.solution
+                              || matched?.fix
+                              || "Manual Action Required:\n1. Review the issue carefully.\n2. Edit your content to remove the flagged element.\n3. Re-upload and run scan again.\n\nIf unsure, contact support or use the Dispute Letter option above.";
+                            const canAutoFix = matched?.canAutoFix ?? (issue.solution ? true : false);
+
+                            return (
+                              <div key={issue.id || idx} className="space-y-1.5">
+                                {/* Issue Card */}
+                                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3 shadow-2xs">
+                                  <div className="w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">
+                                    {idx + 1}
+                                  </div>
+                                  <div className="space-y-0.5 min-w-0">
+                                    <p className="text-xs font-black text-rose-900">{issue.title}</p>
+                                    <p className="text-[11px] text-rose-700 leading-snug">{issue.desc}</p>
+                                  </div>
+                                </div>
+
+                                {/* Solution Card — green if auto-fixable, amber if manual action needed */}
+                                <div className={`p-3 rounded-xl flex items-start gap-3 shadow-2xs ml-2 ${
+                                  canAutoFix
+                                    ? "bg-emerald-50 border border-emerald-200"
+                                    : "bg-amber-50 border border-amber-300"
+                                }`}>
+                                  <div className={`w-5 h-5 rounded-full text-white flex items-center justify-center shrink-0 mt-0.5 text-[11px] ${
+                                    canAutoFix ? "bg-emerald-600" : "bg-amber-500"
+                                  }`}>
+                                    {canAutoFix
+                                      ? <svg viewBox="0 0 12 12" fill="none" className="w-3 h-3"><path d="M2 6l2.5 2.5L10 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                      : "!"}
+                                  </div>
+                                  <div className="space-y-1 min-w-0">
+                                    <p className={`text-[10px] font-black uppercase tracking-wide ${
+                                      canAutoFix ? "text-emerald-800" : "text-amber-800"
+                                    }`}>
+                                      {canAutoFix ? "✅ Solution (Auto-Fixable)" : "⚠️ Manual Action Required"}
+                                    </p>
+                                    <p className={`text-[11px] leading-relaxed whitespace-pre-line ${
+                                      canAutoFix ? "text-emerald-800" : "text-amber-900"
+                                    }`}>{solution}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* 1-Click Universal Fix Banner & High-Visibility Button */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-rose-50 via-rose-100/70 to-pink-50 border-2 border-rose-300 shadow-xs">
+                        <div className="space-y-1 min-w-0">
+                          <p className="font-black text-rose-950 text-xs sm:text-sm flex items-center gap-2">
+                            <ShieldCheck className="w-5 h-5 text-rose-600 shrink-0" />
+                            <span>1-Click Auto-Fix — Resolve All Issues Instantly</span>
+                          </p>
+                          <p className="text-[11.5px] font-semibold text-rose-800/90 ml-7">
+                            Automatically injects Fair Use legal notice, audio declaration, and AI transparency disclosure into your caption.
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleFixAllAndProtect}
+                          className="w-full sm:w-auto px-6 py-4 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-900 text-sm sm:text-base font-black shadow-md border border-rose-300 flex items-center justify-center gap-2.5 cursor-pointer transition-all active:scale-95 shrink-0"
+                        >
+                          <ShieldCheck className="w-6 h-6 text-rose-600" />
+                          <span>🛡️ Fix All & Reduce Risk to Low</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+
+                </div>
+              );
+            }
+
+            // 3. IDLE STATE: 3-LAYER ARCHITECTURE & WEIGHTED RISK ENGINE CARD
+            return (
+              <div className="rounded-2xl border-2 border-teal-200/80 bg-gradient-to-r from-emerald-50/60 via-teal-50/40 to-slate-50 p-3.5 sm:p-4 shadow-2xs flex flex-wrap items-center justify-between gap-3 transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-md shadow-teal-600/30 shrink-0">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 flex items-center gap-1.5 flex-wrap">
+                      <span>Deep AI Content Safety Scanner</span>
+                      <span className="text-[9.5px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full font-bold border border-teal-200">
+                        Gemini Powered
+                      </span>
+                      <span className="text-[9.5px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-bold border border-indigo-200">
+                        Text 20% • Image 25% • Video 30% • Audio 25%
+                      </span>
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      Scans your text, visuals, and audio for copyright, brand safety, and platform policy risks. Issues + solutions shown below.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleStartScan(true)}
+                    className="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-black shadow-lg shadow-teal-600/40 ring-2 ring-teal-400/50 flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Run Deep AI Content Safety Scan</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Post Title with Character & Word Count Badge & AI Enhancement Buttons */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
@@ -3163,715 +3872,6 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
               </div>
             </div>
           )}
-
-          {/* UNIVERSAL CONTENT ANALYZER & RISK ENGINE (POWERED BY GEMINI AI) */}
-          {(() => {
-            const hasFairUse = Boolean(
-              description.toLowerCase().includes("section 107") ||
-              description.toLowerCase().includes("section 52") ||
-              description.toLowerCase().includes("fair use") ||
-              description.toLowerCase().includes("content declaration") ||
-              description.toLowerCase().includes("safe harbor")
-            );
-
-            const commercialMusicLabels = ["t-series", "tseries", "sony music", "zee music", "yrf", "universal music", "warnermusic", "speed records", "tips official"];
-            const hasCommercialMusicFlag = commercialMusicLabels.some(lbl => 
-              `${title} ${description} ${tags}`.toLowerCase().includes(lbl)
-            );
-
-            const hasMetaAudio = Boolean(
-              description.toLowerCase().includes("meta rights & audio") ||
-              description.toLowerCase().includes("audio declaration") ||
-              description.toLowerCase().includes("original sound") ||
-              description.toLowerCase().includes("original commentary") ||
-              description.toLowerCase().includes("original voice") ||
-              description.toLowerCase().includes("royalty-free") ||
-              description.toLowerCase().includes("creator voice") ||
-              hasFairUse
-            );
-
-            const isOriginalVoice = Boolean(
-              scanResultData?.audioAnalysis?.isOriginalVoice ||
-              description.toLowerCase().includes("original voice") ||
-              description.toLowerCase().includes("original audio") ||
-              description.toLowerCase().includes("original sound") ||
-              description.toLowerCase().includes("creator voice") ||
-              description.toLowerCase().includes("spoken commentary") ||
-              (!hasCommercialMusicFlag && isVideo)
-            );
-
-            const isYTProtected = !selectedIds.includes("youtube") || youtubePrivacy === "unlisted";
-
-            // Effective media origin & confidence from API result
-            const currentOrigin = scanResultData?.detectedMediaOrigin || detectedMediaOrigin || "real";
-            const currentConfidence = scanResultData?.mediaOriginConfidence || mediaOriginConfidence || 95;
-            const isAIMedia = currentOrigin === "ai";
-            const hasAIDisclosed = Boolean(
-              description.toLowerCase().includes("ai & synthetic media disclosure") ||
-              description.toLowerCase().includes("aigenerated") ||
-              description.toLowerCase().includes("syntheticmedia")
-            );
-
-            // Resolve active issues dynamically based on current post state
-            let activeIssues = [];
-            if (scanResultData?.issues && scanResultData.issues.length > 0) {
-              activeIssues = scanResultData.issues.filter(iss => {
-                if (iss.fixType === "safe_harbor" && hasFairUse) return false;
-                if (iss.fixType === "meta_audio" && (hasMetaAudio || !hasCommercialMusicFlag)) return false;
-                if (iss.fixType === "youtube_unlisted" && isYTProtected) return false;
-                if (iss.fixType === "ai_disclosure" && hasAIDisclosed) return false;
-                return true;
-              });
-            }
-
-            // If AI media is detected and disclosure label is missing, ensure active issue is present
-            if (isAIMedia && !hasAIDisclosed) {
-              const alreadyInIssues = activeIssues.some(i => i.id === "ai_disclosure_missing");
-              if (!alreadyInIssues) {
-                activeIssues.push({
-                  id: "ai_disclosure_missing",
-                  severity: "medium",
-                  title: "Missing Platform AI Transparency Label",
-                  desc: "AI-generated / 3D avatar media detected. Meta AI Info & YouTube Altered Content policies require transparent disclosure.",
-                  fixType: "ai_disclosure"
-                });
-              }
-            }
-
-            // Risk Engine: Use exact Content Risk Score returned by API
-            let currentRiskScore = scanResultData?.contentRiskScore !== undefined
-              ? scanResultData.contentRiskScore
-              : (activeIssues.length === 0 ? 12 : Math.min(85, 20 + activeIssues.length * 20));
-
-            if (isAIMedia && !hasAIDisclosed) {
-              currentRiskScore = Math.max(currentRiskScore, 42); // Review Recommended until disclosure tag is added!
-            }
-
-            const isLowRisk = currentRiskScore <= 29;
-            const currentTier = currentRiskScore <= 29 ? "low" : (currentRiskScore <= 59 ? "review" : (currentRiskScore <= 79 ? "high" : "critical"));
-
-            // Dynamic Component Safety Status
-            const repText = scanResultData?.safetyReport?.text || (hasFairUse 
-              ? { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" } 
-              : { status: "MEDIUM", badge: "⚠️ MEDIUM", color: "amber", icon: "⚠️" });
-
-            const repImage = (isAIMedia && !isVideo)
-              ? (hasAIDisclosed ? { status: "LOW", badge: "✓ AI DISCLOSED", color: "emerald", icon: "✓" } : { status: "MEDIUM", badge: "⚠️ AI LABEL NEEDED", color: "amber", icon: "⚠️" })
-              : (scanResultData?.safetyReport?.image || { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" });
-
-            const repVideo = (isAIMedia && isVideo)
-              ? (hasAIDisclosed ? { status: "LOW", badge: "✓ AI DISCLOSED", color: "emerald", icon: "✓" } : { status: "MEDIUM", badge: "⚠️ AI LABEL NEEDED", color: "amber", icon: "⚠️" })
-              : (scanResultData?.safetyReport?.video || { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" });
-
-            const repAudio = scanResultData?.safetyReport?.audio || (isVideo 
-              ? (hasCommercialMusicFlag ? { status: "HIGH", badge: "🔴 HIGH", color: "rose", icon: "🔴" } : { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" }) 
-              : { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" });
-
-            const repPolicy = (hasFairUse || activeIssues.length === 0 || scanResultData?.safetyReport?.platformPolicy?.status === "PASS")
-              ? { status: "PASS", badge: "✓ PASS", color: "emerald", icon: "✓" } 
-              : { status: "ACTION NEEDED", badge: "⚠️ ACTION NEEDED", color: "amber", icon: "⚠️" };
-
-            const hasContentToScan = Boolean(file || filePreview || description?.trim() || title?.trim());
-
-            // 0. IDLE / AWAITING CONTENT STATE: Show standby banner if no content or scan not started
-            if (!hasContentToScan || scanStatus === "idle") {
-              return (
-                <div className="rounded-2xl border-2 border-dashed border-teal-300/80 bg-gradient-to-r from-emerald-50/40 via-teal-50/30 to-slate-50 p-4 sm:p-5 shadow-2xs flex flex-wrap items-center justify-between gap-4 transition-all">
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white flex items-center justify-center shadow-md shadow-teal-600/25 shrink-0">
-                      <ShieldCheck className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h3 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-2 flex-wrap">
-                        <span>Multi-Engine AI Content Safety Scanner</span>
-                        <span className="text-[10px] bg-teal-100 text-teal-800 px-2.5 py-0.5 rounded-full font-bold border border-teal-200">
-                          Gemini 2.5 Vision & Spectrum
-                        </span>
-                      </h3>
-                      <p className="text-[11.5px] text-slate-500 font-semibold mt-0.5">
-                        {hasContentToScan 
-                          ? "Content detected! Click below to run a deep Gemini AI audit on your media & caption." 
-                          : "Standby Mode — Upload a photo/video or enter caption text above to perform real-time Gemini AI safety audit."}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleStartScan(true)}
-                      disabled={!hasContentToScan}
-                      className={`px-5 py-2.5 rounded-xl font-black text-xs flex items-center gap-2 transition-all ${
-                        hasContentToScan
-                          ? "bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:via-teal-500 hover:to-cyan-500 text-white shadow-lg shadow-teal-600/30 cursor-pointer active:scale-95"
-                          : "bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed opacity-75 shadow-none"
-                      }`}
-                      title={hasContentToScan ? "Run Deep AI Scan" : "Upload media or add caption text first"}
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      <span>{hasContentToScan ? "Run Deep AI Content Safety Scan" : "Upload Content to Scan"}</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            }
-
-            // 1. SCANNING STATE (5-STAGE COMPREHENSIVE LIVE AUDIT)
-            if (scanStatus === "scanning") {
-              const stages = [
-                {
-                  id: 1,
-                  name: "Digital Fingerprint & Safe Harbor",
-                  icon: <Fingerprint className="w-4 h-4 text-emerald-600" />,
-                  detail: "Validating SHA-256 metadata hash & statutory safe harbor (Sec 107/52)"
-                },
-                {
-                  id: 2,
-                  name: "AI & Synthetic Media Deep Vision Scan",
-                  icon: <Sparkles className="w-4 h-4 text-purple-600" />,
-                  detail: "Examining facial geometry, 3D character render & AI texture artifacts"
-                },
-                {
-                  id: 3,
-                  name: "Deepfake & Avatar Coherence Audit",
-                  icon: <Eye className="w-4 h-4 text-teal-600" />,
-                  detail: "Temporal boundary continuity, lip-sync & facial edge inspection"
-                },
-                {
-                  id: 4,
-                  name: "Audio Rights & Spectrum Risk",
-                  icon: <Volume2 className="w-4 h-4 text-blue-600" />,
-                  detail: "Commercial music labels, Content ID match & voice synthesis (TTS)"
-                },
-                {
-                  id: 5,
-                  name: "Multi-Platform Policy Verification",
-                  icon: <ShieldCheck className="w-4 h-4 text-indigo-600" />,
-                  detail: "YouTube Altered Content, Meta AI Info & regional muting checks"
-                }
-              ];
-
-              return (
-                <div className="rounded-2xl border-2 border-teal-300 bg-gradient-to-br from-white via-teal-50/20 to-slate-50 p-4 sm:p-5 shadow-lg space-y-4 animate-in fade-in duration-200">
-                  {/* Header */}
-                  <div className="flex items-center justify-between gap-3 border-b border-teal-100 pb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white flex items-center justify-center animate-spin shadow-md shadow-teal-500/25 shrink-0">
-                        <RefreshCw className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h4 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-2">
-                          <span>Multi-Engine Content Risk & AI Scanner</span>
-                          <span className="text-[10px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full font-bold">
-                            Live Audit
-                          </span>
-                        </h4>
-                        <p className="text-[11px] text-teal-700 font-semibold mt-0.5">{scanStepText}</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <span className="text-sm font-black text-teal-800 bg-teal-100/80 px-3 py-1 rounded-full border border-teal-200">
-                        {scanProgress}%
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="w-full h-2.5 rounded-full bg-slate-200/80 overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 transition-all duration-500 rounded-full"
-                      style={{ width: `${scanProgress}%` }}
-                    />
-                  </div>
-
-                  {/* 5-Stage Step-by-Step Audit Checklist */}
-                  <div className="space-y-2 pt-1">
-                    {stages.map((st) => {
-                      const stStatus = stageStatuses[st.id] || (st.id < activeScanStage ? "passed" : (st.id === activeScanStage ? "running" : "pending"));
-                      const isRunning = stStatus === "running";
-                      const isPassed = stStatus === "passed";
-                      const isFlagged = stStatus === "flagged";
-                      const isPending = stStatus === "pending";
-
-                      return (
-                        <div 
-                          key={st.id}
-                          className={`rounded-xl border p-2.5 sm:p-3 flex items-center justify-between gap-3 transition-all ${
-                            isRunning 
-                              ? "bg-teal-50/90 border-teal-300 ring-2 ring-teal-400/30 shadow-xs" 
-                              : isPassed
-                              ? "bg-emerald-50/50 border-emerald-200"
-                              : isFlagged
-                              ? "bg-purple-50/70 border-purple-200"
-                              : "bg-white/60 border-slate-200 opacity-60"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-7 h-7 rounded-lg bg-white border border-slate-200/80 flex items-center justify-center shrink-0 shadow-2xs">
-                              {st.icon}
-                            </div>
-                            <div className="min-w-0">
-                              <p className={`text-xs font-bold truncate ${
-                                isRunning ? "text-teal-950 font-black" : isPassed ? "text-slate-800" : isFlagged ? "text-purple-950" : "text-slate-500"
-                              }`}>
-                                {st.name}
-                              </p>
-                              <p className="text-[10.5px] text-slate-500 truncate hidden sm:block">
-                                {st.detail}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="shrink-0">
-                            {isRunning && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-black text-teal-700 bg-white px-2.5 py-1 rounded-full border border-teal-300 shadow-2xs animate-pulse">
-                                <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-ping" />
-                                <span>Scanning...</span>
-                              </span>
-                            )}
-                            {isPassed && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-full border border-emerald-300">
-                                <span>✓ Passed</span>
-                              </span>
-                            )}
-                            {isFlagged && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-black text-purple-700 bg-purple-100 px-2.5 py-1 rounded-full border border-purple-300">
-                                <Sparkles className="w-3 h-3 text-purple-600" />
-                                <span>AI Signal</span>
-                              </span>
-                            )}
-                            {isPending && (
-                              <span className="text-[10px] font-bold text-slate-400 px-2 py-0.5">
-                                Queued
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            }
-
-            // 2. COMPLETED STATE (SHOW SCAN RESULTS IN THE SAME BOX)
-            if (scanStatus === "completed") {
-              const tierBadgeColor = currentTier === "low" 
-                ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                : currentTier === "review"
-                ? "bg-amber-100 text-amber-800 border-amber-300"
-                : currentTier === "high"
-                ? "bg-orange-100 text-orange-800 border-orange-300"
-                : "bg-rose-100 text-rose-800 border-rose-300";
-
-              const tierTitle = currentTier === "low"
-                ? "✅ Low Risk — Cleared to Publish"
-                : currentTier === "review"
-                ? "⚠️ Review Recommended — Adjustments Advised"
-                : currentTier === "high"
-                ? "🟠 High Risk — Revisions Advised"
-                : "🔴 Critical Risk — Strike Likely";
-
-              return (
-                <div className={`rounded-2xl border-2 ${
-                  isLowRisk 
-                    ? "border-emerald-400 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/60" 
-                    : currentTier === "review"
-                    ? "border-amber-300 bg-gradient-to-br from-amber-50/80 via-white to-orange-50/40"
-                    : "border-rose-400 bg-gradient-to-br from-rose-50/80 via-white to-amber-50/40"
-                } p-4.5 shadow-md space-y-3.5 animate-in fade-in duration-200`}>
-
-                  {/* ─── AI / REAL CONTENT DETECTION BANNER — ALWAYS AT TOP ─── */}
-                  {currentOrigin === "ai" || currentOrigin === "ai_assisted" ? (
-                    <div className="rounded-xl bg-purple-600 text-white px-4 py-3 flex items-center justify-between gap-3 shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-white/20 text-white flex items-center justify-center shrink-0 shadow-xs">
-                          <Sparkles className="w-5 h-5 text-purple-100" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-black">AI-Generated Content Detected</p>
-                            <span className="text-[10px] font-black bg-white/20 px-2 py-0.5 rounded-full border border-white/30">
-                              {currentConfidence}% Confidence
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-purple-200 mt-0.5">
-                            This video/image contains AI-generated or synthetic media (3D avatar / stylized character). Platform disclosure is <span className="font-black text-white">mandatory</span> — Meta & YouTube require this label.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {!description.includes("AI & SYNTHETIC MEDIA DISCLOSURE") && (
-                          <button
-                            type="button"
-                            onClick={handleApplyAIDisclosure}
-                            className="text-[10.5px] font-black bg-white text-purple-700 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-purple-50 transition-all shadow-xs flex items-center gap-1.5 active:scale-95"
-                          >
-                            <Sparkles className="w-3.5 h-3.5 text-purple-700" />
-                            <span>Add AI Label to Caption</span>
-                          </button>
-                        )}
-                        {description.includes("AI & SYNTHETIC MEDIA DISCLOSURE") && (
-                          <span className="text-[10.5px] font-black bg-green-400/30 text-white px-3 py-1 rounded-full border border-green-400/40">✓ Label Added</span>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="rounded-xl bg-emerald-600 text-white px-4 py-3 flex items-center justify-between gap-3 shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-white/20 text-white flex items-center justify-center shrink-0 shadow-xs">
-                          <Camera className="w-5 h-5 text-emerald-100" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-black">100% Real Content Verified</p>
-                          <p className="text-[11px] text-emerald-200 mt-0.5">
-                            Natural camera recording detected — no synthetic or deepfake signatures found.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-[10px] font-black bg-white/20 px-2.5 py-1 rounded-full border border-white/30">
-                          {currentConfidence}% Confidence
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ─── RISK SCORE HEADER (LARGE HIGHLIGHTED DISPLAY) ─── */}
-                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200/80 pb-4 pt-1">
-                    <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
-                      {/* LARGE PROMINENT RISK SCORE BADGE */}
-                      <div className={`px-4 py-2.5 rounded-2xl border-2 shadow-md flex items-center gap-3 shrink-0 ${
-                        isLowRisk 
-                          ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-400" 
-                          : currentTier === "review"
-                          ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-amber-300"
-                          : "bg-gradient-to-r from-rose-600 to-red-600 text-white border-rose-400"
-                      }`}>
-                        <div className="flex flex-col items-center">
-                          <span className="text-[9px] uppercase tracking-widest font-black opacity-90">Risk Score</span>
-                          <span className="text-2xl sm:text-3xl font-black leading-none">{currentRiskScore}<span className="text-xs font-bold opacity-80">/100</span></span>
-                        </div>
-                        <div className="h-8 w-px bg-white/30" />
-                        <div className="flex flex-col">
-                          <span className="text-xs font-black uppercase tracking-wider">{currentTier === "low" ? "LOW RISK" : currentTier.toUpperCase()}</span>
-                          <span className="text-[10px] font-bold opacity-90 whitespace-nowrap">{isLowRisk ? "✓ Cleared to Publish" : "⚠️ Action Needed"}</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
-                          <span>{tierTitle}</span>
-                        </h4>
-                        <p className="text-[11.5px] font-semibold text-slate-600 mt-0.5 max-w-xl">
-                          {isLowRisk
-                            ? "Content passed Text, Visual, and Audio analysis. Safe for multi-channel publishing."
-                            : "Risk factors detected. See issues & solutions below — fix them before publishing."}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleStartScan(true)}
-                        className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-95"
-                        title="Run a new full deep scan"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5 text-slate-600" />
-                        <span>Re-Scan</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* DEDICATED CONTENT SAFETY REPORT TABLE */}
-
-                  <div className="rounded-xl border border-slate-200/90 bg-white p-3 sm:p-3.5 space-y-2 shadow-2xs">
-                    <div className="flex items-center justify-between border-b border-slate-200/70 pb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center text-[10px] font-black">
-                          🛡️
-                        </div>
-                        <span className="text-[11px] font-black tracking-wider uppercase text-slate-900">
-                          CONTENT SAFETY REPORT
-                        </span>
-                      </div>
-                      <span className="text-[10px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
-                        Weighted Risk Engine
-                      </span>
-                    </div>
-
-                    <div className="divide-y divide-slate-100 text-xs">
-                      {/* Text Row */}
-                      <div className="flex items-center justify-between py-2 px-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-slate-900 w-28">Text</span>
-                          <span className="text-[10px] text-slate-400 font-bold bg-slate-50 px-1.5 py-0.5 rounded">20% Weight</span>
-                        </div>
-                        <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
-                          repText.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
-                          repText.color === "amber" ? "bg-amber-50 text-amber-800 border-amber-300" :
-                          repText.color === "orange" ? "bg-orange-50 text-orange-800 border-orange-300" :
-                          "bg-rose-50 text-rose-700 border-rose-300"
-                        }`}>
-                          {repText.badge}
-                        </span>
-                      </div>
-
-                      {/* Image Row */}
-                      <div className="flex items-center justify-between py-2 px-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-slate-900 w-28">Image</span>
-                          <span className="text-[10px] text-slate-400 font-bold bg-slate-50 px-1.5 py-0.5 rounded">25% Weight</span>
-                        </div>
-                        <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
-                          repImage.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
-                          repImage.color === "amber" ? "bg-amber-50 text-amber-800 border-amber-300" :
-                          repImage.color === "orange" ? "bg-orange-50 text-orange-800 border-orange-300" :
-                          "bg-rose-50 text-rose-700 border-rose-300"
-                        }`}>
-                          {repImage.badge}
-                        </span>
-                      </div>
-
-                      {/* Video Row */}
-                      <div className="flex items-center justify-between py-2 px-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-slate-900 w-28">Video</span>
-                          <span className="text-[10px] text-slate-400 font-bold bg-slate-50 px-1.5 py-0.5 rounded">30% Weight</span>
-                        </div>
-                        <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
-                          repVideo.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
-                          repVideo.color === "amber" ? "bg-amber-50 text-amber-800 border-amber-300" :
-                          repVideo.color === "orange" ? "bg-orange-50 text-orange-800 border-orange-300" :
-                          "bg-rose-50 text-rose-700 border-rose-300"
-                        }`}>
-                          {repVideo.badge}
-                        </span>
-                      </div>
-
-                      {/* Audio Row */}
-                      <div className="flex items-center justify-between py-2.5 px-1 border-b border-slate-100">
-                        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                          <span className="font-extrabold text-slate-900 w-16 shrink-0 text-xs">Audio</span>
-                          <span className="text-[10px] text-slate-400 font-bold bg-slate-100/80 px-1.5 py-0.5 rounded">25% Weight</span>
-                          {isOriginalVoice && isVideo && (
-                            <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold inline-flex items-center gap-1 shrink-0 whitespace-nowrap">
-                              <span>🎙️ Real Voice</span>
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
-                            repAudio.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
-                            repAudio.color === "amber" ? "bg-amber-50 text-amber-800 border-amber-300" :
-                            repAudio.color === "orange" ? "bg-orange-50 text-orange-800 border-orange-300" :
-                            "bg-rose-50 text-rose-700 border-rose-300"
-                          }`}>
-                            {repAudio.badge}
-                          </span>
-                          {(!isOriginalVoice || hasCommercialMusicFlag || repAudio.color !== "emerald") && (
-                            <button
-                              type="button"
-                              onClick={() => setShowAudioGuideModal(true)}
-                              className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-[11px] font-bold cursor-pointer shadow-2xs flex items-center gap-1 transition-all active:scale-95"
-                              title="Open Audio & Music Rights Guide"
-                            >
-                              <Music className="w-3.5 h-3.5 text-slate-500" />
-                              <span>Audio Rights</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Platform Policy Row */}
-                      <div className="flex items-center justify-between py-2 px-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-slate-900 w-28">Platform Policy</span>
-                          <span className="text-[10px] text-slate-400 font-semibold">(Compliance & Safe Harbor)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
-                            repPolicy.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
-                            "bg-amber-50 text-amber-800 border-amber-300"
-                          }`}>
-                            {repPolicy.badge}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setShowCopyrightModal(true)}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10.5px] font-black cursor-pointer shadow-xs flex items-center gap-1 transition-all active:scale-95"
-                            title="Open Copyright & Fair Use Notice Modal"
-                          >
-                            <ShieldCheck className="w-3.5 h-3.5" />
-                            <span>Add Policy</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-
-                  {/* Detected Issues + Solutions (When Not Low Risk) */}
-                  {!isLowRisk && (
-                    <div className="space-y-3 pt-1 border-t-2 border-slate-100">
-
-                      {activeIssues.length > 0 && (
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-5 h-5 rounded-md bg-rose-600 text-white flex items-center justify-center text-[10px] font-black">!</div>
-                            <p className="text-[11px] font-black text-slate-900 uppercase tracking-wider">
-                              Detected Issues ({activeIssues.length})
-                            </p>
-                          </div>
-
-                          {activeIssues.map((issue, idx) => {
-                            // Expanded solution lookup — covers all known issue types
-                            const solutionMap = {
-                              "Missing Statutory Fair Use Notice": {
-                                fix: "Add this to your caption:\n'This content is shared for educational/commentary purpose under Fair Use (§107 US / §52 India).'",
-                                canAutoFix: true,
-                              },
-                              "Audio Muting Risk (Instagram Reels / FB)": {
-                                fix: "Audio Process & Fixes:\n1. If this is your original verbal voice/speech: Click 'Audio Process' button above -> 'Declare Original Voice' (1-click set to LOW risk).\n2. If using commercial music: Add trending song in-app via Instagram/FB Audio Sticker to avoid muting.\n3. Or declare Royalty-Free audio clearance below.",
-                                canAutoFix: true,
-                              },
-                              "Commercial Record Label Match Detected": {
-                                fix: "Music Usage Process & Solutions:\n1. Instagram / FB Reels: Upload video with your original voice, then choose the song inside Instagram/FB app via 'Audio Sticker' (Meta handles all licensing & royalties — zero muting risk!).\n2. YouTube: Use YouTube Studio Audio Library or add via Shorts 'Add Sound'.\n3. Click 'Audio Process' above to declare Meta Sound clearance or add Fair Use transformative commentary.",
-                                canAutoFix: true,
-                              },
-                              "Third-Party Copyright Music Detected": {
-                                fix: "Music Usage Process & Solutions:\n1. Instagram / FB Reels: Select the track in-app via the Music sticker (Official Meta Licensing — zero copyright strike).\n2. YouTube / Long Form: Use royalty-free music from Meta Sound Collection or YouTube Audio Library.\n3. Transformative Audio: If reviewing or commenting, apply Section 107 Fair Use notice via 'Audio Process' button above.",
-                                canAutoFix: true,
-                              },
-                              "Missing Platform AI Transparency Label": {
-                                fix: "Add AI disclosure to caption: '🤖 AI-assisted content. Disclosed per Meta AI Info & YouTube Altered Content policies.'",
-                                canAutoFix: true,
-                              },
-                              "Broadcast Watermark Detected": {
-                                fix: "Manual Action Required:\n1. Remove the TV channel logo/watermark from your video using a video editor.\n2. Make sure you own original recording rights.\n3. Re-upload the cleaned video.",
-                                canAutoFix: false,
-                              },
-                              "Stock Image License Violation": {
-                                fix: "Manual Action Required:\n1. Remove the unlicensed stock image.\n2. Replace with your own photo OR download from free sources (Unsplash, Pexels).\n3. If you purchased a license, add: 'Image: Licensed via [source]' in caption.",
-                                canAutoFix: false,
-                              },
-                            };
-
-                            const matched = solutionMap[issue.title];
-                            const solution = issue.solution
-                              || matched?.fix
-                              || "Manual Action Required:\n1. Review the issue carefully.\n2. Edit your content to remove the flagged element.\n3. Re-upload and run scan again.\n\nIf unsure, contact support or use the Dispute Letter option above.";
-                            const canAutoFix = matched?.canAutoFix ?? (issue.solution ? true : false);
-
-                            return (
-                              <div key={issue.id || idx} className="space-y-1.5">
-                                {/* Issue Card */}
-                                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3 shadow-2xs">
-                                  <div className="w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">
-                                    {idx + 1}
-                                  </div>
-                                  <div className="space-y-0.5 min-w-0">
-                                    <p className="text-xs font-black text-rose-900">{issue.title}</p>
-                                    <p className="text-[11px] text-rose-700 leading-snug">{issue.desc}</p>
-                                  </div>
-                                </div>
-
-                                {/* Solution Card — green if auto-fixable, amber if manual action needed */}
-                                <div className={`p-3 rounded-xl flex items-start gap-3 shadow-2xs ml-2 ${
-                                  canAutoFix
-                                    ? "bg-emerald-50 border border-emerald-200"
-                                    : "bg-amber-50 border border-amber-300"
-                                }`}>
-                                  <div className={`w-5 h-5 rounded-full text-white flex items-center justify-center shrink-0 mt-0.5 text-[11px] ${
-                                    canAutoFix ? "bg-emerald-600" : "bg-amber-500"
-                                  }`}>
-                                    {canAutoFix
-                                      ? <svg viewBox="0 0 12 12" fill="none" className="w-3 h-3"><path d="M2 6l2.5 2.5L10 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                                      : "!"}
-                                  </div>
-                                  <div className="space-y-1 min-w-0">
-                                    <p className={`text-[10px] font-black uppercase tracking-wide ${
-                                      canAutoFix ? "text-emerald-800" : "text-amber-800"
-                                    }`}>
-                                      {canAutoFix ? "✅ Solution (Auto-Fixable)" : "⚠️ Manual Action Required"}
-                                    </p>
-                                    <p className={`text-[11px] leading-relaxed whitespace-pre-line ${
-                                      canAutoFix ? "text-emerald-800" : "text-amber-900"
-                                    }`}>{solution}</p>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {/* 1-Click Universal Fix Banner & High-Visibility Button */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-rose-50 via-rose-100/70 to-pink-50 border-2 border-rose-300 shadow-xs">
-                        <div className="space-y-1 min-w-0">
-                          <p className="font-black text-rose-950 text-xs sm:text-sm flex items-center gap-2">
-                            <ShieldCheck className="w-5 h-5 text-rose-600 shrink-0" />
-                            <span>1-Click Auto-Fix — Resolve All Issues Instantly</span>
-                          </p>
-                          <p className="text-[11.5px] font-semibold text-rose-800/90 ml-7">
-                            Automatically injects Fair Use legal notice, audio declaration, and AI transparency disclosure into your caption.
-                          </p>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={handleFixAllAndProtect}
-                          className="w-full sm:w-auto px-6 py-4 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-900 text-sm sm:text-base font-black shadow-md border border-rose-300 flex items-center justify-center gap-2.5 cursor-pointer transition-all active:scale-95 shrink-0"
-                        >
-                          <ShieldCheck className="w-6 h-6 text-rose-600" />
-                          <span>🛡️ Fix All & Reduce Risk to Low</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-
-                </div>
-              );
-            }
-
-            // 3. IDLE STATE: 3-LAYER ARCHITECTURE & WEIGHTED RISK ENGINE CARD
-            return (
-              <div className="rounded-2xl border-2 border-teal-200/80 bg-gradient-to-r from-emerald-50/60 via-teal-50/40 to-slate-50 p-3.5 sm:p-4 shadow-2xs flex flex-wrap items-center justify-between gap-3 transition-all">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-md shadow-teal-600/30 shrink-0">
-                    <ShieldCheck className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 flex items-center gap-1.5 flex-wrap">
-                      <span>Deep AI Content Safety Scanner</span>
-                      <span className="text-[9.5px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full font-bold border border-teal-200">
-                        Gemini Powered
-                      </span>
-                      <span className="text-[9.5px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-bold border border-indigo-200">
-                        Text 20% • Image 25% • Video 30% • Audio 25%
-                      </span>
-                    </h3>
-                    <p className="text-[11px] text-slate-500 font-medium">
-                      Scans your text, visuals, and audio for copyright, brand safety, and platform policy risks. Issues + solutions shown below.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleStartScan(true)}
-                    className="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-black shadow-lg shadow-teal-600/40 ring-2 ring-teal-400/50 flex items-center gap-2 cursor-pointer transition-all active:scale-95"
-                  >
-                    <ShieldCheck className="w-4 h-4" />
-                    <span>Run Deep AI Content Safety Scan</span>
-                  </button>
-                </div>
-              </div>
-            );
-          })()}
 
           {/* Comment Moderation Control */}
           <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 space-y-1.5 transition-all">
