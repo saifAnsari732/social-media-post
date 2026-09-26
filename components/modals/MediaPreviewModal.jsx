@@ -2,6 +2,7 @@
 
 import React from "react";
 import { X, Play, FileVideo, Image as ImageIcon, Download, ExternalLink } from "lucide-react";
+import { formatImageKitUrl } from "@/lib/imagekit";
 
 export default function MediaPreviewModal({ isOpen, onClose, mediaUrl, mediaType, title, description }) {
   if (!isOpen || !mediaUrl) return null;
@@ -47,9 +48,12 @@ export default function MediaPreviewModal({ isOpen, onClose, mediaUrl, mediaType
         <div className="p-4 sm:p-6 bg-slate-950 flex items-center justify-center min-h-[300px] max-h-[70vh] overflow-hidden">
           {isVideo ? (
             <video 
-              src={mediaUrl} 
+              key={mediaUrl}
+              src={formatImageKitUrl(mediaUrl, true)} 
               controls 
-              autoPlay 
+              playsInline
+              preload="auto"
+              crossOrigin="anonymous"
               className="w-full max-h-[65vh] object-contain rounded-2xl shadow-2xl bg-black border border-slate-800"
             />
           ) : (

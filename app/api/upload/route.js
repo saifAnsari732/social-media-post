@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import imagekit from "@/lib/imagekit";
+import imagekit, { formatImageKitUrl } from "@/lib/imagekit";
 
 export const dynamic = "force-dynamic";
 
@@ -70,16 +70,18 @@ export async function POST(req) {
 
     const finalMediaType = isVideo ? "video" : "image";
 
+    const finalUrl = formatImageKitUrl(uploadResponse.url, isVideo);
+
     return NextResponse.json({
       success: true,
-      url: uploadResponse.url,
+      url: finalUrl,
       fileId: uploadResponse.fileId,
       name: uploadResponse.name,
       mediaType: finalMediaType,
       size: uploadResponse.size,
       height: uploadResponse.height,
       width: uploadResponse.width,
-      thumbnailUrl: uploadResponse.thumbnailUrl || uploadResponse.url
+      thumbnailUrl: uploadResponse.thumbnailUrl ? formatImageKitUrl(uploadResponse.thumbnailUrl, false) : finalUrl
     });
   } catch (error) {
     console.error("ImageKit upload error:", error);

@@ -9,6 +9,7 @@ import { postToLinkedIn } from "@/lib/platforms/linkedin";
 import { postToTikTok } from "@/lib/platforms/tiktok";
 import { postToThreads } from "@/lib/platforms/threads";
 import { postToPinterest } from "@/lib/platforms/pinterest";
+import { formatImageKitUrl } from "@/lib/imagekit";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
