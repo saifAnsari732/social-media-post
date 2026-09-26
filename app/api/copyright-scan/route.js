@@ -17,7 +17,10 @@ export async function POST(req) {
       youtubePrivacy: body.youtubePrivacy || "public",
       ownerBusiness: body.ownerBusiness || "Creator",
       userId,
-      forceDeepScan: Boolean(body.forceDeepScan)
+      forceDeepScan: Boolean(body.forceDeepScan),
+      frameThumbnail: body.frameThumbnail || "",
+      isSyntheticVisualSignal: Boolean(body.isSyntheticVisualSignal),
+      visualMetrics: body.visualMetrics || null
     });
 
     return NextResponse.json(result);

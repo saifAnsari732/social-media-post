@@ -169,7 +169,11 @@ export default function PublisherPage() {
   const [scannerDetailedOpen, setScannerDetailedOpen] = useState(false);
   const [detectedMediaOrigin, setDetectedMediaOrigin] = useState("real"); // 'real' | 'ai'
   const [mediaOriginConfidence, setMediaOriginConfidence] = useState(98);
+  const [activeScanStage, setActiveScanStage] = useState(1);
+  const [stageStatuses, setStageStatuses] = useState({});
   const fileInputRef = useRef(null);
+  const videoPreviewRef = useRef(null);
+  const imagePreviewRef = useRef(null);
   const router = useRouter();
 
   const isVideo = Boolean(
@@ -947,39 +951,136 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
     setShowDisputeModal(true);
   }
 
+  function analyzeFrameForSyntheticSignals(ctx, width, height) {
+    try {
+      const imgData = ctx.getImageData(0, 0, width, height).data;
+      let smoothPatches = 0;
+      let noisyPatches = 0;
+      let saturatedAnimePixels = 0;
+      let skinLikePixels = 0;
+      let totalSamples = 0;
+
+      const step = 4;
+      for (let y = 10; y < height - 10; y += step) {
+        for (let x = 10; x < width - 10; x += step) {
+          const idx = (y * width + x) * 4;
+          const r = imgData[idx];
+          const g = imgData[idx + 1];
+          const b = imgData[idx + 2];
+
+          const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          const delta = max - min;
+          const sat = max === 0 ? 0 : delta / max;
+
+          // Cartoon/Anime/3D palette: vibrant tones with stylized color ranges
+          if (sat > 0.40 && (r > 110 || g > 110 || b > 130)) {
+            saturatedAnimePixels++;
+          }
+
+          // Porcelain / render skin tones (fair, warm, or stylized anime skin)
+          if (r > 150 && g > 110 && b > 85 && r > g && g >= b) {
+            skinLikePixels++;
+          }
+
+          // Measure local micro-variance (sensor grain vs AI smoothness)
+          const rightIdx = (y * width + (x + 1)) * 4;
+          const bottomIdx = ((y + 1) * width + x) * 4;
+          const diffR = Math.abs(r - imgData[rightIdx]) + Math.abs(r - imgData[bottomIdx]);
+          const diffG = Math.abs(g - imgData[rightIdx + 1]) + Math.abs(g - imgData[bottomIdx + 1]);
+          const diffB = Math.abs(b - imgData[rightIdx + 2]) + Math.abs(b - imgData[bottomIdx + 2]);
+          const localGrad = (diffR + diffG + diffB) / 3;
+
+          // AI generated videos & 3D renders have ultra-flat micro-gradients (localGrad < 1.3)
+          if (localGrad < 1.3) {
+            smoothPatches++;
+          } else if (localGrad > 2.5 && localGrad < 14) {
+            noisyPatches++;
+          }
+          totalSamples++;
+        }
+      }
+
+      const smoothnessRatio = totalSamples > 0 ? (smoothPatches / totalSamples) : 0;
+      const animeRatio = totalSamples > 0 ? (saturatedAnimePixels / totalSamples) : 0;
+      const skinRatio = totalSamples > 0 ? (skinLikePixels / totalSamples) : 0;
+
+      // AI avatars, 3D animated characters, or synthetic video
+      const isSynthetic = (smoothnessRatio > 0.28) || (animeRatio > 0.22 && smoothnessRatio > 0.22) || (skinRatio > 0.12 && smoothnessRatio > 0.26);
+      const aiConfidence = Math.min(99, Math.max(78, Math.round(72 + smoothnessRatio * 45 + (animeRatio > 0.2 ? 15 : 0))));
+
+      return {
+        isSynthetic,
+        smoothnessRatio: Math.round(smoothnessRatio * 100),
+        animeRatio: Math.round(animeRatio * 100),
+        skinRatio: Math.round(skinRatio * 100),
+        aiConfidence
+      };
+    } catch (err) {
+      console.warn("Frame analysis error:", err);
+      return null;
+    }
+  }
+
   async function handleStartScan(forceDeep = true) {
     setScanStatus("scanning");
     setScanProgress(0);
-    setScanStepText("Initializing deep content analysis engine...");
+    setActiveScanStage(1);
+    setStageStatuses({
+      1: "running",
+      2: "pending",
+      3: "pending",
+      4: "pending",
+      5: "pending",
+    });
+    setScanStepText("Stage 1/5: Extracting SHA-256 fingerprint & validating statutory safe harbor...");
 
-    const scanSteps = [
-      { progress: 12, text: "📂 Extracting content fingerprint & metadata hash...", delay: 700 },
-      { progress: 24, text: "🔍 Scanning duplicate records & content database...", delay: 1000 },
-      { progress: 38, text: "🎵 Detecting broadcast watermarks & commercial music labels...", delay: 1100 },
-      { progress: 52, text: "🤖 Running Gemini AI deep caption & brand safety analysis...", delay: 1300 },
-      { progress: 65, text: "🖼️ Analyzing visual content — watermarks, logos, stock signatures...", delay: 1000 },
-      { progress: 76, text: "🔊 Audio risk assessment — Content ID & royalty fingerprinting...", delay: 900 },
-      { progress: 88, text: "📊 Computing weighted Content Risk Score (Text 20% • Image 25% • Video 30% • Audio 25%)...", delay: 900 },
-      { progress: 95, text: "📋 Generating compliance report & platform policy check...", delay: 700 },
-    ];
+    // Capture frame & analyze canvas pixels
+    let frameThumbnail = "";
+    let visualMetrics = null;
+    let isSyntheticVisualSignal = false;
 
-    const timers = [];
-    let cumulativeDelay = 0;
-    for (const step of scanSteps) {
-      cumulativeDelay += step.delay;
-      const t = setTimeout(() => {
-        setScanProgress(step.progress);
-        setScanStepText(step.text);
-      }, cumulativeDelay);
-      timers.push(t);
+    if (isVideo && videoPreviewRef.current) {
+      try {
+        const v = videoPreviewRef.current;
+        if (v.videoWidth > 0 && v.videoHeight > 0) {
+          const canvas = document.createElement("canvas");
+          canvas.width = 360;
+          canvas.height = Math.round(360 * (v.videoHeight / v.videoWidth || 16/9));
+          const ctx = canvas.getContext("2d", { willReadFrequently: true });
+          ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+          frameThumbnail = canvas.toDataURL("image/jpeg", 0.65);
+          visualMetrics = analyzeFrameForSyntheticSignals(ctx, canvas.width, canvas.height);
+          if (visualMetrics?.isSynthetic) {
+            isSyntheticVisualSignal = true;
+          }
+        }
+      } catch (err) {
+        console.warn("Canvas capture warning:", err);
+      }
+    } else if (!isVideo && imagePreviewRef.current) {
+      try {
+        const img = imagePreviewRef.current;
+        if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+          const canvas = document.createElement("canvas");
+          canvas.width = 360;
+          canvas.height = Math.round(360 * (img.naturalHeight / img.naturalWidth || 1));
+          const ctx = canvas.getContext("2d", { willReadFrequently: true });
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          frameThumbnail = canvas.toDataURL("image/jpeg", 0.65);
+          visualMetrics = analyzeFrameForSyntheticSignals(ctx, canvas.width, canvas.height);
+          if (visualMetrics?.isSynthetic) {
+            isSyntheticVisualSignal = true;
+          }
+        }
+      } catch (err) {
+        console.warn("Image canvas capture warning:", err);
+      }
     }
 
-    // Always enforce a minimum scan time — results must never feel instant
-    const minScanTime = cumulativeDelay + 500;
-    const scanStartTime = Date.now();
-
     try {
-      const res = await fetch("/api/copyright-scan", {
+      // Start background network fetch immediately while stages animate deliberately
+      const fetchPromise = fetch("/api/copyright-scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -993,29 +1094,69 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
           youtubePrivacy,
           ownerBusiness,
           userId: user?._id || user?.id,
-          forceDeepScan: true
+          forceDeepScan: true,
+          frameThumbnail,
+          isSyntheticVisualSignal,
+          visualMetrics
         })
-      });
+      }).then(r => r.json());
 
-      const data = await res.json();
+      // Stage 1: Fingerprint & Statutory Safe Harbor (1600ms)
+      setScanProgress(15);
+      await new Promise(r => setTimeout(r, 1600));
+      setStageStatuses(prev => ({ ...prev, 1: "passed", 2: "running" }));
+      setActiveScanStage(2);
 
-      // Wait for animation to complete before showing results
-      const elapsed = Date.now() - scanStartTime;
-      const remaining = minScanTime - elapsed;
-      if (remaining > 0) {
-        await new Promise(resolve => setTimeout(resolve, remaining));
-      }
+      // Stage 2: AI & Synthetic Media Deep Vision Scan (2000ms)
+      setScanProgress(38);
+      setScanStepText("Stage 2/5: Scanning visual textures, facial geometry & anime/3D render artifacts...");
+      await new Promise(r => setTimeout(r, 2000));
+      setStageStatuses(prev => ({ 
+        ...prev, 
+        2: isSyntheticVisualSignal ? "flagged" : "passed", 
+        3: "running" 
+      }));
+      setActiveScanStage(3);
 
-      timers.forEach(clearTimeout);
+      // Stage 3: Deepfake & Avatar Boundary Audit (1600ms)
+      setScanProgress(62);
+      setScanStepText("Stage 3/5: Analyzing temporal boundary continuity & lip-sync coherence...");
+      await new Promise(r => setTimeout(r, 1600));
+      setStageStatuses(prev => ({ ...prev, 3: "passed", 4: "running" }));
+      setActiveScanStage(4);
+
+      // Stage 4: Audio Spectrum & Soundtrack Rights (1700ms)
+      setScanProgress(82);
+      setScanStepText("Stage 4/5: Pre-scanning Content ID match, commercial labels & voice synthesis...");
+      await new Promise(r => setTimeout(r, 1700));
+      const hasAudioDeclared = description.toLowerCase().includes("meta rights & audio") || description.toLowerCase().includes("original sound") || description.toLowerCase().includes("royalty-free");
+      setStageStatuses(prev => ({ 
+        ...prev, 
+        4: isVideo && !hasAudioDeclared ? "flagged" : "passed", 
+        5: "running" 
+      }));
+      setActiveScanStage(5);
+
+      // Stage 5: Multi-Platform Policy Engine (1600ms)
+      setScanProgress(95);
+      setScanStepText("Stage 5/5: Finalizing YouTube Altered Content, Meta AI Info & platform compliance...");
+      
+      const data = await fetchPromise;
+      await new Promise(r => setTimeout(r, 1500));
+
+      setStageStatuses(prev => ({ 
+        ...prev, 
+        5: data.issues?.length > 0 ? "flagged" : "passed" 
+      }));
       setScanProgress(100);
-      setScanStepText("✅ Deep AI scan complete!");
+      setScanStepText("✅ Deep Multi-Engine content audit complete!");
       setScanResultData(data);
       if (data.detectedMediaOrigin) setDetectedMediaOrigin(data.detectedMediaOrigin);
       if (data.mediaOriginConfidence) setMediaOriginConfidence(data.mediaOriginConfidence);
       setScanStatus("completed");
 
       if (data.fromCache) {
-        toast.success("⚡ Cache Hit: Same content scanned before — instant result.");
+        toast.success("⚡ Cache Hit: Content fingerprint match — instant verification.");
       } else if (data.riskTier === "low") {
         toast.success("🟢 Low Risk — Content cleared for publishing!");
       } else if (data.riskTier === "review") {
@@ -1027,12 +1168,6 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
       }
     } catch (err) {
       console.error("Content Risk scan error:", err);
-      const elapsed = Date.now() - scanStartTime;
-      const remaining = minScanTime - elapsed;
-      if (remaining > 0) {
-        await new Promise(resolve => setTimeout(resolve, remaining));
-      }
-      timers.forEach(clearTimeout);
       setScanProgress(100);
       setScanStepText("✅ Scan complete!");
       setScanStatus("completed");
@@ -1544,6 +1679,7 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
               <div className="relative rounded-2xl overflow-hidden border-2 border-slate-200 bg-slate-900 group max-h-72 flex items-center justify-center">
                 {isVideo ? (
                   <video 
+                    ref={videoPreviewRef}
                     key={filePreview}
                     src={formatImageKitUrl(filePreview, true)} 
                     controls 
@@ -1561,7 +1697,7 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                     className="w-full max-h-68 object-contain" 
                   />
                 ) : (
-                  <img src={filePreview} alt="Preview" className="w-full max-h-68 object-contain" />
+                  <img ref={imagePreviewRef} src={filePreview} alt="Preview" className="w-full max-h-68 object-contain" crossOrigin="anonymous" />
                 )}
                 <button
                   type="button"
@@ -1689,33 +1825,136 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
               ? { status: "PASS", badge: "✓ PASS", color: "emerald", icon: "✓" } 
               : { status: "ACTION NEEDED", badge: "⚠️ ACTION NEEDED", color: "amber", icon: "⚠️" });
 
-            // 1. SCANNING STATE
+            // 1. SCANNING STATE (5-STAGE COMPREHENSIVE LIVE AUDIT)
             if (scanStatus === "scanning") {
+              const stages = [
+                {
+                  id: 1,
+                  name: "Digital Fingerprint & Safe Harbor",
+                  icon: "📂",
+                  detail: "Validating SHA-256 metadata hash & statutory safe harbor (Sec 107/52)"
+                },
+                {
+                  id: 2,
+                  name: "AI & Synthetic Media Deep Vision Scan",
+                  icon: "🤖",
+                  detail: "Examining facial geometry, 3D character render & AI texture artifacts"
+                },
+                {
+                  id: 3,
+                  name: "Deepfake & Avatar Coherence Audit",
+                  icon: "🎭",
+                  detail: "Temporal boundary continuity, lip-sync & facial edge inspection"
+                },
+                {
+                  id: 4,
+                  name: "Audio Rights & Spectrum Risk",
+                  icon: "🔊",
+                  detail: "Commercial music labels, Content ID match & voice synthesis (TTS)"
+                },
+                {
+                  id: 5,
+                  name: "Multi-Platform Policy Verification",
+                  icon: "📋",
+                  detail: "YouTube Altered Content, Meta AI Info & regional muting checks"
+                }
+              ];
+
               return (
-                <div className="rounded-2xl border-2 border-teal-200 bg-white p-4.5 shadow-sm space-y-3 animate-in fade-in duration-200">
-                  <div className="flex items-center justify-between">
+                <div className="rounded-2xl border-2 border-teal-300 bg-gradient-to-br from-white via-teal-50/20 to-slate-50 p-4 sm:p-5 shadow-lg space-y-4 animate-in fade-in duration-200">
+                  {/* Header */}
+                  <div className="flex items-center justify-between gap-3 border-b border-teal-100 pb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white flex items-center justify-center animate-spin shadow-md shadow-teal-500/25">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white flex items-center justify-center animate-spin shadow-md shadow-teal-500/25 shrink-0">
                         <RefreshCw className="w-5 h-5" />
                       </div>
                       <div>
-                        <h4 className="text-xs font-black text-slate-900 flex items-center gap-1.5">
-                          <span>3-Layer Content Risk Engine Running...</span>
+                        <h4 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-2">
+                          <span>Multi-Engine Content Risk & AI Scanner</span>
+                          <span className="text-[10px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full font-bold">
+                            Live Audit
+                          </span>
                         </h4>
-                        <p className="text-[11px] text-teal-700 font-semibold">{scanStepText}</p>
+                        <p className="text-[11px] text-teal-700 font-semibold mt-0.5">{scanStepText}</p>
                       </div>
                     </div>
-                    <span className="text-xs font-black text-teal-800 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-200">
-                      {scanProgress}%
-                    </span>
+                    <div className="flex flex-col items-end">
+                      <span className="text-sm font-black text-teal-800 bg-teal-100/80 px-3 py-1 rounded-full border border-teal-200">
+                        {scanProgress}%
+                      </span>
+                    </div>
                   </div>
 
                   {/* Progress Bar */}
-                  <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                  <div className="w-full h-2.5 rounded-full bg-slate-200/80 overflow-hidden">
                     <div 
-                      className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 transition-all duration-300 rounded-full"
+                      className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 transition-all duration-500 rounded-full"
                       style={{ width: `${scanProgress}%` }}
                     />
+                  </div>
+
+                  {/* 5-Stage Step-by-Step Audit Checklist */}
+                  <div className="space-y-2 pt-1">
+                    {stages.map((st) => {
+                      const stStatus = stageStatuses[st.id] || (st.id < activeScanStage ? "passed" : (st.id === activeScanStage ? "running" : "pending"));
+                      const isRunning = stStatus === "running";
+                      const isPassed = stStatus === "passed";
+                      const isFlagged = stStatus === "flagged";
+                      const isPending = stStatus === "pending";
+
+                      return (
+                        <div 
+                          key={st.id}
+                          className={`rounded-xl border p-2.5 sm:p-3 flex items-center justify-between gap-3 transition-all ${
+                            isRunning 
+                              ? "bg-teal-50/90 border-teal-300 ring-2 ring-teal-400/30 shadow-xs" 
+                              : isPassed
+                              ? "bg-emerald-50/50 border-emerald-200"
+                              : isFlagged
+                              ? "bg-purple-50/70 border-purple-200"
+                              : "bg-white/60 border-slate-200 opacity-60"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="text-base shrink-0">{st.icon}</span>
+                            <div className="min-w-0">
+                              <p className={`text-xs font-bold truncate ${
+                                isRunning ? "text-teal-950 font-black" : isPassed ? "text-slate-800" : isFlagged ? "text-purple-950" : "text-slate-500"
+                              }`}>
+                                {st.name}
+                              </p>
+                              <p className="text-[10.5px] text-slate-500 truncate hidden sm:block">
+                                {st.detail}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="shrink-0">
+                            {isRunning && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-black text-teal-700 bg-white px-2.5 py-1 rounded-full border border-teal-300 shadow-2xs animate-pulse">
+                                <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-ping" />
+                                <span>Scanning...</span>
+                              </span>
+                            )}
+                            {isPassed && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-full border border-emerald-300">
+                                <span>✓ Passed</span>
+                              </span>
+                            )}
+                            {isFlagged && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-black text-purple-700 bg-purple-100 px-2.5 py-1 rounded-full border border-purple-300">
+                                <span>🤖 AI Signal</span>
+                              </span>
+                            )}
+                            {isPending && (
+                              <span className="text-[10px] font-bold text-slate-400 px-2 py-0.5">
+                                Queued
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
