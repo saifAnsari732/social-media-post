@@ -187,12 +187,21 @@ Your Instructions:
 - If asked about a specific campaign, cite its exact budget, spent, CTR, ROAS, and status.
 - Be direct, authoritative, and helpful. Use clean Markdown formatting, bold text, and bullet points. Never output raw JSON unless specifically requested.`;
 
-        const response = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
-          contents: `${systemPrompt}\n\nUser Question:\n${cleanQuery}`
-        });
-
-        const reply = response.text ? response.text.trim() : null;
+        let reply = null;
+        for (const m of ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]) {
+          try {
+            const response = await ai.models.generateContent({
+              model: m,
+              contents: `${systemPrompt}\n\nUser Question:\n${cleanQuery}`
+            });
+            if (response && response.text) {
+              reply = response.text.trim();
+              break;
+            }
+          } catch (mErr) {
+            console.warn(`Ads chat model ${m} failed:`, mErr.message);
+          }
+        }
         if (reply) {
           return NextResponse.json({ success: true, text: reply });
         }
