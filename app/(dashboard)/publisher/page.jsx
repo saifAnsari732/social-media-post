@@ -861,6 +861,18 @@ All rights belong to their respective owners.
     });
 
     setShowCopyrightModal(false);
+    setScanResultData(prev => {
+      if (!prev) return prev;
+      const filteredIssues = (prev.issues || []).filter(i => i.fixType !== "safe_harbor" && i.id !== "missing_fair_use");
+      return {
+        ...prev,
+        issues: filteredIssues,
+        safetyReport: {
+          ...prev.safetyReport,
+          platformPolicy: { status: "PASS", icon: "✓", badge: "✓ PASS", color: "emerald" }
+        }
+      };
+    });
     toast.success("✅ Free Copyright & Fair Use notice added to description!");
   }
 
@@ -883,6 +895,19 @@ All rights belong to their respective owners.
       const missing = copyrightTags.filter(t => !existing.includes(t.toLowerCase()));
       if (missing.length === 0) return prev;
       return `${prev}, ${missing.join(", ")}`;
+    });
+
+    setScanResultData(prev => {
+      if (!prev) return prev;
+      const filteredIssues = (prev.issues || []).filter(i => i.fixType !== "safe_harbor" && i.id !== "missing_fair_use");
+      return {
+        ...prev,
+        issues: filteredIssues,
+        safetyReport: {
+          ...prev.safetyReport,
+          platformPolicy: { status: "PASS", icon: "✓", badge: "✓ PASS", color: "emerald" }
+        }
+      };
     });
 
     toast.success("🛡️ 1-Click Safe Harbor & Section 107 Notice applied!");
@@ -1923,9 +1948,9 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
               ? (hasCommercialMusicFlag ? { status: "HIGH", badge: "🔴 HIGH", color: "rose", icon: "🔴" } : { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" }) 
               : { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" });
 
-            const repPolicy = scanResultData?.safetyReport?.platformPolicy || (activeIssues.length === 0 
+            const repPolicy = (hasFairUse || activeIssues.length === 0 || scanResultData?.safetyReport?.platformPolicy?.status === "PASS")
               ? { status: "PASS", badge: "✓ PASS", color: "emerald", icon: "✓" } 
-              : { status: "ACTION NEEDED", badge: "⚠️ ACTION NEEDED", color: "amber", icon: "⚠️" });
+              : { status: "ACTION NEEDED", badge: "⚠️ ACTION NEEDED", color: "amber", icon: "⚠️" };
 
             // 1. SCANNING STATE (5-STAGE COMPREHENSIVE LIVE AUDIT)
             if (scanStatus === "scanning") {
@@ -2283,19 +2308,17 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                       </div>
 
                       {/* Audio Row */}
-                      <div className="flex items-center justify-between py-2 px-1 border-b border-slate-100">
-                        <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-slate-900 w-28 flex items-center gap-1.5">
-                            <span>Audio</span>
-                            {isOriginalVoice && isVideo && (
-                              <span className="text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-black border border-emerald-200">
-                                🎙️ Real Voice
-                              </span>
-                            )}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-bold bg-slate-50 px-1.5 py-0.5 rounded">25% Weight</span>
+                      <div className="flex items-center justify-between py-2.5 px-1 border-b border-slate-100">
+                        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                          <span className="font-extrabold text-slate-900 w-16 shrink-0 text-xs">Audio</span>
+                          <span className="text-[10px] text-slate-400 font-bold bg-slate-100/80 px-1.5 py-0.5 rounded">25% Weight</span>
+                          {isOriginalVoice && isVideo && (
+                            <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold inline-flex items-center gap-1 shrink-0 whitespace-nowrap">
+                              <span>🎙️ Real Voice</span>
+                            </span>
+                          )}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 shrink-0">
                           <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
                             repAudio.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
                             repAudio.color === "amber" ? "bg-amber-50 text-amber-800 border-amber-300" :
@@ -2307,11 +2330,11 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                           <button
                             type="button"
                             onClick={() => setShowAudioGuideModal(true)}
-                            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[10.5px] font-black cursor-pointer shadow-xs flex items-center gap-1 transition-all active:scale-95"
-                            title="Audio & Music Process Guide & 1-Click Fix"
+                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-[11px] font-bold cursor-pointer shadow-2xs flex items-center gap-1 transition-all active:scale-95"
+                            title="Open Audio & Music Rights Guide"
                           >
-                            <Music className="w-3.5 h-3.5 text-teal-300" />
-                            <span>Audio Process</span>
+                            <Music className="w-3.5 h-3.5 text-slate-500" />
+                            <span>Audio Rights</span>
                           </button>
                         </div>
                       </div>
@@ -4345,170 +4368,106 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
         </div>
       )}
 
-      {/* AUDIO & MUSIC COPYRIGHT COMPLIANCE & SAFE PUBLISHING MODAL */}
+      {/* AUDIO & MUSIC COPYRIGHT COMPLIANCE MODAL */}
       {showAudioGuideModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative w-full max-w-2xl max-h-[92vh] flex flex-col rounded-3xl bg-white border border-slate-200 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-xl max-h-[90vh] flex flex-col rounded-2xl bg-white border border-slate-200 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             
-            {/* Header with High-Visibility Indigo/Teal Gradient */}
-            <div className="px-6 py-4 bg-gradient-to-r from-slate-900 via-indigo-900 to-teal-900 text-white flex items-center justify-between shadow-sm">
+            {/* Header */}
+            <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white shrink-0">
-                  <Music className="w-5 h-5 text-teal-300" />
+                <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-teal-400 shrink-0">
+                  <Music className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black tracking-tight flex items-center gap-1.5">
-                    <span>🎵 Audio & Music Copyright Process Guide</span>
-                    <span className="text-[10px] bg-teal-400/20 text-teal-200 px-2 py-0.5 rounded-full border border-teal-400/30 font-bold">
-                      Safe Publishing
-                    </span>
-                  </h3>
-                  <p className="text-[11px] text-slate-300 font-medium">
-                    Real voice vs Commercial music workflow aur 1-click clearance options
-                  </p>
+                  <h3 className="text-xs font-black tracking-tight">Audio & Music Rights Guide</h3>
+                  <p className="text-[11px] text-slate-400">Copyright guidelines & 1-click clearance for social publishing</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowAudioGuideModal(false)}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white transition-all cursor-pointer"
+                className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
             {/* Scrollable Body */}
-            <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5">
               
-              {/* Option 1: Real Human Voice / Verbal Speech */}
-              <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-2.5 shadow-2xs">
-                <div className="flex items-start justify-between gap-3">
+              {/* Option 1: Real Human Voice */}
+              <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/40 space-y-2">
+                <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                      <Mic className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-black text-emerald-950 flex items-center gap-1.5">
-                        <span>🎙️ 1. Real Human Voice / Khud Ki Verbal Awaaz</span>
-                        <span className="text-[9.5px] bg-emerald-200/80 text-emerald-900 px-1.5 py-0.2 rounded font-black">100% Safe (0% Risk)</span>
-                      </h4>
-                      <p className="text-[11px] text-emerald-800 font-medium">
-                        Agar aapne video me khud bolkar baat ki hai (talking head, monologue, podcast, vlog ya educational commentary):
-                      </p>
-                    </div>
+                    <Mic className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <h4 className="text-xs font-black text-slate-900">1. Creator Spoken Voice (Original Audio)</h4>
                   </div>
+                  <span className="text-[9.5px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">100% Safe</span>
                 </div>
-
-                <div className="bg-white/80 p-3 rounded-xl border border-emerald-200 text-xs text-slate-700 space-y-1.5 leading-relaxed">
-                  <p className="text-[11px]">
-                    ✅ <strong>Full Ownership:</strong> Aapka audio 100% original creator audio hai. Is par koi muting ya copyright strike <strong>kabhi nahi aayegi</strong>.
-                  </p>
-                  <p className="text-[11px] text-slate-600">
-                    💡 <strong>1-Click Fix:</strong> Niche diye button par click karke description me Original Voice declaration add karein taaki platform algorithms audio ko instantly <strong>✓ LOW risk</strong> pass karein.
-                  </p>
-                </div>
-
-                <div className="flex justify-end pt-1">
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  For talking head videos, monologues, podcasts, vlogs & commentary. Verbal human speech is 100% original creator audio with zero copyright muting risk.
+                </p>
+                <div className="pt-1 flex justify-end">
                   <button
                     type="button"
                     onClick={handleDeclareOriginalVoice}
-                    className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shadow-xs flex items-center gap-1 cursor-pointer transition-all active:scale-95"
                   >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Declare Original Voice (Set to LOW)</span>
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Insert Voice Clearance Notice</span>
                   </button>
                 </div>
               </div>
 
-              {/* Option 2: Commercial Music Process (Bollywood / Hollywood / Trending) */}
-              <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 space-y-2.5 shadow-2xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                    <Music className="w-4 h-4" />
+              {/* Option 2: Commercial & Trending Music */}
+              <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Music className="w-4 h-4 text-indigo-600 shrink-0" />
+                    <h4 className="text-xs font-black text-slate-900">2. Trending & Commercial Songs Workflow</h4>
                   </div>
-                  <div>
-                    <h4 className="text-xs font-black text-indigo-950 flex items-center gap-1.5">
-                      <span>🎵 2. Commercial Music Kaise Use Karein (Muting Se Bachne Ka Process)</span>
-                      <span className="text-[9.5px] bg-indigo-200/80 text-indigo-900 px-1.5 py-0.2 rounded font-black">Official Process</span>
-                    </h4>
-                    <p className="text-[11px] text-indigo-800 font-medium">
-                      Trending Bollywood ya commercial gaane use karte waqt muting aur strike se bachne ka sahi tareeka:
-                    </p>
-                  </div>
+                  <span className="text-[9.5px] bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full font-bold">Reels & Shorts</span>
                 </div>
-
-                <div className="space-y-2 text-xs text-slate-700">
-                  <div className="bg-white/80 p-3 rounded-xl border border-indigo-200 space-y-1.5">
-                    <p className="font-extrabold text-indigo-950 text-[11.5px] flex items-center gap-1">
-                      <span>📱 Instagram Reels & Facebook Reels Workflow:</span>
-                    </p>
-                    <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-700">
-                      <li>Video editing software me gaane ko bina sound ya original voice ke saath export karein.</li>
-                      <li>Instagram/FB par Reel upload karte time <strong>'Add Audio / Music' Sticker</strong> se gaana choose karein.</li>
-                      <li><strong>Kyun?</strong> Meta labels ko official royalty deta hai. App ke sticker se gaana lagane par <strong>0% muting risk</strong> hota hai aur Reel explore algorithm me push hoti hai!</li>
-                    </ol>
-                  </div>
-
-                  <div className="bg-white/80 p-3 rounded-xl border border-indigo-200 space-y-1.5">
-                    <p className="font-extrabold text-indigo-950 text-[11.5px] flex items-center gap-1">
-                      <span>🎥 YouTube Shorts & Videos Workflow:</span>
-                    </p>
-                    <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-700">
-                      <li>YouTube Shorts me <strong>'Add Sound'</strong> button se gaana select karein.</li>
-                      <li>Long video me reaction/review/education hone par <strong>Section 107 Transformative Fair Use</strong> notice add karein.</li>
-                    </ol>
-                  </div>
+                <div className="text-[11px] text-slate-600 space-y-1.5 leading-relaxed">
+                  <p>• <strong>Instagram / FB Reels:</strong> Export video with spoken audio or muted music, then add the song inside Instagram/FB using the <strong>Audio Sticker</strong> (Meta pays label royalties, eliminating mute risk & boosting reach).</p>
+                  <p>• <strong>YouTube Shorts:</strong> Select the song using the <strong>Add Sound</strong> picker in YouTube Shorts.</p>
                 </div>
-
-                <div className="flex justify-end pt-1">
+                <div className="pt-1 flex justify-end">
                   <button
                     type="button"
                     onClick={() => {
                       handleDeclareMetaAudio();
                       setShowAudioGuideModal(false);
                     }}
-                    className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-md shadow-indigo-600/20 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                    className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold shadow-xs flex items-center gap-1 cursor-pointer transition-all active:scale-95"
                   >
-                    <Scale className="w-4 h-4" />
-                    <span>Apply Transformative Audio Notice</span>
+                    <Scale className="w-3.5 h-3.5" />
+                    <span>Insert Fair Use Audio Notice</span>
                   </button>
                 </div>
               </div>
 
               {/* Option 3: Royalty-Free & Meta Sound Collection */}
-              <div className="p-4 rounded-2xl bg-cyan-50/70 border border-cyan-200 space-y-2.5 shadow-2xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-xl bg-cyan-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                    <ShieldCheck className="w-4 h-4" />
+              <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-teal-600 shrink-0" />
+                    <h4 className="text-xs font-black text-slate-900">3. Royalty-Free Music Libraries</h4>
                   </div>
-                  <div>
-                    <h4 className="text-xs font-black text-cyan-950 flex items-center gap-1.5">
-                      <span>🎼 3. 100% Free Royalty-Free Music Library</span>
-                      <span className="text-[9.5px] bg-cyan-200/80 text-cyan-900 px-1.5 py-0.2 rounded font-black">Monetization Ready</span>
-                    </h4>
-                    <p className="text-[11px] text-cyan-800 font-medium">
-                      Facebook, Instagram aur YouTube par bina kisi risk ke commercial monetization:
-                    </p>
-                  </div>
+                  <span className="text-[9.5px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full font-bold">Monetization Ready</span>
                 </div>
-
-                <div className="bg-white/80 p-3 rounded-xl border border-cyan-200 text-xs text-slate-700 space-y-1.5 leading-relaxed">
-                  <p className="text-[11px]">
-                    🎵 <strong>Meta Sound Collection:</strong> Meta Creator Studio me 10,000+ tracks free hain jo commercial FB/Insta reels ke liye pre-cleared hain.
-                  </p>
-                  <p className="text-[11px]">
-                    🎧 <strong>YouTube Audio Library:</strong> YouTube Studio me thousands of safe tracks bina strike risk ke available hain.
-                  </p>
-                </div>
-
-                <div className="flex justify-end pt-1">
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Use pre-licensed music from <strong>Meta Sound Collection</strong> (10,000+ free studio tracks) or <strong>YouTube Audio Library</strong> for safe commercial monetization across all platforms.
+                </p>
+                <div className="pt-1 flex justify-end">
                   <button
                     type="button"
                     onClick={handleDeclareRoyaltyFreeMusic}
-                    className="px-3.5 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-xs font-black shadow-md shadow-cyan-700/20 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                    className="px-3 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-[11px] font-bold shadow-xs flex items-center gap-1 cursor-pointer transition-all active:scale-95"
                   >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Declare Royalty-Free / Meta Sound Clearance</span>
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Insert Royalty-Free Clearance</span>
                   </button>
                 </div>
               </div>
@@ -4516,14 +4475,12 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-              <span className="text-[11px] text-slate-500 font-medium">
-                Audio clearance automatically updates Content Safety Report
-              </span>
+            <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-500">
+              <span>Notice is automatically attached to caption</span>
               <button
                 type="button"
                 onClick={() => setShowAudioGuideModal(false)}
-                className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-xs font-bold text-slate-800 transition-all cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-[11px] font-bold text-slate-800 transition-all cursor-pointer"
               >
                 Close
               </button>
