@@ -26,6 +26,9 @@ import {
   ThumbsUp,
   MoreHorizontal,
   X,
+  XCircle,
+  StopCircle,
+  Minus,
   Layers,
   Check,
   CheckCheck,
@@ -141,6 +144,17 @@ export default function PublisherPage() {
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("18:30");
   const [processingAction, setProcessingAction] = useState(""); // 'upload' | 'draft' | 'publish' | 'schedule'
+  const publishAbortControllerRef = useRef(null);
+  const [isPublishCancelled, setIsPublishCancelled] = useState(false);
+  const [publishProgress, setPublishProgress] = useState({
+    total: 0,
+    completed: 0,
+    failed: 0,
+    remaining: 0,
+    currentAccountId: null,
+    statusByAccount: {},
+    isFinished: false
+  });
   const [disableComments, setDisableComments] = useState(false);
   const [youtubeFormat, setYoutubeFormat] = useState("auto"); // 'auto' | 'shorts' | 'standard'
   const [youtubePrivacy, setYoutubePrivacy] = useState("public"); // 'public' | 'unlisted' | 'private'
@@ -295,17 +309,27 @@ export default function PublisherPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  async function handleDeletePost(postId) {
-    if (!confirm("Are you sure you want to delete this draft?")) return;
+  async function handleDeletePost(postOrId) {
+    const postId = typeof postOrId === "object" ? (postOrId._id || postOrId.id) : postOrId;
+    const post = typeof postOrId === "object" ? postOrId : recentPosts.find(p => (p._id === postId || p.id === postId));
+    const isPublished = post && (post.status === "Published" || post.status === "Partial");
+
+    let deleteFromChannels = false;
+    if (isPublished) {
+      deleteFromChannels = confirm("This post was published to social media channels.\n\nClick OK to DELETE from social channels (Facebook, YouTube, X, etc.) AND PostFly.\n\nClick CANCEL to only remove from PostFly (keeping it live on social channels).");
+    } else {
+      if (!confirm("Are you sure you want to delete this post/draft?")) return;
+    }
+
     try {
       const activeUserId = user?.userId || getStoredUser()?.userId;
-      const res = await fetch(`/api/post?id=${postId}`, {
+      const res = await fetch(`/api/post?id=${postId}&deleteFromChannels=${deleteFromChannels ? "true" : "false"}`, {
         method: "DELETE",
         headers: { "x-user-id": activeUserId }
       });
       const data = await res.json();
       if (data.success) {
-        toast.success("Draft deleted successfully!");
+        toast.success(deleteFromChannels ? "Post deleted from social channels and PostFly!" : "Post/draft deleted successfully!");
         if (editingPost && (editingPost._id === postId || editingPost.id === postId)) {
           setEditingPost(null);
           setTitle("");
@@ -315,10 +339,10 @@ export default function PublisherPage() {
         }
         await fetchRecentPosts(activeUserId);
       } else {
-        toast.error("Failed to delete draft");
+        toast.error("Failed to delete post");
       }
     } catch (e) {
-      toast.error("Error deleting draft");
+      toast.error("Error deleting post");
     }
   }
 
@@ -431,11 +455,6 @@ export default function PublisherPage() {
       toast.error("Upload error: " + (err.message || "Failed to upload media"));
     } finally {
       setUploadingMedia(false);
-      if (f) {
-        setTimeout(() => {
-          handleStartScan(true);
-        }, 300);
-      }
     }
   }
 
@@ -1106,6 +1125,21 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
   }
 
   async function handleStartScan(forceDeep = true) {
+    // Log AI Scan button click for admin daily usage analytics
+    fetch("/api/admin/scan-clicks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: user?._id || user?.id || user?.userId || "creator_user",
+        userName: user?.name || "Creator",
+        userEmail: user?.email || "creator@platform.local",
+        mediaType: isVideo ? "video" : (filePreview ? "image" : "text"),
+        isVideo: Boolean(isVideo),
+        fileName: file?.name || "",
+        hasCaption: Boolean(description?.trim())
+      })
+    }).catch(err => console.warn("Scan click log ping failed:", err));
+
     setScanStatus("scanning");
     setScanProgress(0);
     setActiveScanStage(1);
@@ -1354,6 +1388,7 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
   }
 
   async function handlePost(overrideMode) {
+    if (posting) return;
     const allowed = checkPlanAccess({ action: "publish_post", router, toast });
     if (!allowed) return;
     const effectiveMode = overrideMode || publishMode;
@@ -1378,7 +1413,7 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
       let finalMediaType = isVideo ? "video" : (filePreview ? "image" : (editingPost?.mediaType || null));
 
       // UPDATE EXISTING DRAFT / POST
-      if (editingPost) {
+      if (editingPost && effectiveMode !== "now") {
         const res = await fetch("/api/post", {
           method: "PUT",
           headers: {
@@ -1415,17 +1450,36 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
       }
 
       // CREATE NEW POST / DRAFT
+      if (effectiveMode === "now") {
+        publishAbortControllerRef.current = new AbortController();
+        setIsPublishCancelled(false);
+        setPublishProgress({
+          total: selectedIds.length,
+          completed: 0,
+          failed: 0,
+          remaining: selectedIds.length,
+          currentAccountId: selectedIds[0] || null,
+          statusByAccount: selectedIds.reduce((acc, id) => ({ ...acc, [id]: "pending" }), {}),
+          isFinished: false
+        });
+      }
+
       let res;
       const isHostedMedia = finalMediaUrl && (finalMediaUrl.startsWith("http://") || finalMediaUrl.startsWith("https://"));
 
       // If saving a draft, scheduling, or if media is already hosted on ImageKit, send fast lightweight JSON
       if (effectiveMode === "draft" || effectiveMode === "schedule" || isHostedMedia || !file) {
+        const reqHeaders = {
+          "Content-Type": "application/json",
+          "x-user-id": activeUserId || ""
+        };
+        if (effectiveMode === "now") {
+          reqHeaders["x-stream-progress"] = "true";
+        }
         res = await fetch("/api/post", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-user-id": activeUserId || ""
-          },
+          headers: reqHeaders,
+          signal: effectiveMode === "now" ? publishAbortControllerRef.current?.signal : undefined,
           body: JSON.stringify({
             title: title || (effectiveMode === "draft" ? "Draft Post" : "Social Post"),
             description: description || "",
@@ -1447,6 +1501,7 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
         });
       } else {
         const form = new FormData();
+        if (editingPost) form.append("postId", editingPost._id || editingPost.id);
         if (file) form.append("file", file);
         if (finalMediaUrl) form.append("mediaUrl", finalMediaUrl);
         if (finalMediaType) form.append("mediaType", finalMediaType);
@@ -1465,11 +1520,109 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
         form.append("instagramShareToFeed", String(instagramShareToFeed));
         form.append("facebookPlacement", facebookPlacement);
 
+        const formHeaders = { "x-user-id": activeUserId || "" };
+        if (effectiveMode === "now") {
+          formHeaders["x-stream-progress"] = "true";
+        }
+
         res = await fetch("/api/post", {
           method: "POST",
           body: form,
-          headers: { "x-user-id": activeUserId || "" }
+          headers: formHeaders,
+          signal: effectiveMode === "now" ? publishAbortControllerRef.current?.signal : undefined
         });
+      }
+
+      // Check for streaming progress response
+      const contentType = res.headers.get("content-type") || "";
+      if (effectiveMode === "now" && contentType.includes("application/x-ndjson") && res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let finalResults = {};
+        let isAbortedByUser = false;
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop();
+
+            for (const line of lines) {
+              if (!line.trim()) continue;
+              try {
+                const evt = JSON.parse(line);
+                if (evt.type === "channel_start") {
+                  setPublishProgress(prev => ({
+                    ...prev,
+                    currentAccountId: evt.accountId,
+                    statusByAccount: {
+                      ...prev.statusByAccount,
+                      [evt.accountId]: "publishing"
+                    }
+                  }));
+                } else if (evt.type === "channel_progress") {
+                  setPublishProgress(prev => ({
+                    ...prev,
+                    completed: evt.completedCount || 0,
+                    failed: evt.failedCount || 0,
+                    remaining: evt.remainingCount !== undefined ? evt.remainingCount : Math.max(0, (prev.total || 0) - (evt.completedCount + evt.failedCount)),
+                    statusByAccount: {
+                      ...prev.statusByAccount,
+                      [evt.accountId]: evt.status === "success" ? "success" : "failed"
+                    }
+                  }));
+                  if (evt.result) {
+                    finalResults[evt.accountId] = evt.result;
+                  }
+                } else if (evt.type === "aborted") {
+                  isAbortedByUser = true;
+                  setIsPublishCancelled(true);
+                  setPublishProgress(prev => ({
+                    ...prev,
+                    isFinished: true,
+                    remaining: 0
+                  }));
+                } else if (evt.type === "complete") {
+                  if (evt.results) finalResults = { ...finalResults, ...evt.results };
+                  setPublishProgress(prev => ({
+                    ...prev,
+                    isFinished: true,
+                    remaining: 0
+                  }));
+                }
+              } catch (pErr) {
+                console.warn("Stream line parse error:", pErr);
+              }
+            }
+          }
+        } catch (streamErr) {
+          if (streamErr.name === "AbortError") {
+            isAbortedByUser = true;
+            setIsPublishCancelled(true);
+          } else {
+            console.error("Stream reading error:", streamErr);
+          }
+        }
+
+        setResults(finalResults);
+        setPublishProgress(prev => ({ ...prev, isFinished: true, remaining: 0 }));
+
+        if (isAbortedByUser || isPublishCancelled) {
+          toast.info("🛑 Publishing was canceled. Completed channels saved.");
+        } else {
+          const hasFailures = Object.values(finalResults).some(r => !r.success);
+          if (hasFailures) {
+            toast.error("⚠️ Some channels failed to publish. Check details in Content Library.");
+          } else {
+            toast.success("🚀 Post published successfully to all channels!");
+          }
+        }
+
+        await fetchRecentPosts(activeUserId);
+        return;
       }
 
       let data = {};
@@ -1510,11 +1663,37 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
       // Instant update bottom list
       await fetchRecentPosts(activeUserId);
     } catch (err) {
-      toast.error(err?.message || "Failed to publish or save post.");
+      if (err?.name === "AbortError") {
+        toast.info("🛑 Publishing aborted by user.");
+      } else {
+        toast.error(err?.message || "Failed to publish or save post.");
+      }
     } finally {
       setPosting(false);
     }
   }
+
+  const handleCancelPublish = () => {
+    if (publishAbortControllerRef.current) {
+      publishAbortControllerRef.current.abort();
+      setIsPublishCancelled(true);
+      setPublishProgress(prev => {
+        const updated = { ...prev.statusByAccount };
+        selectedIds.forEach(id => {
+          if (!updated[id] || updated[id] === "pending" || updated[id] === "publishing") {
+            updated[id] = "cancelled";
+          }
+        });
+        return {
+          ...prev,
+          remaining: 0,
+          isFinished: true,
+          statusByAccount: updated
+        };
+      });
+      toast.info("🛑 Publishing canceled. Remaining channels skipped.");
+    }
+  };
 
   // Live Count Calculations
   const titleCharCount = title.length;
@@ -1849,714 +2028,6 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
             />
           </div>
 
-          {/* UNIVERSAL CONTENT ANALYZER & RISK ENGINE (POWERED BY GEMINI AI) */}
-          {(() => {
-            const hasFairUse = Boolean(
-              description.toLowerCase().includes("section 107") ||
-              description.toLowerCase().includes("section 52") ||
-              description.toLowerCase().includes("fair use") ||
-              description.toLowerCase().includes("content declaration") ||
-              description.toLowerCase().includes("safe harbor")
-            );
-
-            const commercialMusicLabels = ["t-series", "tseries", "sony music", "zee music", "yrf", "universal music", "warnermusic", "speed records", "tips official"];
-            const hasCommercialMusicFlag = commercialMusicLabels.some(lbl => 
-              `${title} ${description} ${tags}`.toLowerCase().includes(lbl)
-            );
-
-            const hasMetaAudio = Boolean(
-              description.toLowerCase().includes("meta rights & audio") ||
-              description.toLowerCase().includes("audio declaration") ||
-              description.toLowerCase().includes("original sound") ||
-              description.toLowerCase().includes("original commentary") ||
-              description.toLowerCase().includes("original voice") ||
-              description.toLowerCase().includes("royalty-free") ||
-              description.toLowerCase().includes("creator voice") ||
-              hasFairUse
-            );
-
-            const isOriginalVoice = Boolean(
-              scanResultData?.audioAnalysis?.isOriginalVoice ||
-              description.toLowerCase().includes("original voice") ||
-              description.toLowerCase().includes("original audio") ||
-              description.toLowerCase().includes("original sound") ||
-              description.toLowerCase().includes("creator voice") ||
-              description.toLowerCase().includes("spoken commentary") ||
-              (!hasCommercialMusicFlag && isVideo)
-            );
-
-            const isYTProtected = !selectedIds.includes("youtube") || youtubePrivacy === "unlisted";
-
-            // Effective media origin & confidence from API result
-            const currentOrigin = scanResultData?.detectedMediaOrigin || detectedMediaOrigin || "real";
-            const currentConfidence = scanResultData?.mediaOriginConfidence || mediaOriginConfidence || 95;
-            const isAIMedia = currentOrigin === "ai";
-            const hasAIDisclosed = Boolean(
-              description.toLowerCase().includes("ai & synthetic media disclosure") ||
-              description.toLowerCase().includes("aigenerated") ||
-              description.toLowerCase().includes("syntheticmedia")
-            );
-
-            // Resolve active issues dynamically based on current post state
-            let activeIssues = [];
-            if (scanResultData?.issues && scanResultData.issues.length > 0) {
-              activeIssues = scanResultData.issues.filter(iss => {
-                if (iss.fixType === "safe_harbor" && hasFairUse) return false;
-                if (iss.fixType === "meta_audio" && (hasMetaAudio || !hasCommercialMusicFlag)) return false;
-                if (iss.fixType === "youtube_unlisted" && isYTProtected) return false;
-                if (iss.fixType === "ai_disclosure" && hasAIDisclosed) return false;
-                return true;
-              });
-            }
-
-            // If AI media is detected and disclosure label is missing, ensure active issue is present
-            if (isAIMedia && !hasAIDisclosed) {
-              const alreadyInIssues = activeIssues.some(i => i.id === "ai_disclosure_missing");
-              if (!alreadyInIssues) {
-                activeIssues.push({
-                  id: "ai_disclosure_missing",
-                  severity: "medium",
-                  title: "Missing Platform AI Transparency Label",
-                  desc: "AI-generated / 3D avatar media detected. Meta AI Info & YouTube Altered Content policies require transparent disclosure.",
-                  fixType: "ai_disclosure"
-                });
-              }
-            }
-
-            // Risk Engine: Use exact Content Risk Score returned by API
-            let currentRiskScore = scanResultData?.contentRiskScore !== undefined
-              ? scanResultData.contentRiskScore
-              : (activeIssues.length === 0 ? 12 : Math.min(85, 20 + activeIssues.length * 20));
-
-            if (isAIMedia && !hasAIDisclosed) {
-              currentRiskScore = Math.max(currentRiskScore, 42); // Review Recommended until disclosure tag is added!
-            }
-
-            const isLowRisk = currentRiskScore <= 29;
-            const currentTier = currentRiskScore <= 29 ? "low" : (currentRiskScore <= 59 ? "review" : (currentRiskScore <= 79 ? "high" : "critical"));
-
-            // Dynamic Component Safety Status
-            const repText = scanResultData?.safetyReport?.text || (hasFairUse 
-              ? { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" } 
-              : { status: "MEDIUM", badge: "⚠️ MEDIUM", color: "amber", icon: "⚠️" });
-
-            const repImage = (isAIMedia && !isVideo)
-              ? (hasAIDisclosed ? { status: "LOW", badge: "✓ AI DISCLOSED", color: "emerald", icon: "✓" } : { status: "MEDIUM", badge: "⚠️ AI LABEL NEEDED", color: "amber", icon: "⚠️" })
-              : (scanResultData?.safetyReport?.image || { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" });
-
-            const repVideo = (isAIMedia && isVideo)
-              ? (hasAIDisclosed ? { status: "LOW", badge: "✓ AI DISCLOSED", color: "emerald", icon: "✓" } : { status: "MEDIUM", badge: "⚠️ AI LABEL NEEDED", color: "amber", icon: "⚠️" })
-              : (scanResultData?.safetyReport?.video || { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" });
-
-            const repAudio = scanResultData?.safetyReport?.audio || (isVideo 
-              ? (hasCommercialMusicFlag ? { status: "HIGH", badge: "🔴 HIGH", color: "rose", icon: "🔴" } : { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" }) 
-              : { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" });
-
-            const repPolicy = (hasFairUse || activeIssues.length === 0 || scanResultData?.safetyReport?.platformPolicy?.status === "PASS")
-              ? { status: "PASS", badge: "✓ PASS", color: "emerald", icon: "✓" } 
-              : { status: "ACTION NEEDED", badge: "⚠️ ACTION NEEDED", color: "amber", icon: "⚠️" };
-
-            const hasContentToScan = Boolean(file || filePreview || description?.trim() || title?.trim());
-
-            // 0. IDLE / AWAITING CONTENT STATE: Show standby banner if no content or scan not started
-            if (!hasContentToScan || scanStatus === "idle") {
-              return (
-                <div className="rounded-2xl border-2 border-dashed border-teal-300/80 bg-gradient-to-r from-emerald-50/40 via-teal-50/30 to-slate-50 p-4 sm:p-5 shadow-2xs flex flex-wrap items-center justify-between gap-4 transition-all">
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white flex items-center justify-center shadow-md shadow-teal-600/25 shrink-0">
-                      <ShieldCheck className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h3 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-2 flex-wrap">
-                        <span>Multi-Engine AI Content Safety Scanner</span>
-                        <span className="text-[10px] bg-teal-100 text-teal-800 px-2.5 py-0.5 rounded-full font-bold border border-teal-200">
-                          Gemini 2.5 Vision & Spectrum
-                        </span>
-                      </h3>
-                      <p className="text-[11.5px] text-slate-500 font-semibold mt-0.5">
-                        {hasContentToScan 
-                          ? "Content detected! Click below to run a deep Gemini AI audit on your media & caption." 
-                          : "Standby Mode — Upload a photo/video or enter caption text above to perform real-time Gemini AI safety audit."}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleStartScan(true)}
-                      disabled={!hasContentToScan}
-                      className={`px-5 py-2.5 rounded-xl font-black text-xs flex items-center gap-2 transition-all ${
-                        hasContentToScan
-                          ? "bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:via-teal-500 hover:to-cyan-500 text-white shadow-lg shadow-teal-600/30 cursor-pointer active:scale-95"
-                          : "bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed opacity-75 shadow-none"
-                      }`}
-                      title={hasContentToScan ? "Run Deep AI Scan" : "Upload media or add caption text first"}
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      <span>{hasContentToScan ? "Run Deep AI Content Safety Scan" : "Upload Content to Scan"}</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            }
-
-            // 1. SCANNING STATE (5-STAGE COMPREHENSIVE LIVE AUDIT)
-            if (scanStatus === "scanning") {
-              const stages = [
-                {
-                  id: 1,
-                  name: "Digital Fingerprint & Safe Harbor",
-                  icon: <Fingerprint className="w-4 h-4 text-emerald-600" />,
-                  detail: "Validating SHA-256 metadata hash & statutory safe harbor (Sec 107/52)"
-                },
-                {
-                  id: 2,
-                  name: "AI & Synthetic Media Deep Vision Scan",
-                  icon: <Sparkles className="w-4 h-4 text-purple-600" />,
-                  detail: "Examining facial geometry, 3D character render & AI texture artifacts"
-                },
-                {
-                  id: 3,
-                  name: "Deepfake & Avatar Coherence Audit",
-                  icon: <Eye className="w-4 h-4 text-teal-600" />,
-                  detail: "Temporal boundary continuity, lip-sync & facial edge inspection"
-                },
-                {
-                  id: 4,
-                  name: "Audio Rights & Spectrum Risk",
-                  icon: <Volume2 className="w-4 h-4 text-blue-600" />,
-                  detail: "Commercial music labels, Content ID match & voice synthesis (TTS)"
-                },
-                {
-                  id: 5,
-                  name: "Multi-Platform Policy Verification",
-                  icon: <ShieldCheck className="w-4 h-4 text-indigo-600" />,
-                  detail: "YouTube Altered Content, Meta AI Info & regional muting checks"
-                }
-              ];
-
-              return (
-                <div className="rounded-2xl border-2 border-teal-300 bg-gradient-to-br from-white via-teal-50/20 to-slate-50 p-4 sm:p-5 shadow-lg space-y-4 animate-in fade-in duration-200">
-                  {/* Header */}
-                  <div className="flex items-center justify-between gap-3 border-b border-teal-100 pb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white flex items-center justify-center animate-spin shadow-md shadow-teal-500/25 shrink-0">
-                        <RefreshCw className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h4 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-2">
-                          <span>Multi-Engine Content Risk & AI Scanner</span>
-                          <span className="text-[10px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full font-bold">
-                            Live Audit
-                          </span>
-                        </h4>
-                        <p className="text-[11px] text-teal-700 font-semibold mt-0.5">{scanStepText}</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <span className="text-sm font-black text-teal-800 bg-teal-100/80 px-3 py-1 rounded-full border border-teal-200">
-                        {scanProgress}%
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="w-full h-2.5 rounded-full bg-slate-200/80 overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 transition-all duration-500 rounded-full"
-                      style={{ width: `${scanProgress}%` }}
-                    />
-                  </div>
-
-                  {/* 5-Stage Step-by-Step Audit Checklist */}
-                  <div className="space-y-2 pt-1">
-                    {stages.map((st) => {
-                      const stStatus = stageStatuses[st.id] || (st.id < activeScanStage ? "passed" : (st.id === activeScanStage ? "running" : "pending"));
-                      const isRunning = stStatus === "running";
-                      const isPassed = stStatus === "passed";
-                      const isFlagged = stStatus === "flagged";
-                      const isPending = stStatus === "pending";
-
-                      return (
-                        <div 
-                          key={st.id}
-                          className={`rounded-xl border p-2.5 sm:p-3 flex items-center justify-between gap-3 transition-all ${
-                            isRunning 
-                              ? "bg-teal-50/90 border-teal-300 ring-2 ring-teal-400/30 shadow-xs" 
-                              : isPassed
-                              ? "bg-emerald-50/50 border-emerald-200"
-                              : isFlagged
-                              ? "bg-purple-50/70 border-purple-200"
-                              : "bg-white/60 border-slate-200 opacity-60"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-7 h-7 rounded-lg bg-white border border-slate-200/80 flex items-center justify-center shrink-0 shadow-2xs">
-                              {st.icon}
-                            </div>
-                            <div className="min-w-0">
-                              <p className={`text-xs font-bold truncate ${
-                                isRunning ? "text-teal-950 font-black" : isPassed ? "text-slate-800" : isFlagged ? "text-purple-950" : "text-slate-500"
-                              }`}>
-                                {st.name}
-                              </p>
-                              <p className="text-[10.5px] text-slate-500 truncate hidden sm:block">
-                                {st.detail}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="shrink-0">
-                            {isRunning && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-black text-teal-700 bg-white px-2.5 py-1 rounded-full border border-teal-300 shadow-2xs animate-pulse">
-                                <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-ping" />
-                                <span>Scanning...</span>
-                              </span>
-                            )}
-                            {isPassed && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-full border border-emerald-300">
-                                <span>✓ Passed</span>
-                              </span>
-                            )}
-                            {isFlagged && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-black text-purple-700 bg-purple-100 px-2.5 py-1 rounded-full border border-purple-300">
-                                <Sparkles className="w-3 h-3 text-purple-600" />
-                                <span>AI Signal</span>
-                              </span>
-                            )}
-                            {isPending && (
-                              <span className="text-[10px] font-bold text-slate-400 px-2 py-0.5">
-                                Queued
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            }
-
-            // 2. COMPLETED STATE (SHOW SCAN RESULTS IN THE SAME BOX)
-            if (scanStatus === "completed") {
-              const tierBadgeColor = currentTier === "low" 
-                ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                : currentTier === "review"
-                ? "bg-amber-100 text-amber-800 border-amber-300"
-                : currentTier === "high"
-                ? "bg-orange-100 text-orange-800 border-orange-300"
-                : "bg-rose-100 text-rose-800 border-rose-300";
-
-              const tierTitle = currentTier === "low"
-                ? "✅ Low Risk — Cleared to Publish"
-                : currentTier === "review"
-                ? "⚠️ Review Recommended — Adjustments Advised"
-                : currentTier === "high"
-                ? "🟠 High Risk — Revisions Advised"
-                : "🔴 Critical Risk — Strike Likely";
-
-              return (
-                <div className={`rounded-2xl border-2 ${
-                  isLowRisk 
-                    ? "border-emerald-400 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/60" 
-                    : currentTier === "review"
-                    ? "border-amber-300 bg-gradient-to-br from-amber-50/80 via-white to-orange-50/40"
-                    : "border-rose-400 bg-gradient-to-br from-rose-50/80 via-white to-amber-50/40"
-                } p-4.5 shadow-md space-y-3.5 animate-in fade-in duration-200`}>
-
-                  {/* ─── AI / REAL CONTENT DETECTION BANNER — ALWAYS AT TOP ─── */}
-                  {currentOrigin === "ai" || currentOrigin === "ai_assisted" ? (
-                    <div className="rounded-xl bg-purple-600 text-white px-4 py-3 flex items-center justify-between gap-3 shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-white/20 text-white flex items-center justify-center shrink-0 shadow-xs">
-                          <Sparkles className="w-5 h-5 text-purple-100" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-black">AI-Generated Content Detected</p>
-                            <span className="text-[10px] font-black bg-white/20 px-2 py-0.5 rounded-full border border-white/30">
-                              {currentConfidence}% Confidence
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-purple-200 mt-0.5">
-                            This video/image contains AI-generated or synthetic media (3D avatar / stylized character). Platform disclosure is <span className="font-black text-white">mandatory</span> — Meta & YouTube require this label.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {!description.includes("AI & SYNTHETIC MEDIA DISCLOSURE") && (
-                          <button
-                            type="button"
-                            onClick={handleApplyAIDisclosure}
-                            className="text-[10.5px] font-black bg-white text-purple-700 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-purple-50 transition-all shadow-xs flex items-center gap-1.5 active:scale-95"
-                          >
-                            <Sparkles className="w-3.5 h-3.5 text-purple-700" />
-                            <span>Add AI Label to Caption</span>
-                          </button>
-                        )}
-                        {description.includes("AI & SYNTHETIC MEDIA DISCLOSURE") && (
-                          <span className="text-[10.5px] font-black bg-green-400/30 text-white px-3 py-1 rounded-full border border-green-400/40">✓ Label Added</span>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="rounded-xl bg-emerald-600 text-white px-4 py-3 flex items-center justify-between gap-3 shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-white/20 text-white flex items-center justify-center shrink-0 shadow-xs">
-                          <Camera className="w-5 h-5 text-emerald-100" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-black">100% Real Content Verified</p>
-                          <p className="text-[11px] text-emerald-200 mt-0.5">
-                            Natural camera recording detected — no synthetic or deepfake signatures found.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-[10px] font-black bg-white/20 px-2.5 py-1 rounded-full border border-white/30">
-                          {currentConfidence}% Confidence
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ─── RISK SCORE HEADER (LARGE HIGHLIGHTED DISPLAY) ─── */}
-                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200/80 pb-4 pt-1">
-                    <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
-                      {/* LARGE PROMINENT RISK SCORE BADGE */}
-                      <div className={`px-4 py-2.5 rounded-2xl border-2 shadow-md flex items-center gap-3 shrink-0 ${
-                        isLowRisk 
-                          ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-400" 
-                          : currentTier === "review"
-                          ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-amber-300"
-                          : "bg-gradient-to-r from-rose-600 to-red-600 text-white border-rose-400"
-                      }`}>
-                        <div className="flex flex-col items-center">
-                          <span className="text-[9px] uppercase tracking-widest font-black opacity-90">Risk Score</span>
-                          <span className="text-2xl sm:text-3xl font-black leading-none">{currentRiskScore}<span className="text-xs font-bold opacity-80">/100</span></span>
-                        </div>
-                        <div className="h-8 w-px bg-white/30" />
-                        <div className="flex flex-col">
-                          <span className="text-xs font-black uppercase tracking-wider">{currentTier === "low" ? "LOW RISK" : currentTier.toUpperCase()}</span>
-                          <span className="text-[10px] font-bold opacity-90 whitespace-nowrap">{isLowRisk ? "✓ Cleared to Publish" : "⚠️ Action Needed"}</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
-                          <span>{tierTitle}</span>
-                        </h4>
-                        <p className="text-[11.5px] font-semibold text-slate-600 mt-0.5 max-w-xl">
-                          {isLowRisk
-                            ? "Content passed Text, Visual, and Audio analysis. Safe for multi-channel publishing."
-                            : "Risk factors detected. See issues & solutions below — fix them before publishing."}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleStartScan(true)}
-                        className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-95"
-                        title="Run a new full deep scan"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5 text-slate-600" />
-                        <span>Re-Scan</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* DEDICATED CONTENT SAFETY REPORT TABLE */}
-
-                  <div className="rounded-xl border border-slate-200/90 bg-white p-3 sm:p-3.5 space-y-2 shadow-2xs">
-                    <div className="flex items-center justify-between border-b border-slate-200/70 pb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center text-[10px] font-black">
-                          🛡️
-                        </div>
-                        <span className="text-[11px] font-black tracking-wider uppercase text-slate-900">
-                          CONTENT SAFETY REPORT
-                        </span>
-                      </div>
-                      <span className="text-[10px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
-                        Weighted Risk Engine
-                      </span>
-                    </div>
-
-                    <div className="divide-y divide-slate-100 text-xs">
-                      {/* Text Row */}
-                      <div className="flex items-center justify-between py-2 px-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-slate-900 w-28">Text</span>
-                          <span className="text-[10px] text-slate-400 font-bold bg-slate-50 px-1.5 py-0.5 rounded">20% Weight</span>
-                        </div>
-                        <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
-                          repText.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
-                          repText.color === "amber" ? "bg-amber-50 text-amber-800 border-amber-300" :
-                          repText.color === "orange" ? "bg-orange-50 text-orange-800 border-orange-300" :
-                          "bg-rose-50 text-rose-700 border-rose-300"
-                        }`}>
-                          {repText.badge}
-                        </span>
-                      </div>
-
-                      {/* Image Row */}
-                      <div className="flex items-center justify-between py-2 px-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-slate-900 w-28">Image</span>
-                          <span className="text-[10px] text-slate-400 font-bold bg-slate-50 px-1.5 py-0.5 rounded">25% Weight</span>
-                        </div>
-                        <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
-                          repImage.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
-                          repImage.color === "amber" ? "bg-amber-50 text-amber-800 border-amber-300" :
-                          repImage.color === "orange" ? "bg-orange-50 text-orange-800 border-orange-300" :
-                          "bg-rose-50 text-rose-700 border-rose-300"
-                        }`}>
-                          {repImage.badge}
-                        </span>
-                      </div>
-
-                      {/* Video Row */}
-                      <div className="flex items-center justify-between py-2 px-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-slate-900 w-28">Video</span>
-                          <span className="text-[10px] text-slate-400 font-bold bg-slate-50 px-1.5 py-0.5 rounded">30% Weight</span>
-                        </div>
-                        <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
-                          repVideo.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
-                          repVideo.color === "amber" ? "bg-amber-50 text-amber-800 border-amber-300" :
-                          repVideo.color === "orange" ? "bg-orange-50 text-orange-800 border-orange-300" :
-                          "bg-rose-50 text-rose-700 border-rose-300"
-                        }`}>
-                          {repVideo.badge}
-                        </span>
-                      </div>
-
-                      {/* Audio Row */}
-                      <div className="flex items-center justify-between py-2.5 px-1 border-b border-slate-100">
-                        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                          <span className="font-extrabold text-slate-900 w-16 shrink-0 text-xs">Audio</span>
-                          <span className="text-[10px] text-slate-400 font-bold bg-slate-100/80 px-1.5 py-0.5 rounded">25% Weight</span>
-                          {isOriginalVoice && isVideo && (
-                            <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold inline-flex items-center gap-1 shrink-0 whitespace-nowrap">
-                              <span>🎙️ Real Voice</span>
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
-                            repAudio.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
-                            repAudio.color === "amber" ? "bg-amber-50 text-amber-800 border-amber-300" :
-                            repAudio.color === "orange" ? "bg-orange-50 text-orange-800 border-orange-300" :
-                            "bg-rose-50 text-rose-700 border-rose-300"
-                          }`}>
-                            {repAudio.badge}
-                          </span>
-                          {(!isOriginalVoice || hasCommercialMusicFlag || repAudio.color !== "emerald") && (
-                            <button
-                              type="button"
-                              onClick={() => setShowAudioGuideModal(true)}
-                              className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-[11px] font-bold cursor-pointer shadow-2xs flex items-center gap-1 transition-all active:scale-95"
-                              title="Open Audio & Music Rights Guide"
-                            >
-                              <Music className="w-3.5 h-3.5 text-slate-500" />
-                              <span>Audio Rights</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Platform Policy Row */}
-                      <div className="flex items-center justify-between py-2 px-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-slate-900 w-28">Platform Policy</span>
-                          <span className="text-[10px] text-slate-400 font-semibold">(Compliance & Safe Harbor)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
-                            repPolicy.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
-                            "bg-amber-50 text-amber-800 border-amber-300"
-                          }`}>
-                            {repPolicy.badge}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setShowCopyrightModal(true)}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10.5px] font-black cursor-pointer shadow-xs flex items-center gap-1 transition-all active:scale-95"
-                            title="Open Copyright & Fair Use Notice Modal"
-                          >
-                            <ShieldCheck className="w-3.5 h-3.5" />
-                            <span>Add Policy</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-
-                  {/* Detected Issues + Solutions (When Not Low Risk) */}
-                  {!isLowRisk && (
-                    <div className="space-y-3 pt-1 border-t-2 border-slate-100">
-
-                      {activeIssues.length > 0 && (
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-5 h-5 rounded-md bg-rose-600 text-white flex items-center justify-center text-[10px] font-black">!</div>
-                            <p className="text-[11px] font-black text-slate-900 uppercase tracking-wider">
-                              Detected Issues ({activeIssues.length})
-                            </p>
-                          </div>
-
-                          {activeIssues.map((issue, idx) => {
-                            // Expanded solution lookup — covers all known issue types
-                            const solutionMap = {
-                              "Missing Statutory Fair Use Notice": {
-                                fix: "Add this to your caption:\n'This content is shared for educational/commentary purpose under Fair Use (§107 US / §52 India).'",
-                                canAutoFix: true,
-                              },
-                              "Audio Muting Risk (Instagram Reels / FB)": {
-                                fix: "Audio Process & Fixes:\n1. If this is your original verbal voice/speech: Click 'Audio Process' button above -> 'Declare Original Voice' (1-click set to LOW risk).\n2. If using commercial music: Add trending song in-app via Instagram/FB Audio Sticker to avoid muting.\n3. Or declare Royalty-Free audio clearance below.",
-                                canAutoFix: true,
-                              },
-                              "Commercial Record Label Match Detected": {
-                                fix: "Music Usage Process & Solutions:\n1. Instagram / FB Reels: Upload video with your original voice, then choose the song inside Instagram/FB app via 'Audio Sticker' (Meta handles all licensing & royalties — zero muting risk!).\n2. YouTube: Use YouTube Studio Audio Library or add via Shorts 'Add Sound'.\n3. Click 'Audio Process' above to declare Meta Sound clearance or add Fair Use transformative commentary.",
-                                canAutoFix: true,
-                              },
-                              "Third-Party Copyright Music Detected": {
-                                fix: "Music Usage Process & Solutions:\n1. Instagram / FB Reels: Select the track in-app via the Music sticker (Official Meta Licensing — zero copyright strike).\n2. YouTube / Long Form: Use royalty-free music from Meta Sound Collection or YouTube Audio Library.\n3. Transformative Audio: If reviewing or commenting, apply Section 107 Fair Use notice via 'Audio Process' button above.",
-                                canAutoFix: true,
-                              },
-                              "Missing Platform AI Transparency Label": {
-                                fix: "Add AI disclosure to caption: '🤖 AI-assisted content. Disclosed per Meta AI Info & YouTube Altered Content policies.'",
-                                canAutoFix: true,
-                              },
-                              "Broadcast Watermark Detected": {
-                                fix: "Manual Action Required:\n1. Remove the TV channel logo/watermark from your video using a video editor.\n2. Make sure you own original recording rights.\n3. Re-upload the cleaned video.",
-                                canAutoFix: false,
-                              },
-                              "Stock Image License Violation": {
-                                fix: "Manual Action Required:\n1. Remove the unlicensed stock image.\n2. Replace with your own photo OR download from free sources (Unsplash, Pexels).\n3. If you purchased a license, add: 'Image: Licensed via [source]' in caption.",
-                                canAutoFix: false,
-                              },
-                            };
-
-                            const matched = solutionMap[issue.title];
-                            const solution = issue.solution
-                              || matched?.fix
-                              || "Manual Action Required:\n1. Review the issue carefully.\n2. Edit your content to remove the flagged element.\n3. Re-upload and run scan again.\n\nIf unsure, contact support or use the Dispute Letter option above.";
-                            const canAutoFix = matched?.canAutoFix ?? (issue.solution ? true : false);
-
-                            return (
-                              <div key={issue.id || idx} className="space-y-1.5">
-                                {/* Issue Card */}
-                                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3 shadow-2xs">
-                                  <div className="w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">
-                                    {idx + 1}
-                                  </div>
-                                  <div className="space-y-0.5 min-w-0">
-                                    <p className="text-xs font-black text-rose-900">{issue.title}</p>
-                                    <p className="text-[11px] text-rose-700 leading-snug">{issue.desc}</p>
-                                  </div>
-                                </div>
-
-                                {/* Solution Card — green if auto-fixable, amber if manual action needed */}
-                                <div className={`p-3 rounded-xl flex items-start gap-3 shadow-2xs ml-2 ${
-                                  canAutoFix
-                                    ? "bg-emerald-50 border border-emerald-200"
-                                    : "bg-amber-50 border border-amber-300"
-                                }`}>
-                                  <div className={`w-5 h-5 rounded-full text-white flex items-center justify-center shrink-0 mt-0.5 text-[11px] ${
-                                    canAutoFix ? "bg-emerald-600" : "bg-amber-500"
-                                  }`}>
-                                    {canAutoFix
-                                      ? <svg viewBox="0 0 12 12" fill="none" className="w-3 h-3"><path d="M2 6l2.5 2.5L10 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                                      : "!"}
-                                  </div>
-                                  <div className="space-y-1 min-w-0">
-                                    <p className={`text-[10px] font-black uppercase tracking-wide ${
-                                      canAutoFix ? "text-emerald-800" : "text-amber-800"
-                                    }`}>
-                                      {canAutoFix ? "✅ Solution (Auto-Fixable)" : "⚠️ Manual Action Required"}
-                                    </p>
-                                    <p className={`text-[11px] leading-relaxed whitespace-pre-line ${
-                                      canAutoFix ? "text-emerald-800" : "text-amber-900"
-                                    }`}>{solution}</p>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {/* 1-Click Universal Fix Button */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/5 border border-emerald-300">
-                        <div className="text-xs space-y-0.5">
-                          <p className="font-black text-slate-900 flex items-center gap-1.5">
-                            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                            <span>1-Click Auto-Fix — Apply All Solutions Instantly</span>
-                          </p>
-                          <p className="text-[11px] text-slate-600 ml-5.5">
-                            Injects Fair Use notice, audio declaration, and AI transparency label into your caption automatically.
-                          </p>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={handleFixAllAndProtect}
-                          className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-black shadow-lg shadow-teal-600/40 ring-2 ring-teal-400/50 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
-                        >
-                          <ShieldCheck className="w-4 h-4" />
-                          <span>🛡️ Fix All & Reduce Risk to Low</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-
-                </div>
-              );
-            }
-
-            // 3. IDLE STATE: 3-LAYER ARCHITECTURE & WEIGHTED RISK ENGINE CARD
-            return (
-              <div className="rounded-2xl border-2 border-teal-200/80 bg-gradient-to-r from-emerald-50/60 via-teal-50/40 to-slate-50 p-3.5 sm:p-4 shadow-2xs flex flex-wrap items-center justify-between gap-3 transition-all">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-md shadow-teal-600/30 shrink-0">
-                    <ShieldCheck className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 flex items-center gap-1.5 flex-wrap">
-                      <span>Deep AI Content Safety Scanner</span>
-                      <span className="text-[9.5px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full font-bold border border-teal-200">
-                        Gemini Powered
-                      </span>
-                      <span className="text-[9.5px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-bold border border-indigo-200">
-                        Text 20% • Image 25% • Video 30% • Audio 25%
-                      </span>
-                    </h3>
-                    <p className="text-[11px] text-slate-500 font-medium">
-                      Scans your text, visuals, and audio for copyright, brand safety, and platform policy risks. Issues + solutions shown below.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleStartScan(true)}
-                    className="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-black shadow-lg shadow-teal-600/40 ring-2 ring-teal-400/50 flex items-center gap-2 cursor-pointer transition-all active:scale-95"
-                  >
-                    <ShieldCheck className="w-4 h-4" />
-                    <span>Run Deep AI Content Safety Scan</span>
-                  </button>
-                </div>
-              </div>
-            );
-          })()}
 
           {/* Post Title with Character & Word Count Badge & AI Enhancement Buttons */}
           <div className="space-y-1.5">
@@ -3693,6 +3164,715 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
             </div>
           )}
 
+          {/* UNIVERSAL CONTENT ANALYZER & RISK ENGINE (POWERED BY GEMINI AI) */}
+          {(() => {
+            const hasFairUse = Boolean(
+              description.toLowerCase().includes("section 107") ||
+              description.toLowerCase().includes("section 52") ||
+              description.toLowerCase().includes("fair use") ||
+              description.toLowerCase().includes("content declaration") ||
+              description.toLowerCase().includes("safe harbor")
+            );
+
+            const commercialMusicLabels = ["t-series", "tseries", "sony music", "zee music", "yrf", "universal music", "warnermusic", "speed records", "tips official"];
+            const hasCommercialMusicFlag = commercialMusicLabels.some(lbl => 
+              `${title} ${description} ${tags}`.toLowerCase().includes(lbl)
+            );
+
+            const hasMetaAudio = Boolean(
+              description.toLowerCase().includes("meta rights & audio") ||
+              description.toLowerCase().includes("audio declaration") ||
+              description.toLowerCase().includes("original sound") ||
+              description.toLowerCase().includes("original commentary") ||
+              description.toLowerCase().includes("original voice") ||
+              description.toLowerCase().includes("royalty-free") ||
+              description.toLowerCase().includes("creator voice") ||
+              hasFairUse
+            );
+
+            const isOriginalVoice = Boolean(
+              scanResultData?.audioAnalysis?.isOriginalVoice ||
+              description.toLowerCase().includes("original voice") ||
+              description.toLowerCase().includes("original audio") ||
+              description.toLowerCase().includes("original sound") ||
+              description.toLowerCase().includes("creator voice") ||
+              description.toLowerCase().includes("spoken commentary") ||
+              (!hasCommercialMusicFlag && isVideo)
+            );
+
+            const isYTProtected = !selectedIds.includes("youtube") || youtubePrivacy === "unlisted";
+
+            // Effective media origin & confidence from API result
+            const currentOrigin = scanResultData?.detectedMediaOrigin || detectedMediaOrigin || "real";
+            const currentConfidence = scanResultData?.mediaOriginConfidence || mediaOriginConfidence || 95;
+            const isAIMedia = currentOrigin === "ai";
+            const hasAIDisclosed = Boolean(
+              description.toLowerCase().includes("ai & synthetic media disclosure") ||
+              description.toLowerCase().includes("aigenerated") ||
+              description.toLowerCase().includes("syntheticmedia")
+            );
+
+            // Resolve active issues dynamically based on current post state
+            let activeIssues = [];
+            if (scanResultData?.issues && scanResultData.issues.length > 0) {
+              activeIssues = scanResultData.issues.filter(iss => {
+                if (iss.fixType === "safe_harbor" && hasFairUse) return false;
+                if (iss.fixType === "meta_audio" && (hasMetaAudio || !hasCommercialMusicFlag)) return false;
+                if (iss.fixType === "youtube_unlisted" && isYTProtected) return false;
+                if (iss.fixType === "ai_disclosure" && hasAIDisclosed) return false;
+                return true;
+              });
+            }
+
+            // If AI media is detected and disclosure label is missing, ensure active issue is present
+            if (isAIMedia && !hasAIDisclosed) {
+              const alreadyInIssues = activeIssues.some(i => i.id === "ai_disclosure_missing");
+              if (!alreadyInIssues) {
+                activeIssues.push({
+                  id: "ai_disclosure_missing",
+                  severity: "medium",
+                  title: "Missing Platform AI Transparency Label",
+                  desc: "AI-generated / 3D avatar media detected. Meta AI Info & YouTube Altered Content policies require transparent disclosure.",
+                  fixType: "ai_disclosure"
+                });
+              }
+            }
+
+            // Risk Engine: Use exact Content Risk Score returned by API
+            let currentRiskScore = scanResultData?.contentRiskScore !== undefined
+              ? scanResultData.contentRiskScore
+              : (activeIssues.length === 0 ? 12 : Math.min(85, 20 + activeIssues.length * 20));
+
+            if (isAIMedia && !hasAIDisclosed) {
+              currentRiskScore = Math.max(currentRiskScore, 42); // Review Recommended until disclosure tag is added!
+            }
+
+            const isLowRisk = currentRiskScore <= 29;
+            const currentTier = currentRiskScore <= 29 ? "low" : (currentRiskScore <= 59 ? "review" : (currentRiskScore <= 79 ? "high" : "critical"));
+
+            // Dynamic Component Safety Status
+            const repText = scanResultData?.safetyReport?.text || (hasFairUse 
+              ? { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" } 
+              : { status: "MEDIUM", badge: "⚠️ MEDIUM", color: "amber", icon: "⚠️" });
+
+            const repImage = (isAIMedia && !isVideo)
+              ? (hasAIDisclosed ? { status: "LOW", badge: "✓ AI DISCLOSED", color: "emerald", icon: "✓" } : { status: "MEDIUM", badge: "⚠️ AI LABEL NEEDED", color: "amber", icon: "⚠️" })
+              : (scanResultData?.safetyReport?.image || { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" });
+
+            const repVideo = (isAIMedia && isVideo)
+              ? (hasAIDisclosed ? { status: "LOW", badge: "✓ AI DISCLOSED", color: "emerald", icon: "✓" } : { status: "MEDIUM", badge: "⚠️ AI LABEL NEEDED", color: "amber", icon: "⚠️" })
+              : (scanResultData?.safetyReport?.video || { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" });
+
+            const repAudio = scanResultData?.safetyReport?.audio || (isVideo 
+              ? (hasCommercialMusicFlag ? { status: "HIGH", badge: "🔴 HIGH", color: "rose", icon: "🔴" } : { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" }) 
+              : { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" });
+
+            const repPolicy = (hasFairUse || activeIssues.length === 0 || scanResultData?.safetyReport?.platformPolicy?.status === "PASS")
+              ? { status: "PASS", badge: "✓ PASS", color: "emerald", icon: "✓" } 
+              : { status: "ACTION NEEDED", badge: "⚠️ ACTION NEEDED", color: "amber", icon: "⚠️" };
+
+            const hasContentToScan = Boolean(file || filePreview || description?.trim() || title?.trim());
+
+            // 0. IDLE / AWAITING CONTENT STATE: Show standby banner if no content or scan not started
+            if (!hasContentToScan || scanStatus === "idle") {
+              return (
+                <div className="rounded-2xl border-2 border-dashed border-teal-300/80 bg-gradient-to-r from-emerald-50/40 via-teal-50/30 to-slate-50 p-4 sm:p-5 shadow-2xs flex flex-wrap items-center justify-between gap-4 transition-all">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white flex items-center justify-center shadow-md shadow-teal-600/25 shrink-0">
+                      <ShieldCheck className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-2 flex-wrap">
+                        <span>Multi-Engine AI Content Safety Scanner</span>
+                        <span className="text-[10px] bg-teal-100 text-teal-800 px-2.5 py-0.5 rounded-full font-bold border border-teal-200">
+                          Gemini 2.5 Vision & Spectrum
+                        </span>
+                      </h3>
+                      <p className="text-[11.5px] text-slate-500 font-semibold mt-0.5">
+                        {hasContentToScan 
+                          ? "Content detected! Click below to run a deep Gemini AI audit on your media & caption." 
+                          : "Standby Mode — Upload a photo/video or enter caption text above to perform real-time Gemini AI safety audit."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleStartScan(true)}
+                      disabled={!hasContentToScan}
+                      className={`px-5 py-2.5 rounded-xl font-black text-xs flex items-center gap-2 transition-all ${
+                        hasContentToScan
+                          ? "bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:via-teal-500 hover:to-cyan-500 text-white shadow-lg shadow-teal-600/30 cursor-pointer active:scale-95"
+                          : "bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed opacity-75 shadow-none"
+                      }`}
+                      title={hasContentToScan ? "Run Deep AI Scan" : "Upload media or add caption text first"}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>{hasContentToScan ? "Run Deep AI Content Safety Scan" : "Upload Content to Scan"}</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
+            // 1. SCANNING STATE (5-STAGE COMPREHENSIVE LIVE AUDIT)
+            if (scanStatus === "scanning") {
+              const stages = [
+                {
+                  id: 1,
+                  name: "Digital Fingerprint & Safe Harbor",
+                  icon: <Fingerprint className="w-4 h-4 text-emerald-600" />,
+                  detail: "Validating SHA-256 metadata hash & statutory safe harbor (Sec 107/52)"
+                },
+                {
+                  id: 2,
+                  name: "AI & Synthetic Media Deep Vision Scan",
+                  icon: <Sparkles className="w-4 h-4 text-purple-600" />,
+                  detail: "Examining facial geometry, 3D character render & AI texture artifacts"
+                },
+                {
+                  id: 3,
+                  name: "Deepfake & Avatar Coherence Audit",
+                  icon: <Eye className="w-4 h-4 text-teal-600" />,
+                  detail: "Temporal boundary continuity, lip-sync & facial edge inspection"
+                },
+                {
+                  id: 4,
+                  name: "Audio Rights & Spectrum Risk",
+                  icon: <Volume2 className="w-4 h-4 text-blue-600" />,
+                  detail: "Commercial music labels, Content ID match & voice synthesis (TTS)"
+                },
+                {
+                  id: 5,
+                  name: "Multi-Platform Policy Verification",
+                  icon: <ShieldCheck className="w-4 h-4 text-indigo-600" />,
+                  detail: "YouTube Altered Content, Meta AI Info & regional muting checks"
+                }
+              ];
+
+              return (
+                <div className="rounded-2xl border-2 border-teal-300 bg-gradient-to-br from-white via-teal-50/20 to-slate-50 p-4 sm:p-5 shadow-lg space-y-4 animate-in fade-in duration-200">
+                  {/* Header */}
+                  <div className="flex items-center justify-between gap-3 border-b border-teal-100 pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white flex items-center justify-center animate-spin shadow-md shadow-teal-500/25 shrink-0">
+                        <RefreshCw className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-2">
+                          <span>Multi-Engine Content Risk & AI Scanner</span>
+                          <span className="text-[10px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full font-bold">
+                            Live Audit
+                          </span>
+                        </h4>
+                        <p className="text-[11px] text-teal-700 font-semibold mt-0.5">{scanStepText}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="text-sm font-black text-teal-800 bg-teal-100/80 px-3 py-1 rounded-full border border-teal-200">
+                        {scanProgress}%
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="w-full h-2.5 rounded-full bg-slate-200/80 overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 transition-all duration-500 rounded-full"
+                      style={{ width: `${scanProgress}%` }}
+                    />
+                  </div>
+
+                  {/* 5-Stage Step-by-Step Audit Checklist */}
+                  <div className="space-y-2 pt-1">
+                    {stages.map((st) => {
+                      const stStatus = stageStatuses[st.id] || (st.id < activeScanStage ? "passed" : (st.id === activeScanStage ? "running" : "pending"));
+                      const isRunning = stStatus === "running";
+                      const isPassed = stStatus === "passed";
+                      const isFlagged = stStatus === "flagged";
+                      const isPending = stStatus === "pending";
+
+                      return (
+                        <div 
+                          key={st.id}
+                          className={`rounded-xl border p-2.5 sm:p-3 flex items-center justify-between gap-3 transition-all ${
+                            isRunning 
+                              ? "bg-teal-50/90 border-teal-300 ring-2 ring-teal-400/30 shadow-xs" 
+                              : isPassed
+                              ? "bg-emerald-50/50 border-emerald-200"
+                              : isFlagged
+                              ? "bg-purple-50/70 border-purple-200"
+                              : "bg-white/60 border-slate-200 opacity-60"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-7 h-7 rounded-lg bg-white border border-slate-200/80 flex items-center justify-center shrink-0 shadow-2xs">
+                              {st.icon}
+                            </div>
+                            <div className="min-w-0">
+                              <p className={`text-xs font-bold truncate ${
+                                isRunning ? "text-teal-950 font-black" : isPassed ? "text-slate-800" : isFlagged ? "text-purple-950" : "text-slate-500"
+                              }`}>
+                                {st.name}
+                              </p>
+                              <p className="text-[10.5px] text-slate-500 truncate hidden sm:block">
+                                {st.detail}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="shrink-0">
+                            {isRunning && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-black text-teal-700 bg-white px-2.5 py-1 rounded-full border border-teal-300 shadow-2xs animate-pulse">
+                                <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-ping" />
+                                <span>Scanning...</span>
+                              </span>
+                            )}
+                            {isPassed && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-full border border-emerald-300">
+                                <span>✓ Passed</span>
+                              </span>
+                            )}
+                            {isFlagged && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-black text-purple-700 bg-purple-100 px-2.5 py-1 rounded-full border border-purple-300">
+                                <Sparkles className="w-3 h-3 text-purple-600" />
+                                <span>AI Signal</span>
+                              </span>
+                            )}
+                            {isPending && (
+                              <span className="text-[10px] font-bold text-slate-400 px-2 py-0.5">
+                                Queued
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            }
+
+            // 2. COMPLETED STATE (SHOW SCAN RESULTS IN THE SAME BOX)
+            if (scanStatus === "completed") {
+              const tierBadgeColor = currentTier === "low" 
+                ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                : currentTier === "review"
+                ? "bg-amber-100 text-amber-800 border-amber-300"
+                : currentTier === "high"
+                ? "bg-orange-100 text-orange-800 border-orange-300"
+                : "bg-rose-100 text-rose-800 border-rose-300";
+
+              const tierTitle = currentTier === "low"
+                ? "✅ Low Risk — Cleared to Publish"
+                : currentTier === "review"
+                ? "⚠️ Review Recommended — Adjustments Advised"
+                : currentTier === "high"
+                ? "🟠 High Risk — Revisions Advised"
+                : "🔴 Critical Risk — Strike Likely";
+
+              return (
+                <div className={`rounded-2xl border-2 ${
+                  isLowRisk 
+                    ? "border-emerald-400 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/60" 
+                    : currentTier === "review"
+                    ? "border-amber-300 bg-gradient-to-br from-amber-50/80 via-white to-orange-50/40"
+                    : "border-rose-400 bg-gradient-to-br from-rose-50/80 via-white to-amber-50/40"
+                } p-4.5 shadow-md space-y-3.5 animate-in fade-in duration-200`}>
+
+                  {/* ─── AI / REAL CONTENT DETECTION BANNER — ALWAYS AT TOP ─── */}
+                  {currentOrigin === "ai" || currentOrigin === "ai_assisted" ? (
+                    <div className="rounded-xl bg-purple-600 text-white px-4 py-3 flex items-center justify-between gap-3 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-white/20 text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <Sparkles className="w-5 h-5 text-purple-100" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-black">AI-Generated Content Detected</p>
+                            <span className="text-[10px] font-black bg-white/20 px-2 py-0.5 rounded-full border border-white/30">
+                              {currentConfidence}% Confidence
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-purple-200 mt-0.5">
+                            This video/image contains AI-generated or synthetic media (3D avatar / stylized character). Platform disclosure is <span className="font-black text-white">mandatory</span> — Meta & YouTube require this label.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {!description.includes("AI & SYNTHETIC MEDIA DISCLOSURE") && (
+                          <button
+                            type="button"
+                            onClick={handleApplyAIDisclosure}
+                            className="text-[10.5px] font-black bg-white text-purple-700 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-purple-50 transition-all shadow-xs flex items-center gap-1.5 active:scale-95"
+                          >
+                            <Sparkles className="w-3.5 h-3.5 text-purple-700" />
+                            <span>Add AI Label to Caption</span>
+                          </button>
+                        )}
+                        {description.includes("AI & SYNTHETIC MEDIA DISCLOSURE") && (
+                          <span className="text-[10.5px] font-black bg-green-400/30 text-white px-3 py-1 rounded-full border border-green-400/40">✓ Label Added</span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl bg-emerald-600 text-white px-4 py-3 flex items-center justify-between gap-3 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-white/20 text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <Camera className="w-5 h-5 text-emerald-100" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-black">100% Real Content Verified</p>
+                          <p className="text-[11px] text-emerald-200 mt-0.5">
+                            Natural camera recording detected — no synthetic or deepfake signatures found.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[10px] font-black bg-white/20 px-2.5 py-1 rounded-full border border-white/30">
+                          {currentConfidence}% Confidence
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ─── RISK SCORE HEADER (LARGE HIGHLIGHTED DISPLAY) ─── */}
+                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200/80 pb-4 pt-1">
+                    <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
+                      {/* LARGE PROMINENT RISK SCORE BADGE */}
+                      <div className={`px-4 py-2.5 rounded-2xl border-2 shadow-md flex items-center gap-3 shrink-0 ${
+                        isLowRisk 
+                          ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-400" 
+                          : currentTier === "review"
+                          ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-amber-300"
+                          : "bg-gradient-to-r from-rose-600 to-red-600 text-white border-rose-400"
+                      }`}>
+                        <div className="flex flex-col items-center">
+                          <span className="text-[9px] uppercase tracking-widest font-black opacity-90">Risk Score</span>
+                          <span className="text-2xl sm:text-3xl font-black leading-none">{currentRiskScore}<span className="text-xs font-bold opacity-80">/100</span></span>
+                        </div>
+                        <div className="h-8 w-px bg-white/30" />
+                        <div className="flex flex-col">
+                          <span className="text-xs font-black uppercase tracking-wider">{currentTier === "low" ? "LOW RISK" : currentTier.toUpperCase()}</span>
+                          <span className="text-[10px] font-bold opacity-90 whitespace-nowrap">{isLowRisk ? "✓ Cleared to Publish" : "⚠️ Action Needed"}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
+                          <span>{tierTitle}</span>
+                        </h4>
+                        <p className="text-[11.5px] font-semibold text-slate-600 mt-0.5 max-w-xl">
+                          {isLowRisk
+                            ? "Content passed Text, Visual, and Audio analysis. Safe for multi-channel publishing."
+                            : "Risk factors detected. See issues & solutions below — fix them before publishing."}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleStartScan(true)}
+                        className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-95"
+                        title="Run a new full deep scan"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5 text-slate-600" />
+                        <span>Re-Scan</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* DEDICATED CONTENT SAFETY REPORT TABLE */}
+
+                  <div className="rounded-xl border border-slate-200/90 bg-white p-3 sm:p-3.5 space-y-2 shadow-2xs">
+                    <div className="flex items-center justify-between border-b border-slate-200/70 pb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center text-[10px] font-black">
+                          🛡️
+                        </div>
+                        <span className="text-[11px] font-black tracking-wider uppercase text-slate-900">
+                          CONTENT SAFETY REPORT
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                        Weighted Risk Engine
+                      </span>
+                    </div>
+
+                    <div className="divide-y divide-slate-100 text-xs">
+                      {/* Text Row */}
+                      <div className="flex items-center justify-between py-2 px-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-slate-900 w-28">Text</span>
+                          <span className="text-[10px] text-slate-400 font-bold bg-slate-50 px-1.5 py-0.5 rounded">20% Weight</span>
+                        </div>
+                        <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
+                          repText.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
+                          repText.color === "amber" ? "bg-amber-50 text-amber-800 border-amber-300" :
+                          repText.color === "orange" ? "bg-orange-50 text-orange-800 border-orange-300" :
+                          "bg-rose-50 text-rose-700 border-rose-300"
+                        }`}>
+                          {repText.badge}
+                        </span>
+                      </div>
+
+                      {/* Image Row */}
+                      <div className="flex items-center justify-between py-2 px-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-slate-900 w-28">Image</span>
+                          <span className="text-[10px] text-slate-400 font-bold bg-slate-50 px-1.5 py-0.5 rounded">25% Weight</span>
+                        </div>
+                        <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
+                          repImage.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
+                          repImage.color === "amber" ? "bg-amber-50 text-amber-800 border-amber-300" :
+                          repImage.color === "orange" ? "bg-orange-50 text-orange-800 border-orange-300" :
+                          "bg-rose-50 text-rose-700 border-rose-300"
+                        }`}>
+                          {repImage.badge}
+                        </span>
+                      </div>
+
+                      {/* Video Row */}
+                      <div className="flex items-center justify-between py-2 px-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-slate-900 w-28">Video</span>
+                          <span className="text-[10px] text-slate-400 font-bold bg-slate-50 px-1.5 py-0.5 rounded">30% Weight</span>
+                        </div>
+                        <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
+                          repVideo.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
+                          repVideo.color === "amber" ? "bg-amber-50 text-amber-800 border-amber-300" :
+                          repVideo.color === "orange" ? "bg-orange-50 text-orange-800 border-orange-300" :
+                          "bg-rose-50 text-rose-700 border-rose-300"
+                        }`}>
+                          {repVideo.badge}
+                        </span>
+                      </div>
+
+                      {/* Audio Row */}
+                      <div className="flex items-center justify-between py-2.5 px-1 border-b border-slate-100">
+                        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                          <span className="font-extrabold text-slate-900 w-16 shrink-0 text-xs">Audio</span>
+                          <span className="text-[10px] text-slate-400 font-bold bg-slate-100/80 px-1.5 py-0.5 rounded">25% Weight</span>
+                          {isOriginalVoice && isVideo && (
+                            <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold inline-flex items-center gap-1 shrink-0 whitespace-nowrap">
+                              <span>🎙️ Real Voice</span>
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
+                            repAudio.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
+                            repAudio.color === "amber" ? "bg-amber-50 text-amber-800 border-amber-300" :
+                            repAudio.color === "orange" ? "bg-orange-50 text-orange-800 border-orange-300" :
+                            "bg-rose-50 text-rose-700 border-rose-300"
+                          }`}>
+                            {repAudio.badge}
+                          </span>
+                          {(!isOriginalVoice || hasCommercialMusicFlag || repAudio.color !== "emerald") && (
+                            <button
+                              type="button"
+                              onClick={() => setShowAudioGuideModal(true)}
+                              className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-[11px] font-bold cursor-pointer shadow-2xs flex items-center gap-1 transition-all active:scale-95"
+                              title="Open Audio & Music Rights Guide"
+                            >
+                              <Music className="w-3.5 h-3.5 text-slate-500" />
+                              <span>Audio Rights</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Platform Policy Row */}
+                      <div className="flex items-center justify-between py-2 px-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-slate-900 w-28">Platform Policy</span>
+                          <span className="text-[10px] text-slate-400 font-semibold">(Compliance & Safe Harbor)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
+                            repPolicy.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
+                            "bg-amber-50 text-amber-800 border-amber-300"
+                          }`}>
+                            {repPolicy.badge}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowCopyrightModal(true)}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10.5px] font-black cursor-pointer shadow-xs flex items-center gap-1 transition-all active:scale-95"
+                            title="Open Copyright & Fair Use Notice Modal"
+                          >
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            <span>Add Policy</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+
+                  {/* Detected Issues + Solutions (When Not Low Risk) */}
+                  {!isLowRisk && (
+                    <div className="space-y-3 pt-1 border-t-2 border-slate-100">
+
+                      {activeIssues.length > 0 && (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-md bg-rose-600 text-white flex items-center justify-center text-[10px] font-black">!</div>
+                            <p className="text-[11px] font-black text-slate-900 uppercase tracking-wider">
+                              Detected Issues ({activeIssues.length})
+                            </p>
+                          </div>
+
+                          {activeIssues.map((issue, idx) => {
+                            // Expanded solution lookup — covers all known issue types
+                            const solutionMap = {
+                              "Missing Statutory Fair Use Notice": {
+                                fix: "Add this to your caption:\n'This content is shared for educational/commentary purpose under Fair Use (§107 US / §52 India).'",
+                                canAutoFix: true,
+                              },
+                              "Audio Muting Risk (Instagram Reels / FB)": {
+                                fix: "Audio Process & Fixes:\n1. If this is your original verbal voice/speech: Click 'Audio Process' button above -> 'Declare Original Voice' (1-click set to LOW risk).\n2. If using commercial music: Add trending song in-app via Instagram/FB Audio Sticker to avoid muting.\n3. Or declare Royalty-Free audio clearance below.",
+                                canAutoFix: true,
+                              },
+                              "Commercial Record Label Match Detected": {
+                                fix: "Music Usage Process & Solutions:\n1. Instagram / FB Reels: Upload video with your original voice, then choose the song inside Instagram/FB app via 'Audio Sticker' (Meta handles all licensing & royalties — zero muting risk!).\n2. YouTube: Use YouTube Studio Audio Library or add via Shorts 'Add Sound'.\n3. Click 'Audio Process' above to declare Meta Sound clearance or add Fair Use transformative commentary.",
+                                canAutoFix: true,
+                              },
+                              "Third-Party Copyright Music Detected": {
+                                fix: "Music Usage Process & Solutions:\n1. Instagram / FB Reels: Select the track in-app via the Music sticker (Official Meta Licensing — zero copyright strike).\n2. YouTube / Long Form: Use royalty-free music from Meta Sound Collection or YouTube Audio Library.\n3. Transformative Audio: If reviewing or commenting, apply Section 107 Fair Use notice via 'Audio Process' button above.",
+                                canAutoFix: true,
+                              },
+                              "Missing Platform AI Transparency Label": {
+                                fix: "Add AI disclosure to caption: '🤖 AI-assisted content. Disclosed per Meta AI Info & YouTube Altered Content policies.'",
+                                canAutoFix: true,
+                              },
+                              "Broadcast Watermark Detected": {
+                                fix: "Manual Action Required:\n1. Remove the TV channel logo/watermark from your video using a video editor.\n2. Make sure you own original recording rights.\n3. Re-upload the cleaned video.",
+                                canAutoFix: false,
+                              },
+                              "Stock Image License Violation": {
+                                fix: "Manual Action Required:\n1. Remove the unlicensed stock image.\n2. Replace with your own photo OR download from free sources (Unsplash, Pexels).\n3. If you purchased a license, add: 'Image: Licensed via [source]' in caption.",
+                                canAutoFix: false,
+                              },
+                            };
+
+                            const matched = solutionMap[issue.title];
+                            const solution = issue.solution
+                              || matched?.fix
+                              || "Manual Action Required:\n1. Review the issue carefully.\n2. Edit your content to remove the flagged element.\n3. Re-upload and run scan again.\n\nIf unsure, contact support or use the Dispute Letter option above.";
+                            const canAutoFix = matched?.canAutoFix ?? (issue.solution ? true : false);
+
+                            return (
+                              <div key={issue.id || idx} className="space-y-1.5">
+                                {/* Issue Card */}
+                                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3 shadow-2xs">
+                                  <div className="w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">
+                                    {idx + 1}
+                                  </div>
+                                  <div className="space-y-0.5 min-w-0">
+                                    <p className="text-xs font-black text-rose-900">{issue.title}</p>
+                                    <p className="text-[11px] text-rose-700 leading-snug">{issue.desc}</p>
+                                  </div>
+                                </div>
+
+                                {/* Solution Card — green if auto-fixable, amber if manual action needed */}
+                                <div className={`p-3 rounded-xl flex items-start gap-3 shadow-2xs ml-2 ${
+                                  canAutoFix
+                                    ? "bg-emerald-50 border border-emerald-200"
+                                    : "bg-amber-50 border border-amber-300"
+                                }`}>
+                                  <div className={`w-5 h-5 rounded-full text-white flex items-center justify-center shrink-0 mt-0.5 text-[11px] ${
+                                    canAutoFix ? "bg-emerald-600" : "bg-amber-500"
+                                  }`}>
+                                    {canAutoFix
+                                      ? <svg viewBox="0 0 12 12" fill="none" className="w-3 h-3"><path d="M2 6l2.5 2.5L10 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                      : "!"}
+                                  </div>
+                                  <div className="space-y-1 min-w-0">
+                                    <p className={`text-[10px] font-black uppercase tracking-wide ${
+                                      canAutoFix ? "text-emerald-800" : "text-amber-800"
+                                    }`}>
+                                      {canAutoFix ? "✅ Solution (Auto-Fixable)" : "⚠️ Manual Action Required"}
+                                    </p>
+                                    <p className={`text-[11px] leading-relaxed whitespace-pre-line ${
+                                      canAutoFix ? "text-emerald-800" : "text-amber-900"
+                                    }`}>{solution}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* 1-Click Universal Fix Banner & High-Visibility Button */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-rose-50 via-rose-100/70 to-pink-50 border-2 border-rose-300 shadow-xs">
+                        <div className="space-y-1 min-w-0">
+                          <p className="font-black text-rose-950 text-xs sm:text-sm flex items-center gap-2">
+                            <ShieldCheck className="w-5 h-5 text-rose-600 shrink-0" />
+                            <span>1-Click Auto-Fix — Resolve All Issues Instantly</span>
+                          </p>
+                          <p className="text-[11.5px] font-semibold text-rose-800/90 ml-7">
+                            Automatically injects Fair Use legal notice, audio declaration, and AI transparency disclosure into your caption.
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleFixAllAndProtect}
+                          className="w-full sm:w-auto px-6 py-4 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-900 text-sm sm:text-base font-black shadow-md border border-rose-300 flex items-center justify-center gap-2.5 cursor-pointer transition-all active:scale-95 shrink-0"
+                        >
+                          <ShieldCheck className="w-6 h-6 text-rose-600" />
+                          <span>🛡️ Fix All & Reduce Risk to Low</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+
+                </div>
+              );
+            }
+
+            // 3. IDLE STATE: 3-LAYER ARCHITECTURE & WEIGHTED RISK ENGINE CARD
+            return (
+              <div className="rounded-2xl border-2 border-teal-200/80 bg-gradient-to-r from-emerald-50/60 via-teal-50/40 to-slate-50 p-3.5 sm:p-4 shadow-2xs flex flex-wrap items-center justify-between gap-3 transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-md shadow-teal-600/30 shrink-0">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 flex items-center gap-1.5 flex-wrap">
+                      <span>Deep AI Content Safety Scanner</span>
+                      <span className="text-[9.5px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full font-bold border border-teal-200">
+                        Gemini Powered
+                      </span>
+                      <span className="text-[9.5px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-bold border border-indigo-200">
+                        Text 20% • Image 25% • Video 30% • Audio 25%
+                      </span>
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      Scans your text, visuals, and audio for copyright, brand safety, and platform policy risks. Issues + solutions shown below.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleStartScan(true)}
+                    className="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-black shadow-lg shadow-teal-600/40 ring-2 ring-teal-400/50 flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Run Deep AI Content Safety Scan</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Comment Moderation Control */}
           <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 space-y-1.5 transition-all">
             <div className="flex items-center justify-between">
@@ -3732,6 +3912,7 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
           {/* Primary Action Button */}
           <div className="pt-1 space-y-2.5">
             <button
+              type="button"
               onClick={() => handlePost()}
               disabled={posting || uploadingMedia || (publishMode !== "draft" && selectedIds.length === 0)}
               className={`w-full py-3.5 px-4 rounded-xl text-white font-black text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50 ${
@@ -4027,10 +4208,14 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
       {/* PROCESSING POPUP MODAL (PUBLISHING / DRAFTING / SCHEDULING ONLY) */}
       {posting && (
         <div className="fixed inset-0 z-[99999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 text-center space-y-5 shadow-2xl border border-slate-100 relative overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 text-center space-y-5 shadow-2xl border border-slate-100 relative overflow-hidden animate-in zoom-in-95 duration-200">
             {/* Top ambient glow light */}
             <div className={`absolute -top-12 left-1/2 -translate-x-1/2 w-48 h-20 blur-2xl rounded-full pointer-events-none ${
-              processingAction === "draft"
+              isPublishCancelled
+                ? "bg-rose-500/25"
+                : publishProgress.isFinished
+                ? "bg-emerald-500/25"
+                : processingAction === "draft"
                 ? "bg-amber-500/25"
                 : processingAction === "schedule"
                 ? "bg-blue-500/25"
@@ -4040,27 +4225,45 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
             {/* Dynamic Animated Ring Icon */}
             <div className="relative mx-auto w-20 h-20 flex items-center justify-center">
               <div className={`absolute inset-0 rounded-full border-4 ${
-                processingAction === "draft"
+                isPublishCancelled
+                  ? "border-rose-100"
+                  : publishProgress.isFinished
+                  ? "border-emerald-100"
+                  : processingAction === "draft"
                   ? "border-amber-100"
                   : processingAction === "schedule"
                   ? "border-blue-100"
                   : "border-indigo-100"
               }`} />
-              <div className={`absolute inset-0 rounded-full border-4 border-t-transparent animate-spin ${
-                processingAction === "draft"
+              <div className={`absolute inset-0 rounded-full border-4 border-t-transparent ${
+                isPublishCancelled || publishProgress.isFinished ? "" : "animate-spin"
+              } ${
+                isPublishCancelled
+                  ? "border-rose-500"
+                  : publishProgress.isFinished
+                  ? "border-emerald-500"
+                  : processingAction === "draft"
                   ? "border-amber-500"
                   : processingAction === "schedule"
                   ? "border-blue-500"
                   : "border-indigo-600"
               }`} />
               <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center shadow-inner ${
-                processingAction === "draft"
+                isPublishCancelled
+                  ? "bg-rose-50 border-rose-100 text-rose-600"
+                  : publishProgress.isFinished
+                  ? "bg-emerald-50 border-emerald-100 text-emerald-600"
+                  : processingAction === "draft"
                   ? "bg-amber-50 border-amber-100 text-amber-600"
                   : processingAction === "schedule"
                   ? "bg-blue-50 border-blue-100 text-blue-600"
                   : "bg-indigo-50 border-indigo-100 text-indigo-600"
               }`}>
-                {processingAction === "draft" ? (
+                {isPublishCancelled ? (
+                  <StopCircle className="w-6 h-6 text-rose-600" />
+                ) : publishProgress.isFinished ? (
+                  <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                ) : processingAction === "draft" ? (
                   <Bookmark className="w-6 h-6 fill-amber-500 text-amber-500 animate-pulse" />
                 ) : processingAction === "schedule" ? (
                   <Calendar className="w-6 h-6 text-blue-600 animate-pulse" />
@@ -4075,64 +4278,152 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
             {/* Status Titles */}
             <div className="space-y-1.5">
               <h3 className="text-base font-black text-slate-900 tracking-tight">
-                {processingAction === "draft"
+                {isPublishCancelled
+                  ? "🛑 Publishing Canceled by User"
+                  : publishProgress.isFinished
+                  ? "🎉 Multi-Channel Publishing Complete!"
+                  : processingAction === "draft"
                   ? "📌 Saving Post as Draft..."
                   : processingAction === "schedule"
                   ? "📅 Scheduling Channels..."
                   : `🚀 Publishing to ${selectedIds.length} Channel(s)...`}
               </h3>
+              
+              {/* Step Counter: X of Y completed • Z remaining */}
+              {processingAction === "publish" && publishProgress.total > 0 && (
+                <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-50 py-1 px-3 rounded-lg border border-slate-200 w-fit mx-auto">
+                  <span>Publishing:</span>
+                  <span className="text-indigo-600">{publishProgress.completed} of {publishProgress.total} completed</span>
+                  <span className="text-slate-400">•</span>
+                  <span className={publishProgress.remaining > 0 ? "text-amber-600" : "text-slate-500"}>
+                    {publishProgress.remaining} remaining
+                  </span>
+                  {publishProgress.failed > 0 && (
+                    <>
+                      <span className="text-slate-400">•</span>
+                      <span className="text-rose-600 font-bold">{publishProgress.failed} failed</span>
+                    </>
+                  )}
+                </div>
+              )}
+
               <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                {processingAction === "draft"
+                {isPublishCancelled
+                  ? "Process stopped. Channels published before cancellation remain active on social media."
+                  : publishProgress.isFinished
+                  ? "Social broadcast execution finished. You can review delivery status below."
+                  : processingAction === "draft"
                   ? "Safely saving your creative content, caption, hashtags, and media into MongoDB draft storage."
                   : processingAction === "schedule"
                   ? `Queuing your post for automated multi-channel delivery on ${scheduleDate || "selected date"}.`
-                  : "Broadcasting your media and payload across connected social networks. Please keep this window open."}
+                  : "Broadcasting media payload sequentially across connected channels. You can cancel at any time."}
               </p>
             </div>
 
-            {/* Target Channels Live Badge List (if publishing or scheduling) */}
-            {!uploadingMedia && processingAction !== "draft" && selectedIds.length > 0 && (
-              <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
-                {selectedIds.map(id => {
-                  const acc = accounts.find(a => a._id === id);
-                  if (!acc) return null;
-                  return (
-                    <span
-                      key={id}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-[11px] font-bold text-slate-800 shadow-2xs"
-                    >
-                      <PlatformIcon platform={acc.platform} className="w-3.5 h-3.5" />
-                      <span className="max-w-[100px] truncate">{acc.name || acc.platform}</span>
-                    </span>
-                  );
-                })}
+            {/* High-tech pulsing progress bar */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 px-1">
+                <span>Overall Progress</span>
+                <span className="text-indigo-600 font-black">
+                  {publishProgress.total > 0
+                    ? `${Math.round(((publishProgress.completed + publishProgress.failed) / publishProgress.total) * 100)}%`
+                    : processingAction === "draft" || processingAction === "schedule"
+                    ? "In Progress"
+                    : "0%"}
+                </span>
+              </div>
+              <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden relative shadow-inner">
+                <div 
+                  className={`h-full rounded-full transition-all duration-300 ${
+                    isPublishCancelled
+                      ? "bg-rose-500"
+                      : publishProgress.isFinished
+                      ? "bg-emerald-500"
+                      : processingAction === "draft"
+                      ? "bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600"
+                      : processingAction === "schedule"
+                      ? "bg-gradient-to-r from-blue-400 via-indigo-500 to-blue-600"
+                      : "bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600"
+                  }`} 
+                  style={{
+                    width: publishProgress.total > 0
+                      ? `${Math.max(6, Math.min(100, Math.round(((publishProgress.completed + publishProgress.failed) / publishProgress.total) * 100)))}%`
+                      : "100%"
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Target Channels Live Status Badges */}
+            {!uploadingMedia && processingAction === "publish" && selectedIds.length > 0 && (
+              <div className="space-y-2 pt-1">
+                <div className="text-[11px] font-bold text-slate-500 text-left px-1">
+                  Channel Status:
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-1.5 max-h-36 overflow-y-auto p-1 bg-slate-50/50 rounded-xl border border-slate-100">
+                  {selectedIds.map(id => {
+                    const acc = accounts.find(a => a._id === id);
+                    if (!acc) return null;
+                    const channelStatus = publishProgress.statusByAccount?.[id] || "pending";
+                    return (
+                      <span
+                        key={id}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold shadow-2xs transition-all ${
+                          channelStatus === "success"
+                            ? "bg-emerald-50 border-emerald-300 text-emerald-800"
+                            : channelStatus === "failed"
+                            ? "bg-rose-50 border-rose-300 text-rose-800"
+                            : channelStatus === "publishing"
+                            ? "bg-indigo-50 border-indigo-400 text-indigo-800 animate-pulse ring-2 ring-indigo-200"
+                            : channelStatus === "cancelled"
+                            ? "bg-amber-50 border-amber-300 text-amber-800"
+                            : "bg-white border-slate-200 text-slate-600"
+                        }`}
+                      >
+                        <PlatformIcon platform={acc.platform} className="w-3.5 h-3.5 shrink-0" />
+                        <span className="max-w-[100px] truncate">{acc.name || acc.platform}</span>
+                        {channelStatus === "success" ? (
+                          <span className="text-[10px] text-emerald-600">✅</span>
+                        ) : channelStatus === "failed" ? (
+                          <span className="text-[10px] text-rose-600">❌</span>
+                        ) : channelStatus === "publishing" ? (
+                          <RefreshCw className="w-3 h-3 text-indigo-600 animate-spin" />
+                        ) : channelStatus === "cancelled" ? (
+                          <span className="text-[10px] text-amber-600">⏹️</span>
+                        ) : (
+                          <span className="text-[10px] text-slate-400">⏳</span>
+                        )}
+                      </span>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
-            {/* High-tech pulsing progress bar */}
-            <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden relative shadow-inner">
-              <div className={`h-full rounded-full animate-pulse w-full ${
-                processingAction === "draft"
-                  ? "bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600"
-                  : processingAction === "schedule"
-                  ? "bg-gradient-to-r from-blue-400 via-indigo-500 to-blue-600"
-                  : uploadingMedia || processingAction === "upload"
-                  ? "bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600"
-                  : "bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600"
-              }`} />
-            </div>
-
-            <div className="flex items-center justify-center gap-1.5 text-[11px] font-bold text-slate-400">
-              <RefreshCw className="w-3 h-3 animate-spin text-indigo-500" />
-              <span>
-                {processingAction === "draft"
-                  ? "MongoDB Draft Synchronizer Active"
-                  : processingAction === "schedule"
-                  ? "Automated Multi-Channel Scheduler Active"
-                  : uploadingMedia || processingAction === "upload"
-                  ? "Direct ImageKit Cloud Pipeline Active"
-                  : "Multi-Channel Social Broadcast Active"}
-              </span>
+            {/* Action Buttons: Cancel Publishing vs Close Summary */}
+            <div className="pt-2">
+              {processingAction === "publish" && !publishProgress.isFinished && !isPublishCancelled ? (
+                <button
+                  type="button"
+                  onClick={handleCancelPublish}
+                  className="w-full py-2.5 px-4 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 active:scale-[0.99] text-rose-700 font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer"
+                >
+                  <XCircle className="w-4 h-4 text-rose-600" />
+                  <span>🛑 Cancel Publishing</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPosting(false);
+                    setPublishProgress(prev => ({ ...prev, isFinished: false }));
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-black active:scale-[0.99] text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Close & View Summary</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

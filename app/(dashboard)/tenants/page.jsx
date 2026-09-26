@@ -459,9 +459,9 @@ export default function TenantsPage() {
                             className="w-full pl-3 pr-8 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-slate-50/80 hover:bg-white hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer truncate appearance-none shadow-2xs"
                           >
                             <option value="5-Day Trial">5-Day Trial</option>
-                            <option value="Starter">Starter (₹999)</option>
-                            <option value="Growth">Growth (₹1,999)</option>
-                            <option value="Pro Unlimited">Pro Unlimited (₹3,999)</option>
+                            <option value="Starter">Starter (₹2,999)</option>
+                            <option value="Growth">Growth (₹4,999)</option>
+                            <option value="Pro Unlimited">Pro Unlimited (₹7,999)</option>
                             <option value="Super Admin (Unrestricted)">Super Admin</option>
                           </select>
                           <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -641,9 +641,9 @@ export default function TenantsPage() {
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 font-bold focus:outline-none focus:border-indigo-600 cursor-pointer"
                   >
                     <option value="5-Day Trial">5-Day Trial</option>
-                    <option value="Starter">Starter (₹999)</option>
-                    <option value="Growth">Growth (₹1,999)</option>
-                    <option value="Pro Unlimited">Pro Unlimited (₹3,999)</option>
+                    <option value="Starter">Starter (₹2,999)</option>
+                    <option value="Growth">Growth (₹4,999)</option>
+                    <option value="Pro Unlimited">Pro Unlimited (₹7,999)</option>
                   </select>
                 </div>
 
@@ -726,9 +726,9 @@ export default function TenantsPage() {
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 bg-white cursor-pointer"
                 >
                   <option value="5-Day Trial">5-Day Trial</option>
-                  <option value="Starter">Starter (₹999)</option>
-                  <option value="Growth">Growth (₹1,999)</option>
-                  <option value="Pro Unlimited">Pro Unlimited (₹3,999)</option>
+                  <option value="Starter">Starter (₹2,999)</option>
+                  <option value="Growth">Growth (₹4,999)</option>
+                  <option value="Pro Unlimited">Pro Unlimited (₹7,999)</option>
                   <option value="Super Admin (Unrestricted)">Super Admin (Unrestricted)</option>
                 </select>
               </div>

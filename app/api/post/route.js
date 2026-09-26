@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAccounts, addPost, getPosts, updatePost, deletePost, getUserById, isUserTrialExpired } from "@/lib/db";
+import { getAccounts, addPost, getPosts, updatePost, deletePost, getPostById, getUserById, isUserTrialExpired } from "@/lib/db";
 import { serverCache } from "@/lib/cache";
 import { postToYouTube } from "@/lib/platforms/youtube";
 import { postToFacebook } from "@/lib/platforms/facebook";
@@ -9,6 +9,7 @@ import { postToLinkedIn } from "@/lib/platforms/linkedin";
 import { postToTikTok } from "@/lib/platforms/tiktok";
 import { postToThreads } from "@/lib/platforms/threads";
 import { postToPinterest } from "@/lib/platforms/pinterest";
+import { deletePostFromPlatform } from "@/lib/platforms/deletePostFromPlatform";
 import { formatImageKitUrl } from "@/lib/imagekit";
 
 export const dynamic = "force-dynamic";
@@ -66,34 +67,63 @@ export async function GET(req) {
     const enrichedPosts = posts.map(post => {
       let channelDetails = (post.accountIds || []).map(id => {
         const idStr = String(id).trim();
-        if (accountMap[idStr]) return accountMap[idStr];
-        const found = accounts.find(a => 
+        const base = accountMap[idStr] || accounts.find(a => 
           a._id?.toString() === idStr || 
           a._id?.toString().endsWith(idStr) ||
           a.platform?.toLowerCase() === idStr.toLowerCase() ||
           a.name?.toLowerCase().includes(idStr.toLowerCase())
         );
-        if (found) {
-          return { name: found.name || found.platform, platform: found.platform };
-        }
-        return null;
+        const name = base?.name || base?.platform || "Social Channel";
+        const platform = base?.platform || "general";
+        const res = post.results ? (post.results[idStr] || (base?._id && post.results[base._id.toString()])) : null;
+        
+        return {
+          id: idStr,
+          name,
+          platform,
+          success: res ? Boolean(res.success) : (post.status === "Published"),
+          error: res?.error || null,
+          postId: res?.id || res?.data?.id || null
+        };
       }).filter(Boolean);
 
-      // If post has results object (e.g. { accId: { success: true } }), extract platform details
-      if (channelDetails.length === 0 && post.results) {
-        Object.keys(post.results).forEach(accId => {
-          if (accountMap[accId]) channelDetails.push(accountMap[accId]);
+      // If post has results object (e.g. { accId: { success: true } }), merge extra platform details
+      if (post.results) {
+        Object.entries(post.results).forEach(([accId, res]) => {
+          if (!channelDetails.some(ch => ch.id === accId)) {
+            const base = accountMap[accId] || accounts.find(a => a._id?.toString() === accId);
+            channelDetails.push({
+              id: accId,
+              name: base?.name || base?.platform || "Social Channel",
+              platform: base?.platform || "general",
+              success: Boolean(res?.success),
+              error: res?.error || null,
+              postId: res?.id || res?.data?.id || null
+            });
+          }
         });
       }
 
       // Fallback to active accounts if empty
       if (channelDetails.length === 0 && accounts.length > 0) {
-        channelDetails = accounts.slice(0, 2).map(a => ({ name: a.name || a.platform, platform: a.platform }));
+        channelDetails = accounts.slice(0, 2).map(a => ({ 
+          name: a.name || a.platform, 
+          platform: a.platform,
+          success: post.status === "Published",
+          error: null
+        }));
       }
+
+      const totalChannels = channelDetails.length;
+      const successCount = channelDetails.filter(ch => ch.success).length;
+      const failedCount = channelDetails.filter(ch => ch.success === false).length;
 
       return {
         ...post,
-        channelDetails
+        channelDetails,
+        totalChannels,
+        successCount,
+        failedCount
       };
     });
 
@@ -112,6 +142,135 @@ export async function GET(req) {
   }
 }
 
+async function executePlatformPublish({
+  platform,
+  account,
+  isVideo,
+  buffer,
+  title,
+  description,
+  tags,
+  youtubeFormat,
+  youtubePrivacy,
+  youtubeMadeForKids,
+  youtubeCategory,
+  facebookPlacement,
+  mediaUrl,
+  disableComments,
+  instagramPlacement,
+  instagramShareToFeed
+}) {
+  switch (platform) {
+    case "youtube":
+      if (!isVideo) throw new Error("YouTube requires a video file");
+      return await postToYouTube({
+        accessToken: account.accessToken,
+        refreshToken: account.refreshToken,
+        accountId: account._id,
+        platform: account.platform,
+        providerAccountId: account.providerAccountId,
+        name: account.name,
+        videoBuffer: buffer,
+        title,
+        description,
+        tags,
+        youtubeFormat,
+        privacyStatus: youtubePrivacy,
+        madeForKids: youtubeMadeForKids,
+        categoryId: youtubeCategory
+      });
+
+    case "facebook":
+      return await postToFacebook({
+        pageId: account.pageId || account.providerAccountId,
+        pageAccessToken: account.accessToken,
+        videoBuffer: buffer,
+        mediaUrl: mediaUrl,
+        title,
+        description,
+        isVideo,
+        placement: facebookPlacement
+      });
+
+    case "instagram": {
+      const directUrl = mediaUrl || "https://ik.imagekit.io/saifdeveloper/sample.mp4";
+      return await postToInstagram({
+        igUserId: account.igUserId,
+        accessToken: account.accessToken,
+        mediaUrl: directUrl,
+        caption: `${title}\n\n${description}`,
+        isVideo,
+        disableComments,
+        placement: instagramPlacement,
+        shareToFeed: instagramShareToFeed
+      });
+    }
+
+    case "twitter":
+      return await postToTwitter({
+        accessToken: account.accessToken,
+        refreshToken: account.refreshToken,
+        accountId: account._id,
+        account,
+        videoBuffer: buffer,
+        mediaUrl: mediaUrl,
+        text: `${title}\n\n${description}`,
+        isVideo,
+        mimeType: isVideo ? "video/mp4" : "image/jpeg",
+        disableComments
+      });
+
+    case "linkedin": {
+      const authorUrn =
+        account.authorUrn ||
+        account.orgUrn ||
+        account.personUrn ||
+        (account.isOrganization || account.accountType === "Company Page"
+          ? `urn:li:organization:${account.organizationId || account.providerAccountId.replace("org_", "")}`
+          : `urn:li:person:${account.providerAccountId}`);
+
+      return await postToLinkedIn({
+        accessToken: account.accessToken,
+        personUrn: authorUrn,
+        authorUrn: authorUrn,
+        videoBuffer: buffer,
+        title,
+        description,
+        isVideo
+      });
+    }
+
+    case "tiktok":
+      if (!isVideo) throw new Error("TikTok requires a video file");
+      return await postToTikTok({
+        accessToken: account.accessToken,
+        videoBuffer: buffer,
+        title
+      });
+
+    case "threads":
+      return await postToThreads({
+        threadsUserId: account.providerAccountId,
+        accessToken: account.accessToken,
+        text: `${title}\n\n${description}`,
+        mediaUrl: mediaUrl,
+        isVideo
+      });
+
+    case "pinterest":
+      return await postToPinterest({
+        accessToken: account.accessToken,
+        title,
+        description,
+        mediaUrl: mediaUrl,
+        boardId: account.boardId
+      });
+
+    default:
+      throw new Error(`Unsupported platform: ${platform}`);
+  }
+}
+
 export async function POST(req) {
   let file = null;
   let title = "";
@@ -123,6 +282,7 @@ export async function POST(req) {
   let mediaUrl = null;
   let mediaType = null;
   let disableComments = false;
+  let postId = null;
   let youtubeFormat = "auto";
   let youtubePrivacy = "public";
   let youtubeMadeForKids = false;
@@ -186,6 +346,7 @@ export async function POST(req) {
     const mediaTypeFromForm = formData.get("mediaType") || "";
     publishMode = formData.get("publishMode") || "now";
     scheduledAt = formData.get("scheduledAt") || null;
+    postId = formData.get("postId") || null;
     disableComments = formData.get("disableComments") === "true";
     youtubeFormat = formData.get("youtubeFormat") || "auto";
     youtubePrivacy = formData.get("youtubePrivacy") || "public";
@@ -321,6 +482,178 @@ export async function POST(req) {
     }
   }
 
+  const wantsStream = req.headers.get("x-stream-progress") === "true" || req.headers.get("accept")?.includes("application/x-ndjson");
+
+  if (wantsStream) {
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        function emit(data) {
+          try {
+            controller.enqueue(encoder.encode(JSON.stringify(data) + "\n"));
+          } catch (e) {
+            console.error("[Stream] enqueue error:", e);
+          }
+        }
+
+        emit({
+          type: "init",
+          total: selectedAccountIds.length,
+          accountIds: selectedAccountIds
+        });
+
+        let completedCount = 0;
+        let failedCount = 0;
+
+        for (let i = 0; i < selectedAccountIds.length; i++) {
+          if (req.signal?.aborted) {
+            console.log("[Publisher] Client canceled/aborted publishing.");
+            emit({
+              type: "aborted",
+              message: "Publishing canceled by user",
+              completedCount,
+              failedCount,
+              remainingCount: selectedAccountIds.length - (completedCount + failedCount)
+            });
+            break;
+          }
+
+          const accountId = selectedAccountIds[i];
+          const account = accounts.find((a) => a._id.toString() === accountId);
+
+          if (!account) {
+            results[accountId] = { success: false, error: "Account not found" };
+            failedCount++;
+            emit({
+              type: "channel_progress",
+              accountId,
+              status: "failed",
+              error: "Account not found",
+              completedCount,
+              failedCount,
+              remainingCount: selectedAccountIds.length - (completedCount + failedCount),
+              total: selectedAccountIds.length
+            });
+            continue;
+          }
+
+          emit({
+            type: "channel_start",
+            accountId,
+            accountName: account.name || account.platform,
+            platform: account.platform,
+            index: i + 1,
+            total: selectedAccountIds.length
+          });
+
+          try {
+            const platformRes = await executePlatformPublish({
+              platform: account.platform,
+              account,
+              isVideo,
+              buffer,
+              title,
+              description,
+              tags,
+              youtubeFormat,
+              youtubePrivacy,
+              youtubeMadeForKids,
+              youtubeCategory,
+              facebookPlacement,
+              mediaUrl,
+              disableComments,
+              instagramPlacement,
+              instagramShareToFeed
+            });
+            results[accountId] = platformRes;
+            completedCount++;
+            emit({
+              type: "channel_progress",
+              accountId,
+              status: "success",
+              result: platformRes,
+              completedCount,
+              failedCount,
+              remainingCount: selectedAccountIds.length - (completedCount + failedCount),
+              total: selectedAccountIds.length
+            });
+          } catch (err) {
+            results[accountId] = { success: false, error: err.message };
+            failedCount++;
+            emit({
+              type: "channel_progress",
+              accountId,
+              status: "failed",
+              error: err.message,
+              completedCount,
+              failedCount,
+              remainingCount: selectedAccountIds.length - (completedCount + failedCount),
+              total: selectedAccountIds.length
+            });
+          }
+        }
+
+        const isAborted = Boolean(req.signal?.aborted);
+        const allFailed = selectedAccountIds.length > 0 && selectedAccountIds.every(id => results[id] && !results[id].success);
+        const someFailed = selectedAccountIds.some(id => results[id] && !results[id].success);
+        const postStatus = isAborted ? "Canceled" : (allFailed ? "Failed" : (someFailed ? "Partial" : "Published"));
+
+        let newPost = null;
+        try {
+          const postData = {
+            userId,
+            title,
+            description,
+            tags,
+            mediaUrl,
+            mediaType,
+            disableComments: !!disableComments,
+            youtubeFormat,
+            youtubePrivacy,
+            youtubeMadeForKids: Boolean(youtubeMadeForKids),
+            youtubeCategory,
+            instagramPlacement,
+            instagramShareToFeed: Boolean(instagramShareToFeed),
+            facebookPlacement,
+            accountIds: selectedAccountIds,
+            status: postStatus,
+            results,
+            createdAt: new Date().toISOString()
+          };
+          if (postId) {
+            newPost = await updatePost(postId, postData);
+          } else {
+            postData.id = Date.now().toString();
+            newPost = await addPost(postData);
+          }
+          serverCache.revalidateTag(`user:${userId}`);
+          serverCache.revalidateTag("posts");
+        } catch (dbErr) {
+          console.error("Failed to save post to db in streaming route:", dbErr);
+        }
+
+        emit({
+          type: "complete",
+          isAborted,
+          success: !allFailed && !isAborted,
+          results,
+          post: newPost
+        });
+
+        controller.close();
+      }
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "application/x-ndjson",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive"
+      }
+    });
+  }
+
+  // Non-streaming fallback
   for (const accountId of selectedAccountIds) {
     const account = accounts.find((a) => a._id.toString() === accountId);
     if (!account) {
@@ -328,125 +661,25 @@ export async function POST(req) {
       continue;
     }
 
-    const platform = account.platform;
-
     try {
-      switch (platform) {
-        case "youtube":
-          if (!isVideo) throw new Error("YouTube requires a video file");
-          results[accountId] = await postToYouTube({
-            accessToken: account.accessToken,
-            refreshToken: account.refreshToken,
-            accountId: account._id,
-            platform: account.platform,
-            providerAccountId: account.providerAccountId,
-            name: account.name,
-            videoBuffer: buffer,
-            title,
-            description,
-            tags,
-            youtubeFormat,
-            privacyStatus: youtubePrivacy,
-            madeForKids: youtubeMadeForKids,
-            categoryId: youtubeCategory
-          });
-          break;
-
-        case "facebook":
-          results[accountId] = await postToFacebook({
-            pageId: account.pageId || account.providerAccountId,
-            pageAccessToken: account.accessToken,
-            videoBuffer: buffer,
-            mediaUrl: mediaUrl,
-            title,
-            description,
-            isVideo,
-            placement: facebookPlacement
-          });
-          break;
-
-        case "instagram": {
-          const directUrl = mediaUrl || "https://ik.imagekit.io/saifdeveloper/sample.mp4";
-          results[accountId] = await postToInstagram({
-            igUserId: account.igUserId,
-            accessToken: account.accessToken,
-            mediaUrl: directUrl,
-            caption: `${title}\n\n${description}`,
-            isVideo,
-            disableComments,
-            placement: instagramPlacement,
-            shareToFeed: instagramShareToFeed
-          });
-          break;
-        }
-
-        case "twitter":
-          results[accountId] = await postToTwitter({
-            accessToken: account.accessToken,
-            videoBuffer: buffer,
-            mediaUrl: mediaUrl,
-            text: `${title}\n\n${description}`,
-            isVideo,
-            mimeType: isVideo ? "video/mp4" : "image/jpeg",
-            disableComments
-          });
-          break;
-
-        case "linkedin": {
-          const authorUrn =
-            account.authorUrn ||
-            account.orgUrn ||
-            account.personUrn ||
-            (account.isOrganization || account.accountType === "Company Page"
-              ? `urn:li:organization:${account.organizationId || account.providerAccountId.replace("org_", "")}`
-              : `urn:li:person:${account.providerAccountId}`);
-
-          results[accountId] = await postToLinkedIn({
-            accessToken: account.accessToken,
-            personUrn: authorUrn,
-            authorUrn: authorUrn,
-            videoBuffer: buffer,
-            title,
-            description,
-            isVideo
-          });
-          break;
-        }
-
-        case "tiktok":
-          if (!isVideo) throw new Error("TikTok requires a video file");
-          results[accountId] = await postToTikTok({
-            accessToken: account.accessToken,
-            videoBuffer: buffer,
-            title
-          });
-          break;
-
-        case "threads": {
-          results[accountId] = await postToThreads({
-            threadsUserId: account.providerAccountId,
-            accessToken: account.accessToken,
-            text: `${title}\n\n${description}`,
-            mediaUrl: mediaUrl,
-            isVideo
-          });
-          break;
-        }
-
-        case "pinterest": {
-          results[accountId] = await postToPinterest({
-            accessToken: account.accessToken,
-            title,
-            description,
-            mediaUrl: mediaUrl,
-            boardId: account.boardId
-          });
-          break;
-        }
-
-        default:
-          results[accountId] = { success: false, error: "Unsupported platform" };
-      }
+      results[accountId] = await executePlatformPublish({
+        platform: account.platform,
+        account,
+        isVideo,
+        buffer,
+        title,
+        description,
+        tags,
+        youtubeFormat,
+        youtubePrivacy,
+        youtubeMadeForKids,
+        youtubeCategory,
+        facebookPlacement,
+        mediaUrl,
+        disableComments,
+        instagramPlacement,
+        instagramShareToFeed
+      });
     } catch (err) {
       results[accountId] = { success: false, error: err.message };
     }
@@ -456,8 +689,7 @@ export async function POST(req) {
   const someFailed = selectedAccountIds.some(id => results[id] && !results[id].success);
   const postStatus = allFailed ? "Failed" : (someFailed ? "Partial" : "Published");
 
-  await addPost({
-    id: Date.now().toString(),
+  const postData = {
     userId,
     title,
     description,
@@ -476,7 +708,14 @@ export async function POST(req) {
     status: postStatus,
     results,
     createdAt: new Date().toISOString()
-  });
+  };
+
+  if (postId) {
+    await updatePost(postId, postData);
+  } else {
+    postData.id = Date.now().toString();
+    await addPost(postData);
+  }
 
   // Invalidate cache immediately on new post
   serverCache.revalidateTag(`user:${userId}`);
@@ -563,8 +802,70 @@ export async function DELETE(req) {
 
     const { searchParams } = new URL(req.url);
     const postId = searchParams.get("id");
+    const deleteFromChannels = searchParams.get("deleteFromChannels") === "true";
 
     if (!postId) return NextResponse.json({ error: "Post ID is required" }, { status: 400 });
+
+    const channelDeletes = {};
+
+    if (deleteFromChannels) {
+      try {
+        const post = await getPostById(postId, userId);
+        if (post && post.results && typeof post.results === "object") {
+          const accounts = await getAccounts(userId);
+          const entries = Object.entries(post.results);
+
+          for (const [accountId, result] of entries) {
+            const account = accounts.find(
+              (a) => a._id?.toString() === accountId || a.id === accountId
+            );
+            const remoteId = result?.id || result?.postId || (result?.url ? result.url : null);
+
+            if (!account) {
+              channelDeletes[accountId] = {
+                success: false,
+                error: "Channel account not found in your connected accounts"
+              };
+              continue;
+            }
+
+            if (!remoteId) {
+              channelDeletes[accountId] = {
+                platform: account.platform,
+                accountName: account.name || account.platform,
+                success: false,
+                error: "No remote post ID found to delete"
+              };
+              continue;
+            }
+
+            try {
+              const delRes = await deletePostFromPlatform({
+                platform: account.platform,
+                account,
+                platformPostId: remoteId
+              });
+              channelDeletes[accountId] = {
+                platform: account.platform,
+                accountName: account.name || account.platform,
+                success: true,
+                ...delRes
+              };
+            } catch (platformErr) {
+              console.warn(`[DeletePlatform] Failed to delete from ${account.platform}:`, platformErr.message);
+              channelDeletes[accountId] = {
+                platform: account.platform,
+                accountName: account.name || account.platform,
+                success: false,
+                error: platformErr.message
+              };
+            }
+          }
+        }
+      } catch (findErr) {
+        console.warn("[DELETE] Error inspecting post for channel deletion:", findErr);
+      }
+    }
 
     await deletePost(postId, userId);
 
@@ -572,7 +873,7 @@ export async function DELETE(req) {
     serverCache.revalidateTag(`user:${userId}`);
     serverCache.revalidateTag("posts");
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, channelDeletes });
   } catch (error) {
     console.error("Error deleting post:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

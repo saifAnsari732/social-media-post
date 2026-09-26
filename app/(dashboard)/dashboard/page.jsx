@@ -954,9 +954,9 @@ export default function DashboardPage() {
                               className="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 bg-white hover:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100 cursor-pointer shadow-2xs"
                             >
                               <option value="5-Day Trial">5-Day Trial</option>
-                              <option value="Starter">Starter (₹999)</option>
-                              <option value="Growth">Growth (₹1,999)</option>
-                              <option value="Pro Unlimited">Pro Unlimited (₹3,999)</option>
+                              <option value="Starter">Starter (₹2,999)</option>
+                              <option value="Growth">Growth (₹4,999)</option>
+                              <option value="Pro Unlimited">Pro Unlimited (₹7,999)</option>
                               <option value="Super Admin (Unrestricted)">Super Admin (Unrestricted)</option>
                             </select>
                           </td>
@@ -1821,9 +1821,9 @@ export default function DashboardPage() {
                       className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 font-bold focus:outline-none focus:border-indigo-600 cursor-pointer"
                     >
                       <option value="5-Day Trial">5-Day Trial</option>
-                      <option value="Starter">Starter (₹999)</option>
-                      <option value="Growth">Growth (₹1,999)</option>
-                      <option value="Pro Unlimited">Pro Unlimited (₹3,999)</option>
+                      <option value="Starter">Starter (₹2,999)</option>
+                      <option value="Growth">Growth (₹4,999)</option>
+                      <option value="Pro Unlimited">Pro Unlimited (₹7,999)</option>
                     </select>
                   </div>
 
@@ -1906,9 +1906,9 @@ export default function DashboardPage() {
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 bg-white cursor-pointer"
                   >
                     <option value="5-Day Trial">5-Day Trial</option>
-                    <option value="Starter">Starter (₹999)</option>
-                    <option value="Growth">Growth (₹1,999)</option>
-                    <option value="Pro Unlimited">Pro Unlimited (₹3,999)</option>
+                    <option value="Starter">Starter (₹2,999)</option>
+                    <option value="Growth">Growth (₹4,999)</option>
+                    <option value="Pro Unlimited">Pro Unlimited (₹7,999)</option>
                     <option value="Super Admin (Unrestricted)">Super Admin (Unrestricted)</option>
                   </select>
                 </div>

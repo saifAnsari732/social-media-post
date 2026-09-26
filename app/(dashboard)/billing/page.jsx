@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, Zap, Building2, CreditCard, Layers, ShieldCheck, X, Tag, Check, ArrowRight } from "lucide-react";
+import { CheckCircle2, Zap, Building2, CreditCard, Layers, ShieldCheck, X, Tag, Check, ArrowRight, Sparkles } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { getStoredUser, setStoredUser, getUserPlanLimits } from "@/lib/user";
@@ -96,12 +96,12 @@ export default function BillingPage() {
   const plans = [
     {
       name: "Starter",
-      monthlyPrice: 1999,
-      priceLabel: yearly ? "₹1,899" : "₹1,999",
+      monthlyPrice: 2999,
+      priceLabel: yearly ? "₹2,849" : "₹2,999",
       description: "For solopreneurs & small creators starting out",
       features: [
         "3 Connected Social Accounts",
-        "❌ NO AI Support / AI Assistant",
+        "🛡️ 20 AI Copyright & Safe Harbor Scans / mo",
         "50 Scheduled Posts / month",
         "Visual Content Calendar",
         "Multi-Platform Composer",
@@ -115,13 +115,14 @@ export default function BillingPage() {
     },
     {
       name: "Growth",
-      monthlyPrice: 2999,
-      priceLabel: yearly ? "₹2,849" : "₹2,999",
+      monthlyPrice: 4999,
+      priceLabel: yearly ? "₹4,749" : "₹4,999",
       description: "For growing brands, creators & active teams",
       features: [
         "6 Connected Social Accounts",
-        "✅ Full AI Support & Assistant",
-        "500 AI Generator Credits / mo",
+        "🛡️ ✨ 200 Deep Gemini 2.5 AI Copyright Scans / mo",
+        "✅ Full AI Support & Assistant (500 Credits/mo)",
+        "Content ID Match & Audio Rights Protection",
         "Unlimited Scheduled Posts",
         "AI Caption & Hashtag Generator",
         "Unified Social Inbox (Comments & DMs)",
@@ -137,12 +138,14 @@ export default function BillingPage() {
     },
     {
       name: "Pro Unlimited",
-      monthlyPrice: 4999,
-      priceLabel: yearly ? "₹4,749" : "₹4,999",
+      monthlyPrice: 7999,
+      priceLabel: yearly ? "₹7,599" : "₹7,999",
       description: "For power marketers, brands & agencies needing all capabilities",
       features: [
         "Unlimited Connected Social Accounts",
+        "🛡️ ✨ UNLIMITED Gemini 2.5 AI Copyright & Strike Scans",
         "🎯 Meta Ads Manager & 1-Click Post Booster",
+        "Commercial Record Label & Fair Use Clearance",
         "✅ Unlimited AI Credits & All AI Tools",
         "Unlimited Scheduled Posts & Queues",
         "Smart Auto-Reply Comment Bot Rules",
@@ -298,6 +301,12 @@ export default function BillingPage() {
         <p className="text-xs text-slate-500 mt-1 font-medium">
           Scale your social media automation across Meta, Instagram, Facebook, YouTube, LinkedIn & X.
         </p>
+
+        {/* AI Scanner Feature Highlight Badge */}
+        <div className="mt-3.5 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 border border-teal-300 text-teal-900 text-xs font-black shadow-2xs">
+          <Sparkles className="w-3.5 h-3.5 text-teal-600" />
+          <span>🔥 Real-time Gemini 2.5 AI Copyright, Strike Protection & Audio Scanner included in all plans!</span>
+        </div>
 
         {/* Monthly / Yearly Toggle */}
         <div className="mt-6 inline-flex items-center gap-3 p-1 rounded-xl bg-slate-100 border border-slate-200/80 text-xs font-bold">
@@ -633,7 +642,7 @@ export default function BillingPage() {
                       <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                       <span>{item.planName}</span>
                     </td>
-                    <td className="p-3 text-slate-600 font-semibold">₹{(item.originalAmount || (item.planName?.includes("Pro") ? 4999 : item.planName?.includes("Growth") ? 2999 : 1999)).toLocaleString('en-IN')}</td>
+                    <td className="p-3 text-slate-600 font-semibold">₹{(item.originalAmount || (item.planName?.includes("Pro") ? 7999 : item.planName?.includes("Growth") ? 4999 : 2999)).toLocaleString('en-IN')}</td>
                     <td className="p-3 text-emerald-700 font-semibold">
                       {item.discountAmount > 0 ? `-₹${item.discountAmount.toLocaleString('en-IN')}${item.couponCode && item.couponCode !== "NONE" ? ` (${item.couponCode})` : ''}` : "—"}
                     </td>

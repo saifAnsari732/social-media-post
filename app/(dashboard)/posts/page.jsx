@@ -21,7 +21,12 @@ import {
   Edit3,
   Play,
   FileVideo,
-  Image as ImageIcon
+  Image as ImageIcon,
+  BarChart2,
+  AlertTriangle,
+  Minus,
+  Info,
+  X
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { TableSkeleton } from "@/components/ui/Skeletons";
@@ -38,6 +43,10 @@ export default function PostsPage() {
   const [activeTab, setActiveTab] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [previewMedia, setPreviewMedia] = useState(null);
+  const [selectedPostForReport, setSelectedPostForReport] = useState(null);
+  const [postToDelete, setPostToDelete] = useState(null);
+  const [isDeletingRemotely, setIsDeletingRemotely] = useState(false);
+  const [deleteProgressMessage, setDeleteProgressMessage] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -87,21 +96,60 @@ export default function PostsPage() {
     }
   }
 
-  async function handleDeletePost(postId) {
-    if (!confirm("Are you sure you want to remove this post?")) return;
+  function handleInitiateDelete(post) {
+    const hasPublishedChannels = post.channelDetails && post.channelDetails.some(ch => ch.success === true);
+    const isBroadcastPost = post.status === "Published" || post.status === "Partial" || hasPublishedChannels;
+
+    if (!isBroadcastPost) {
+      if (confirm(`Delete draft "${post.title || 'Untitled Post'}"?`)) {
+        executeDeletePost(post._id || post.id, false);
+      }
+      return;
+    }
+
+    setPostToDelete(post);
+  }
+
+  async function executeDeletePost(postId, deleteFromChannels = false) {
     try {
+      setIsDeletingRemotely(true);
+      if (deleteFromChannels) {
+        setDeleteProgressMessage("Communicating with social media APIs (Facebook, Instagram, YouTube, X)...");
+      } else {
+        setDeleteProgressMessage("Removing post from PostFly platform...");
+      }
+
       const user = getStoredUser();
-      const res = await fetch(`/api/post?id=${postId}`, {
+      const res = await fetch(`/api/post?id=${postId}&deleteFromChannels=${deleteFromChannels ? "true" : "false"}`, {
         method: "DELETE",
         headers: { "x-user-id": user.userId }
       });
       const data = await res.json();
       if (data.success) {
-        toast.success("Post removed");
+        if (deleteFromChannels && data.channelDeletes) {
+          const results = Object.values(data.channelDeletes);
+          const succeeded = results.filter(r => r.success).length;
+          const failed = results.filter(r => !r.success).length;
+          if (failed > 0 && succeeded > 0) {
+            toast.success(`Removed from ${succeeded} social channel(s) and PostFly. (${failed} channels had API restriction)`);
+          } else if (succeeded > 0) {
+            toast.success(`Post successfully deleted from all ${succeeded} social media channels and platform!`);
+          } else {
+            toast.success("Post removed from PostFly platform.");
+          }
+        } else {
+          toast.success("Post removed from PostFly platform.");
+        }
+        setPostToDelete(null);
         fetchPosts();
+      } else {
+        toast.error(data.error || "Failed to delete post");
       }
     } catch (err) {
-      toast.error("Failed to delete post");
+      toast.error("Failed to delete post: " + (err.message || "Network error"));
+    } finally {
+      setIsDeletingRemotely(false);
+      setDeleteProgressMessage("");
     }
   }
 
@@ -296,36 +344,35 @@ export default function PostsPage() {
                       {/* Channels Badges */}
                       <td className="py-4 px-4 max-w-[260px]">
                         {post.channelDetails && post.channelDetails.length > 0 ? (
-                          <div className="flex flex-wrap items-center gap-1.5">
+                          <div 
+                            onClick={() => setSelectedPostForReport(post)}
+                            className="flex flex-wrap items-center gap-1.5 cursor-pointer group/ch"
+                            title="Click to view detailed per-channel delivery results"
+                          >
                             {post.channelDetails.slice(0, 2).map((channel, i) => (
                               <span
                                 key={i}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 font-semibold text-[11px] text-slate-800 shadow-2xs"
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-semibold text-[11px] shadow-2xs transition-colors ${
+                                  channel.success === false
+                                    ? "bg-rose-50 border-rose-200 text-rose-800"
+                                    : channel.success === true
+                                    ? "bg-slate-50 border-slate-200 text-slate-800 hover:border-emerald-300"
+                                    : "bg-slate-50 border-slate-200 text-slate-800"
+                                }`}
                               >
                                 <PlatformIcon platform={channel.platform} className="w-3.5 h-3.5 shrink-0" />
                                 <span className="max-w-[90px] truncate">{channel.name}</span>
+                                {channel.success === false ? (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" title="Failed" />
+                                ) : channel.success === true && post.status !== "Draft" ? (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" title="Published" />
+                                ) : null}
                               </span>
                             ))}
                             {post.channelDetails.length > 2 && (
-                              <div className="relative group/ch">
-                                <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 font-extrabold text-[10.5px] cursor-pointer hover:bg-indigo-100 shadow-2xs transition-all">
-                                  +{post.channelDetails.length - 2} channels
-                                </span>
-                                {/* Hover Popover List */}
-                                <div className="absolute left-0 bottom-full mb-1.5 hidden group-hover/ch:flex flex-col gap-1.5 p-2.5 bg-slate-900 text-white rounded-xl shadow-xl z-30 min-w-[180px] max-w-[230px] text-[11px] border border-slate-700 animate-in fade-in duration-150">
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800 pb-1">
-                                    Target Channels ({post.channelDetails.length})
-                                  </span>
-                                  <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
-                                    {post.channelDetails.map((ch, idx) => (
-                                      <div key={idx} className="flex items-center gap-1.5 truncate text-slate-200 py-0.5">
-                                        <PlatformIcon platform={ch.platform} className="w-3.5 h-3.5 shrink-0" />
-                                        <span className="truncate">{ch.name}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              </div>
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 font-extrabold text-[10.5px] hover:bg-indigo-100 shadow-2xs transition-all">
+                                +{post.channelDetails.length - 2} channels
+                              </span>
                             )}
                           </div>
                         ) : (
@@ -333,27 +380,58 @@ export default function PostsPage() {
                         )}
                       </td>
 
-                      {/* Status Pill */}
+                      {/* Status Pill (Clickable for diagnostics) */}
                       <td className="py-4 px-4 whitespace-nowrap">
-                        {post.status === "Scheduled" ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 font-semibold text-[11px] border border-blue-200">
-                            <Calendar className="w-3 h-3" /> Scheduled
-                          </span>
-                        ) : post.status === "Draft" ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 font-semibold text-[11px] border border-amber-200">
-                            <Clock className="w-3 h-3" /> Draft
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-semibold text-[11px] border border-emerald-200">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            Published
-                          </span>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPostForReport(post)}
+                          className="cursor-pointer transition-transform active:scale-95 text-left inline-block"
+                          title="Click to view channel-by-channel delivery results & error reasons"
+                        >
+                          {post.status === "Scheduled" ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 font-semibold text-[11px] border border-blue-200 shadow-2xs hover:bg-blue-100 transition-colors">
+                              <Calendar className="w-3 h-3" /> Scheduled
+                            </span>
+                          ) : post.status === "Draft" ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 font-semibold text-[11px] border border-amber-200 shadow-2xs hover:bg-amber-100 transition-colors">
+                              <Clock className="w-3 h-3" /> Draft
+                            </span>
+                          ) : post.status === "Canceled" ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 font-semibold text-[11px] border border-slate-300 shadow-2xs hover:bg-slate-200 transition-colors">
+                              <Minus className="w-3 h-3" /> Canceled
+                            </span>
+                          ) : post.failedCount > 0 && post.successCount === 0 ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-700 font-bold text-[11px] border border-rose-300 shadow-2xs hover:bg-rose-100 transition-colors">
+                              <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                              Failed ({post.failedCount})
+                            </span>
+                          ) : post.failedCount > 0 && post.successCount > 0 ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 font-bold text-[11px] border border-amber-300 shadow-2xs hover:bg-amber-100 transition-colors">
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                              Partial ({post.successCount}/{post.totalChannels || (post.successCount + post.failedCount)})
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-semibold text-[11px] border border-emerald-200 shadow-2xs hover:bg-emerald-100 transition-colors">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              Published {post.successCount ? `(${post.successCount})` : ""}
+                            </span>
+                          )}
+                        </button>
                       </td>
 
                       {/* Actions */}
                       <td className="py-4 px-6 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* Channel Report Button */}
+                          <button
+                            onClick={() => setSelectedPostForReport(post)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-bold text-xs transition-all cursor-pointer shadow-2xs"
+                            title="View channel delivery report & error details"
+                          >
+                            <BarChart2 className="w-3.5 h-3.5 text-slate-600" />
+                            <span>Report</span>
+                          </button>
+
                           <button
                             onClick={() => {
                               localStorage.setItem("edit_post", JSON.stringify(post));
@@ -387,7 +465,7 @@ export default function PostsPage() {
                             <Copy className="w-4 h-4" />
                           </button>
                           <button 
-                            onClick={() => handleDeletePost(post._id || post.id)} 
+                            onClick={() => handleInitiateDelete(post)} 
                             className="p-1.5 text-slate-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-all cursor-pointer"
                             title="Delete post"
                           >
@@ -401,6 +479,319 @@ export default function PostsPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* CHANNEL DELIVERY REPORT & DIAGNOSTICS MODAL */}
+      {selectedPostForReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-3xl bg-white border border-slate-200 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center font-bold shadow-2xs">
+                  <BarChart2 className="w-5 h-5 text-indigo-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-950 tracking-tight flex items-center gap-2">
+                    <span>Channel Delivery Report</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                      selectedPostForReport.failedCount > 0 && selectedPostForReport.successCount === 0
+                        ? "bg-rose-100 text-rose-800 border border-rose-200"
+                        : selectedPostForReport.failedCount > 0
+                        ? "bg-amber-100 text-amber-900 border border-amber-200"
+                        : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                    }`}>
+                      {selectedPostForReport.status}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium truncate max-w-sm mt-0.5">
+                    {selectedPostForReport.title || "Untitled Post"} • {selectedPostForReport.createdAt ? new Date(selectedPostForReport.createdAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "Recent"}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setSelectedPostForReport(null)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* KPI Summary Cards */}
+            <div className="p-4 sm:p-6 grid grid-cols-3 gap-3 border-b border-slate-100 bg-slate-50/30">
+              <div className="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs text-center">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total Channels</span>
+                <span className="text-xl font-black text-slate-900 mt-0.5 block">{selectedPostForReport.totalChannels || selectedPostForReport.channelDetails?.length || 0}</span>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-200/90 shadow-2xs text-center">
+                <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider block">Published</span>
+                <span className="text-xl font-black text-emerald-700 mt-0.5 block">{selectedPostForReport.successCount || 0}</span>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-rose-50/60 border border-rose-200/90 shadow-2xs text-center">
+                <span className="text-[11px] font-bold text-rose-700 uppercase tracking-wider block">Failed</span>
+                <span className="text-xl font-black text-rose-700 mt-0.5 block">{selectedPostForReport.failedCount || 0}</span>
+              </div>
+            </div>
+
+            {/* Channel List Body */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 custom-scrollbar">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Individual Channel Results ({selectedPostForReport.channelDetails?.length || 0})
+              </h4>
+
+              {selectedPostForReport.channelDetails?.map((ch, idx) => {
+                const isFail = ch.success === false || (selectedPostForReport.results && selectedPostForReport.results[ch.id]?.success === false);
+                const errorMsg = ch.error || (selectedPostForReport.results && selectedPostForReport.results[ch.id]?.error);
+                const postId = ch.postId || (selectedPostForReport.results && selectedPostForReport.results[ch.id]?.id);
+
+                // Friendly Diagnosis Parser
+                let friendlyReason = null;
+                let resolutionTip = null;
+
+                if (errorMsg) {
+                  const lowerErr = String(errorMsg).toLowerCase();
+                  if (lowerErr.includes("aspect ratio") || lowerErr.includes("36003")) {
+                    friendlyReason = "Aspect Ratio Not Supported by Meta";
+                    resolutionTip = "Instagram requires images with aspect ratios between 4:5 (vertical) and 1.91:1 (horizontal). Square (1:1) is optimal. Please crop or resize your image.";
+                  } else if (lowerErr.includes("requires a video") || lowerErr.includes("video file")) {
+                    friendlyReason = "YouTube Requires Video File";
+                    resolutionTip = "YouTube API does not support static image/photo uploads. To publish on YouTube, please attach an MP4/MOV video file.";
+                  } else if (lowerErr.includes("unauthorized") || lowerErr.includes("token") || lowerErr.includes("401") || lowerErr.includes("190")) {
+                    friendlyReason = "OAuth Access Token Expired or Revoked";
+                    resolutionTip = "The channel's authentication expired on the platform side. Please go to Social Channels (/accounts) and reconnect this account.";
+                  } else if (lowerErr.includes("credits depleted") || lowerErr.includes("402") || lowerErr.includes("payment required")) {
+                    friendlyReason = "Twitter / X Monthly API Quota Depleted";
+                    resolutionTip = "Your X Developer Portal credits are exhausted. Please top-up on developer.x.com.";
+                  } else if (lowerErr.includes("transient") || lowerErr.includes("code 2")) {
+                    friendlyReason = "Platform Temporary Glitch";
+                    resolutionTip = "Meta Graph API experienced a temporary processing delay. You can retry publishing this draft.";
+                  }
+                }
+
+                return (
+                  <div
+                    key={idx}
+                    className={`p-3.5 rounded-2xl border transition-all ${
+                      isFail
+                        ? "bg-rose-50/40 border-rose-200"
+                        : "bg-white border-slate-200/90 shadow-2xs hover:shadow-xs"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
+                          <PlatformIcon platform={ch.platform} className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <h5 className="font-bold text-slate-900 text-xs truncate">{ch.name}</h5>
+                          <span className="text-[10px] text-slate-400 capitalize block">{ch.platform}</span>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 text-right">
+                        {isFail ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 text-[10px] font-black uppercase tracking-wider border border-rose-200">
+                            <XCircle className="w-3 h-3 text-rose-600" /> Failed
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Published
+                          </span>
+                        )}
+                        {postId && (
+                          <span className="text-[10px] font-mono text-slate-400 block mt-1">
+                            ID: {postId}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Error Diagnostic Box */}
+                    {isFail && (
+                      <div className="mt-2.5 pt-2.5 border-t border-rose-200/80 space-y-1.5 text-left">
+                        {friendlyReason && (
+                          <div className="flex items-center gap-1.5 text-xs font-black text-rose-900">
+                            <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                            <span>{friendlyReason}</span>
+                          </div>
+                        )}
+                        {resolutionTip && (
+                          <p className="text-[11px] text-rose-800 font-medium leading-relaxed bg-white/70 p-2 rounded-xl border border-rose-200">
+                            💡 <strong>How to Fix:</strong> {resolutionTip}
+                          </p>
+                        )}
+                        {errorMsg && (
+                          <div className="bg-slate-900 text-slate-200 p-2 rounded-xl text-[10px] font-mono overflow-x-auto">
+                            <code>{errorMsg}</code>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50/80 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.setItem("edit_post", JSON.stringify(selectedPostForReport));
+                  setSelectedPostForReport(null);
+                  router.push("/publisher");
+                }}
+                className="px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>Open in Post Composer</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedPostForReport(null)}
+                className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs cursor-pointer shadow-xs"
+              >
+                Close Report
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* DELETE PUBLISHED POST MODAL (REMOTE PLATFORMS + LOCAL) */}
+      {postToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg rounded-3xl bg-white border border-slate-200 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-6 border-b border-slate-100 flex items-start gap-4 bg-rose-50/50">
+              <div className="w-12 h-12 rounded-2xl bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-600 shrink-0 shadow-inner">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-extrabold text-slate-900 tracking-tight">
+                  Delete Published Post
+                </h3>
+                <p className="text-xs text-slate-600 font-medium mt-0.5 line-clamp-1">
+                  &ldquo;{postToDelete.title || "Social Post"}&rdquo;
+                </p>
+                <div className="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-rose-700">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Choose how you want to delete this content:</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={isDeletingRemotely}
+                onClick={() => setPostToDelete(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Channels Summary */}
+            <div className="p-6 space-y-4">
+              {postToDelete.channelDetails && postToDelete.channelDetails.length > 0 && (
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    Published Channels Detected:
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {postToDelete.channelDetails.map((ch, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-slate-200 text-xs font-semibold text-slate-800 shadow-2xs"
+                      >
+                        <PlatformIcon platform={ch.platform} className="w-3.5 h-3.5" />
+                        <span>{ch.name}</span>
+                        {ch.success && <span className="text-[10px] text-emerald-600 font-bold">✓ Live</span>}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Progress feedback when deleting */}
+              {isDeletingRemotely && (
+                <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center gap-3 animate-pulse">
+                  <RefreshCw className="w-5 h-5 text-indigo-600 animate-spin shrink-0" />
+                  <span className="text-xs font-bold text-indigo-900">{deleteProgressMessage}</span>
+                </div>
+              )}
+
+              {/* 2 Options */}
+              {!isDeletingRemotely && (
+                <div className="space-y-3">
+                  {/* Option 1: Remote Delete from Social Channels + Platform */}
+                  <div className="p-4 rounded-2xl border-2 border-rose-200 bg-rose-50/30 hover:bg-rose-50/60 transition-all space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-7 h-7 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 font-black text-xs shadow-xs">
+                        1
+                      </div>
+                      <div className="space-y-0.5">
+                        <h4 className="text-xs font-extrabold text-rose-950">
+                          🌐 Delete Everywhere (Channels & PostFly)
+                        </h4>
+                        <p className="text-[11.5px] text-rose-800 leading-relaxed">
+                          Calls Facebook, Instagram, YouTube, X APIs to <strong>permanently delete</strong> the published post/video directly from your live accounts, and removes it from PostFly.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => executeDeletePost(postToDelete._id || postToDelete.id, true)}
+                      className="w-full py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>Delete from Channels & Platform</span>
+                    </button>
+                  </div>
+
+                  {/* Option 2: Delete from PostFly Only */}
+                  <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-all space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-7 h-7 rounded-xl bg-slate-300 text-slate-800 flex items-center justify-center shrink-0 font-black text-xs shadow-xs">
+                        2
+                      </div>
+                      <div className="space-y-0.5">
+                        <h4 className="text-xs font-extrabold text-slate-900">
+                          📱 Delete from PostFly Platform Only
+                        </h4>
+                        <p className="text-[11.5px] text-slate-600 leading-relaxed">
+                          Keeps the post live and published on your social media channels, but removes it from your PostFly dashboard & content history.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => executeDeletePost(postToDelete._id || postToDelete.id, false)}
+                      className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-900 active:scale-[0.99] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                    >
+                      <Minus className="w-4 h-4" />
+                      <span>Remove from PostFly Only</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-end">
+              <button
+                type="button"
+                disabled={isDeletingRemotely}
+                onClick={() => setPostToDelete(null)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

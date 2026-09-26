@@ -44,7 +44,8 @@ import {
   ChevronDown,
   RotateCcw,
   Ban,
-  User
+  User,
+  Sparkles
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { getStoredUser } from "@/lib/user";
@@ -56,6 +57,10 @@ export default function AdminPanelPage() {
   const [users, setUsers] = useState([]);
   const [serverStats, setServerStats] = useState({ totalUsers: 0, totalPosts: 0, totalAccounts: 0, totalRules: 0 });
   const [loading, setLoading] = useState(true);
+
+  // AI Scanner Click Tracking State
+  const [aiScanStats, setAiScanStats] = useState({ todayTotal: 0, allTimeTotal: 0, userStats: [], recentClicks: [] });
+  const [aiScanLoading, setAiScanLoading] = useState(false);
 
   // Inspector & Modals State            tfuktlu
   const [inspectingUser, setInspectingUser] = useState(null);
@@ -128,8 +133,24 @@ export default function AdminPanelPage() {
       fetchCoupons(u.userId);
       fetchSystemSettings();
       fetchInvoices(u.userId);
+      fetchAiScanClicks();
     }
   }, []);
+
+  const fetchAiScanClicks = async () => {
+    try {
+      setAiScanLoading(true);
+      const res = await fetch("/api/admin/scan-clicks");
+      const data = await res.json();
+      if (data.success) {
+        setAiScanStats(data);
+      }
+    } catch (e) {
+      console.error("Failed to fetch AI scan clicks", e);
+    } finally {
+      setAiScanLoading(false);
+    }
+  };
 
   const fetchInvoices = async (userId) => {
     try {
@@ -686,11 +707,12 @@ export default function AdminPanelPage() {
       </div>
 
       {/* Professional Large Card Tab Switcher */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
           { id: "users", label: "All Tenants & Controls", icon: Users, color: "indigo", count: users.length, badge: "registered" },
           { id: "subscriptions", label: "Subscriptions & Invoices", icon: CreditCard, color: "emerald", count: null, badge: "ledger" },
           { id: "coupons", label: "Discount Coupons", icon: Tag, color: "amber", count: coupons.length, badge: "offers" },
+          { id: "ai-scans", label: "AI Scan Clicks", icon: Sparkles, color: "teal", count: aiScanStats?.todayTotal ?? 0, badge: "today" },
           { id: "today-logs", label: "Audit Trail", icon: Activity, color: "purple", count: todayLogs.length, badge: "events" },
           { id: "broadcast", label: "Announcement", icon: Megaphone, color: "rose", count: null, badge: systemSettings?.announcement?.enabled ? "ON" : "OFF" }
         ].map((tab) => {
@@ -699,6 +721,7 @@ export default function AdminPanelPage() {
             indigo: { activeBg: "bg-indigo-600", activeRing: "ring-indigo-200", iconBg: "bg-indigo-100 text-indigo-600" },
             emerald: { activeBg: "bg-emerald-600", activeRing: "ring-emerald-200", iconBg: "bg-emerald-100 text-emerald-600" },
             amber: { activeBg: "bg-amber-500", activeRing: "ring-amber-200", iconBg: "bg-amber-100 text-amber-600" },
+            teal: { activeBg: "bg-teal-600", activeRing: "ring-teal-200", iconBg: "bg-teal-100 text-teal-700" },
             purple: { activeBg: "bg-purple-600", activeRing: "ring-purple-200", iconBg: "bg-purple-100 text-purple-600" },
             rose: { activeBg: "bg-rose-600", activeRing: "ring-rose-200", iconBg: "bg-rose-100 text-rose-600" }
           };
@@ -833,9 +856,9 @@ export default function AdminPanelPage() {
                               className="w-full pl-3 pr-8 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-slate-50/80 hover:bg-white hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer truncate appearance-none shadow-2xs"
                             >
                               <option value="5-Day Trial">5-Day Trial</option>
-                              <option value="Starter">Starter (₹999)</option>
-                              <option value="Growth">Growth (₹1,999)</option>
-                              <option value="Pro Unlimited">Pro Unlimited (₹3,999)</option>
+                              <option value="Starter">Starter (₹2,999)</option>
+                              <option value="Growth">Growth (₹4,999)</option>
+                              <option value="Pro Unlimited">Pro Unlimited (₹7,999)</option>
                               <option value="Super Admin (Unrestricted)">Super Admin</option>
                             </select>
                             <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -1315,6 +1338,134 @@ export default function AdminPanelPage() {
         </div>
       )}
 
+      {/* TAB: AI SCANNER USAGE & DAILY CLICK TELEMETRY */}
+      {activeTab === "ai-scans" && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          {/* Top KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white rounded-2xl border border-teal-200 p-5 shadow-2xs">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Today's Scans</span>
+                <div className="w-8 h-8 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center font-bold">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-3xl font-black text-slate-900 tracking-tight">
+                {aiScanStats?.todayTotal || 0}
+              </div>
+              <span className="text-xs font-bold text-teal-600 mt-2 inline-block">Clicks Logged Today ({aiScanStats?.todayStr || "Today"})</span>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">All-Time Scans</span>
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-3xl font-black text-slate-900 tracking-tight">
+                {aiScanStats?.allTimeTotal || 0}
+              </div>
+              <span className="text-xs font-bold text-indigo-600 mt-2 inline-block">Total AI Scans Triggered</span>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Active Users</span>
+                <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
+                  <Users className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-3xl font-black text-slate-900 tracking-tight">
+                {(aiScanStats?.userStats || []).filter(u => u.todayClicks > 0).length}
+              </div>
+              <span className="text-xs font-bold text-purple-600 mt-2 inline-block">Creators Scanning Today</span>
+            </div>
+          </div>
+
+          {/* User-by-User Click Table */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                  <Sparkles className="w-4.5 h-4.5 text-teal-600" />
+                  <span>AI Scan Button Clicks per User / Account</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Live tracking of how many times each account / user ID clicked "Run Deep AI Content Safety Scan" per day.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={fetchAiScanClicks}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-teal-600 ${aiScanLoading ? 'animate-spin' : ''}`} />
+                <span>Refresh Counts</span>
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-100">
+                  <tr>
+                    <th className="py-3 px-4">User / Creator</th>
+                    <th className="py-3 px-4">Account / User ID</th>
+                    <th className="py-3 px-4 text-center">Clicks Today</th>
+                    <th className="py-3 px-4 text-center">Total All-Time</th>
+                    <th className="py-3 px-4">Last Scanned Asset</th>
+                    <th className="py-3 px-4">Last Scan Time</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {(!aiScanStats?.userStats || aiScanStats.userStats.length === 0) ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">
+                        No AI scan click records logged yet today. Scans will appear here as users click "Run Deep AI Content Safety Scan".
+                      </td>
+                    </tr>
+                  ) : (
+                    aiScanStats.userStats.map((u, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-3 px-4">
+                          <div className="font-bold text-slate-900">{u.userName}</div>
+                          <div className="text-[11px] text-slate-500">{u.userEmail}</div>
+                        </td>
+                        <td className="py-3 px-4 font-mono text-[11px] text-slate-600">
+                          <span className="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                            {u.userId}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black ${
+                            u.todayClicks > 0
+                              ? "bg-teal-100 text-teal-800 border border-teal-200"
+                              : "bg-slate-100 text-slate-400"
+                          }`}>
+                            {u.todayClicks} {u.todayClicks === 1 ? 'click' : 'clicks'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-center font-bold text-slate-800">
+                          {u.totalClicks}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="capitalize text-[11px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
+                            {u.lastMediaType || "video"}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-slate-500 text-[11px]">
+                          {u.lastScanTime ? new Date(u.lastScanTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "N/A"}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CREATE NEW COUPON MODAL */}
       {isAddCouponOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
@@ -1492,9 +1643,9 @@ export default function AdminPanelPage() {
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 bg-white"
                   >
                     <option value="5-Day Trial">5-Day Free Trial</option>
-                    <option value="Starter">Starter Plan (₹999)</option>
-                    <option value="Growth">Growth Plan (₹1,999)</option>
-                    <option value="Pro Unlimited">Pro Unlimited (₹3,999)</option>
+                    <option value="Starter">Starter Plan (₹2,999)</option>
+                    <option value="Growth">Growth Plan (₹4,999)</option>
+                    <option value="Pro Unlimited">Pro Unlimited (₹7,999)</option>
                     <option value="Super Admin (Unrestricted)">Super Admin (Unrestricted)</option>
                   </select>
                 </div>
@@ -1623,9 +1774,9 @@ export default function AdminPanelPage() {
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-bold bg-white"
                 >
                   <option value="5-Day Trial">5-Day Free Trial</option>
-                  <option value="Starter">Starter (₹999)</option>
-                  <option value="Growth">Growth (₹1,999)</option>
-                  <option value="Pro Unlimited">Pro Unlimited (₹3,999)</option>
+                  <option value="Starter">Starter (₹2,999)</option>
+                  <option value="Growth">Growth (₹4,999)</option>
+                  <option value="Pro Unlimited">Pro Unlimited (₹7,999)</option>
                   <option value="Super Admin (Unrestricted)">Super Admin (Unrestricted)</option>
                 </select>
               </div>

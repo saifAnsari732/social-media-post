@@ -63,7 +63,7 @@ export async function POST(req) {
             userEmail,
             userId: userId || "N/A",
             planName: planName || "Pro Unlimited Subscription",
-            originalAmount: Number(originalAmount) || 4999,
+            originalAmount: Number(originalAmount) || 7999,
             discountAmount: Number(discountAmount) || 0,
             amountPaid: Number(amountPaid) || 1,
             couponCode: couponCode || null,

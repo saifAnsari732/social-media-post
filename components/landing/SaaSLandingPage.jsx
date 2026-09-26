@@ -96,14 +96,15 @@ export default function SaaSLandingPage() {
       name: "STARTER",
       tagline: "For solopreneurs & small creators starting out",
       badge: "ENTRY PLAN",
-      monthlyPrice: 1999,
-      yearlyPrice: 1899,
+      monthlyPrice: 2999,
+      yearlyPrice: 2849,
       accentBg: "bg-slate-50",
       border: "border border-slate-200/90 shadow-2xs hover:shadow-md transition-all",
       btnBg: "bg-slate-900 hover:bg-slate-800 text-white",
       features: [
         "3 Connected Social Accounts",
-        "❌ NO AI Support / AI Assistant",
+        "🛡️ 20 AI Copyright & Safe Harbor Scans / mo",
+        "❌ NO Full AI Assistant / Caption Bot",
         "50 Scheduled Posts / month",
         "Visual Content Calendar",
         "Multi-Platform Composer",
@@ -118,13 +119,15 @@ export default function SaaSLandingPage() {
       tagline: "For growing brands, creators & active teams",
       badge: "★ MOST POPULAR",
       popular: true,
-      monthlyPrice: 2999,
-      yearlyPrice: 2849,
+      monthlyPrice: 4999,
+      yearlyPrice: 4749,
       accentBg: "bg-gradient-to-b from-indigo-50/50 to-white",
       border: "border-2 border-indigo-600 shadow-xl shadow-indigo-600/10 hover:shadow-2xl hover:shadow-indigo-600/15 transition-all relative",
       btnBg: "bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/25",
       features: [
         "6 Connected Social Accounts",
+        "🛡️ ✨ 200 Deep Gemini 2.5 AI Copyright Scans / mo",
+        "🛡️ Content ID Match & Policy Shield",
         "✅ Full AI Support & Assistant",
         "500 AI Generator Credits / mo",
         "Unlimited Scheduled Posts",
@@ -141,13 +144,15 @@ export default function SaaSLandingPage() {
       name: "PRO UNLIMITED",
       tagline: "For power marketers, brands & agencies needing all capabilities",
       badge: "ALL UNLIMITED",
-      monthlyPrice: 4999,
-      yearlyPrice: 4749,
+      monthlyPrice: 7999,
+      yearlyPrice: 7599,
       accentBg: "bg-slate-50",
       border: "border border-slate-200/90 shadow-2xs hover:border-purple-300 hover:shadow-md transition-all",
       btnBg: "bg-purple-600 hover:bg-purple-700 text-white shadow-xs",
       features: [
         "Unlimited Connected Social Accounts",
+        "🛡️ ✨ UNLIMITED Gemini 2.5 AI Copyright & Strike Scans",
+        "🛡️ Commercial Label & Fair Use Clearance",
         "🎯 Meta Ads Manager & 1-Click Post Booster",
         "✅ Unlimited AI Credits & All AI Tools",
         "Unlimited Scheduled Posts & Queues",
@@ -173,8 +178,10 @@ export default function SaaSLandingPage() {
       ]
     },
     {
-      category: "AI & Automation Support",
+      category: "AI & Content Safety Scanner",
       rows: [
+        { name: "Gemini 2.5 AI Copyright & Strike Scanner", starter: "20 Scans / mo", growth: "200 Scans / mo", pro: "✓ UNLIMITED Scans" },
+        { name: "Content ID & Platform Safe Harbor Shield", starter: "—", growth: "✓ Included", pro: "✓ Full Commercial Clearance" },
         { name: "AI Assistant & Content Generation", starter: "— (NO AI)", growth: "✓ Included", pro: "✓ Unlimited AI" },
         { name: "AI Assistant Credits", starter: "0 Credits", growth: "500 / mo", pro: "Unlimited" },
         { name: "AI Caption & Hashtag Generator", starter: "—", growth: "✓", pro: "✓" },
@@ -197,7 +204,7 @@ export default function SaaSLandingPage() {
   const faqs = [
     { q: "Which social platforms are supported by Postfly?", a: "Postfly supports Instagram, Facebook, LinkedIn, YouTube, X / Twitter, Threads, and Pinterest with direct OAuth integration." },
     { q: "Can I schedule posts for future dates and times?", a: "Yes, you can schedule single posts, carousel posts, reels, shorts, and video content for any future date and time across all connected networks." },
-    { q: "What is the difference between the ₹1,999, ₹2,999 and ₹4,999 plans?", a: "The Starter plan (₹1,999) includes 3 social accounts with no AI support. The Growth plan (₹2,999) includes 6 accounts with full AI support and 500 credits. The Pro plan (₹4,999) gives you Unlimited accounts, Unlimited AI credits, and multi-workspace features." },
+    { q: "What is the difference between the ₹2,999, ₹4,999 and ₹7,999 plans?", a: "The Starter plan (₹2,999) includes 3 social accounts. The Growth plan (₹4,999) includes 6 accounts with full AI support and 500 credits. The Pro plan (₹7,999) gives you Unlimited accounts, Unlimited AI credits, and multi-workspace features." },
     { q: "Can multiple team members use one account?", a: "Yes! Growth and Pro Unlimited plans include multi-user collaboration with custom permissions, approval workflows, and role assignments." },
     { q: "Does Postfly support marketing agencies and client management?", a: "Yes! Our Pro Unlimited plan offers unlimited client workspaces, white-label PDF analytics reports, custom branding, and client access controls." },
     { q: "How does Razorpay billing work in INR (₹)?", a: "All subscriptions are securely processed via Razorpay in Indian Rupees (INR ₹). We accept UPI (GPay, PhonePe, Paytm), Credit/Debit Cards, and Netbanking." },
@@ -301,7 +308,7 @@ export default function SaaSLandingPage() {
             href="#pricing"
             className="w-full sm:w-auto px-7 py-4 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-bold text-sm shadow-2xs transition-all flex items-center justify-center gap-2 no-underline"
           >
-            View Pricing (From ₹1,999/mo)
+            View Pricing (From ₹2,999/mo)
           </a>
         </div>
 
@@ -545,6 +552,16 @@ export default function SaaSLandingPage() {
                 </button>
               </div>
             </div>
+
+            {/* AI Safety & Copyright Protection Highlight Banner */}
+            <div className="pt-3">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-rose-50 via-pink-50 to-indigo-50 border border-rose-200 text-rose-950 text-xs font-semibold shadow-2xs">
+                <ShieldCheck className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>
+                  <strong className="text-rose-700 font-extrabold uppercase tracking-wide">Included in all plans:</strong> Deep Gemini 2.5 AI Copyright & Platform Policy Safety Scanner!
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* 3 Custom Paid Pricing Cards Grid */}
@@ -595,16 +612,41 @@ export default function SaaSLandingPage() {
                     <ul className="space-y-2.5 text-xs font-medium">
                       {plan.features.map((feat, idx) => {
                         const isExcluded = feat.startsWith("❌");
+                        const isAiScan = feat.includes("🛡️") || feat.toLowerCase().includes("copyright") || feat.toLowerCase().includes("safe harbor") || feat.toLowerCase().includes("fair use");
                         return (
-                          <li key={idx} className="flex items-start gap-2.5">
+                          <li
+                            key={idx}
+                            className={`flex items-start gap-2.5 ${
+                              isAiScan
+                                ? "p-2 rounded-xl bg-gradient-to-r from-rose-50 via-rose-100/60 to-pink-50 border border-rose-200/90 shadow-2xs"
+                                : ""
+                            }`}
+                          >
                             {isExcluded ? (
                               <X className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                            ) : isAiScan ? (
+                              <ShieldCheck className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                             ) : (
                               <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                             )}
-                            <span className={isExcluded ? "text-slate-500 font-bold" : "text-slate-800"}>
-                              {feat.replace("❌ ", "").replace("✅ ", "")}
-                            </span>
+                            <div className="flex-1 min-w-0">
+                              <span
+                                className={
+                                  isExcluded
+                                    ? "text-slate-500 font-bold"
+                                    : isAiScan
+                                    ? "text-rose-950 font-bold flex items-center gap-1.5 flex-wrap"
+                                    : "text-slate-800"
+                                }
+                              >
+                                {feat.replace("❌ ", "").replace("✅ ", "").replace("🛡️ ✨ ", "").replace("🛡️ ", "")}
+                                {isAiScan && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-rose-600 text-white shadow-2xs">
+                                    AI SCANNER
+                                  </span>
+                                )}
+                              </span>
+                            </div>
                           </li>
                         );
                       })}
@@ -655,7 +697,7 @@ export default function SaaSLandingPage() {
         <div className="text-center max-w-2xl mx-auto mb-12">
           <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider">Detailed Matrix</span>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Compare Plan Features</h2>
-          <p className="text-xs text-slate-500 mt-1">Full side-by-side feature comparison of Starter (₹1,999), Growth (₹2,999) and Pro (₹4,999).</p>
+          <p className="text-xs text-slate-500 mt-1">Full side-by-side feature comparison of Starter (₹2,999), Growth (₹4,999) and Pro (₹7,999).</p>
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
@@ -664,9 +706,9 @@ export default function SaaSLandingPage() {
               <thead>
                 <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200/80">
                   <th className="p-4 w-2/5">Feature Overview</th>
-                  <th className="p-4 text-center">Starter (₹1,999/mo)</th>
-                  <th className="p-4 text-center bg-indigo-50/50 text-indigo-950 font-extrabold">Growth (₹2,999/mo) ★</th>
-                  <th className="p-4 text-center">Pro Unlimited (₹4,999/mo)</th>
+                  <th className="p-4 text-center">Starter (₹2,999/mo)</th>
+                  <th className="p-4 text-center bg-indigo-50/50 text-indigo-950 font-extrabold">Growth (₹4,999/mo) ★</th>
+                  <th className="p-4 text-center">Pro Unlimited (₹7,999/mo)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
