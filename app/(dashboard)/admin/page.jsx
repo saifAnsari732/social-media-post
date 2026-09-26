@@ -57,7 +57,7 @@ export default function AdminPanelPage() {
   const [serverStats, setServerStats] = useState({ totalUsers: 0, totalPosts: 0, totalAccounts: 0, totalRules: 0 });
   const [loading, setLoading] = useState(true);
 
-  // Inspector & Modals State
+  // Inspector & Modals State            tfuktlu
   const [inspectingUser, setInspectingUser] = useState(null);
   const [actionMenuOpenId, setActionMenuOpenId] = useState(null);
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
