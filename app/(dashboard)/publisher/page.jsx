@@ -145,6 +145,7 @@ export default function PublisherPage() {
   const [instagramPlacement, setInstagramPlacement] = useState("reels"); // 'reels' | 'feed' | 'stories'
   const [instagramShareToFeed, setInstagramShareToFeed] = useState(true);
   const [facebookPlacement, setFacebookPlacement] = useState("reels_video"); // 'reels_video' | 'feed'
+  const [showChannelOptimization, setShowChannelOptimization] = useState(false); // Collapsed by default as requested
   const [videoDimensions, setVideoDimensions] = useState(null); // { width, height, duration, isVertical, isShortsCompatible }
   const [previewTab, setPreviewTab] = useState("instagram");
   const [editingPost, setEditingPost] = useState(null);
@@ -2979,249 +2980,237 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
 
           {/* PLATFORM-SPECIFIC VIDEO & POST SETTINGS */}
           {(hasYouTubeSelected || hasInstagramSelected || hasFacebookSelected) && (
-            <div className="space-y-3.5 pt-3.5 border-t border-slate-100 animate-in fade-in duration-200">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+            <div className="space-y-3 pt-3.5 border-t border-slate-100 animate-in fade-in duration-200">
+              <div 
+                onClick={() => setShowChannelOptimization(prev => !prev)}
+                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 hover:bg-slate-100 transition-all cursor-pointer select-none"
+              >
+                <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5 cursor-pointer">
                   <Sliders className="w-3.5 h-3.5 text-indigo-600" />
                   <span>Channel Optimization & Formats</span>
                 </label>
-                <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-200">
-                  Auto-Optimized
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
+                    {showChannelOptimization ? "Expanded" : "Default Auto"}
+                  </span>
+                  {showChannelOptimization ? (
+                    <ChevronUp className="w-4 h-4 text-slate-500" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-slate-500" />
+                  )}
+                </div>
               </div>
 
-              {/* YOUTUBE SETTINGS */}
-              {hasYouTubeSelected && (
-                <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-3 text-xs">
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                    <div className="flex items-center gap-2 font-bold text-slate-900">
-                      <div className="w-6 h-6 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
-                        <PlatformIcon platform="youtube" className="w-3.5 h-3.5 text-red-600" />
+              {showChannelOptimization && (
+                <div className="space-y-3 pt-1 animate-in fade-in duration-200">
+                  {/* YOUTUBE SETTINGS */}
+                  {hasYouTubeSelected && (
+                    <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-3 text-xs">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                        <div className="flex items-center gap-2 font-bold text-slate-900">
+                          <div className="w-6 h-6 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
+                            <PlatformIcon platform="youtube" className="w-3.5 h-3.5 text-red-600" />
+                          </div>
+                          <span>YouTube Video Controls</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded-md border border-red-200/60">
+                          YouTube v3
+                        </span>
                       </div>
-                      <span>YouTube Video Controls</span>
-                    </div>
-                    <span className="text-[10px] font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded-md border border-red-200/60">
-                      YouTube v3
-                    </span>
-                  </div>
 
-                  {/* YouTube Shorts vs Long Video Selector */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-bold text-slate-800">Format & Placement</span>
-                      <span className="text-[10px] text-slate-400">Shorts (&le; 60s 9:16)</span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-slate-100/80 border border-slate-200/60">
-                      {[
-                        { id: "auto", label: "Auto-Detect" },
-                        { id: "shorts", label: "Shorts (#Shorts)" },
-                        { id: "standard", label: "Long Video" }
-                      ].map(fmt => (
-                        <button
-                          key={fmt.id}
-                          type="button"
-                          onClick={() => setYoutubeFormat(fmt.id)}
-                          className={`py-1.5 px-2 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer ${
-                            youtubeFormat === fmt.id
-                              ? "bg-red-600 text-white shadow-xs"
-                              : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
-                          }`}
-                        >
-                          {fmt.label}
-                        </button>
-                      ))}
-                    </div>
-                    {videoDimensions && (
-                      <p className="text-[10.5px] text-slate-600 bg-slate-50 p-2 rounded-xl border border-slate-200/80 leading-snug flex items-center gap-1.5">
-                        <span className="shrink-0">{videoDimensions.isVertical ? "📱" : "🎬"}</span>
-                        <span>{videoDimensions.isVertical 
-                          ? "Vertical (9:16) video detected — YouTube will automatically place it into the Shorts shelf!"
-                          : "Horizontal (16:9) video detected — YouTube will publish it as Standard Long-form Video."}</span>
-                      </p>
-                    )}
-                  </div>
+                      {/* YouTube Shorts vs Long Video Selector */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-bold text-slate-800">Format & Placement</span>
+                          <span className="text-[10px] text-slate-400">Shorts (&le; 60s 9:16)</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-slate-100/80 border border-slate-200/60">
+                          {[
+                            { id: "auto", label: "Auto-Detect" },
+                            { id: "shorts", label: "Shorts (#Shorts)" },
+                            { id: "standard", label: "Long Video" }
+                          ].map(fmt => (
+                            <button
+                              key={fmt.id}
+                              type="button"
+                              onClick={() => setYoutubeFormat(fmt.id)}
+                              className={`py-1.5 px-2 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer ${
+                                youtubeFormat === fmt.id
+                                  ? "bg-red-600 text-white shadow-xs"
+                                  : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                              }`}
+                            >
+                              {fmt.label}
+                            </button>
+                          ))}
+                        </div>
+                        {videoDimensions && (
+                          <p className="text-[10.5px] text-slate-600 bg-slate-50 p-2 rounded-xl border border-slate-200/80 leading-snug flex items-center gap-1.5">
+                            <span className="shrink-0">{videoDimensions.isVertical ? "📱" : "🎬"}</span>
+                            <span>{videoDimensions.isVertical 
+                              ? "Vertical (9:16) video detected — YouTube will automatically place it into the Shorts shelf!"
+                              : "Horizontal (16:9) video detected — YouTube will publish it as Standard Long-form Video."}</span>
+                          </p>
+                        )}
+                      </div>
 
-                  {/* YouTube Privacy & COPPA Row */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    <div className="space-y-1.5">
-                      <span className="text-[11px] font-bold text-slate-800">Privacy Status</span>
-                      <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-slate-100/80 border border-slate-200/60">
-                        {[
-                          { id: "public", label: "Public" },
-                          { id: "unlisted", label: "Unlisted" },
-                          { id: "private", label: "Private" }
-                        ].map(p => (
+                      {/* COPPA Made for Kids */}
+                      <div className="space-y-1.5 pt-1">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-bold text-slate-800">Made for Kids (COPPA)</span>
+                          <span className="text-[9.5px] text-slate-400">Required</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-slate-100/80 border border-slate-200/60">
                           <button
-                            key={p.id}
                             type="button"
-                            onClick={() => setYoutubePrivacy(p.id)}
-                            className={`py-1 px-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer text-center ${
-                              youtubePrivacy === p.id
-                                ? "bg-slate-900 text-white shadow-xs"
+                            onClick={() => setYoutubeMadeForKids(false)}
+                            className={`py-1.5 px-2 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer ${
+                              !youtubeMadeForKids
+                                ? "bg-indigo-600 text-white shadow-xs"
                                 : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
                             }`}
                           >
-                            {p.label}
+                            No (Recommended)
                           </button>
-                        ))}
+                          <button
+                            type="button"
+                            onClick={() => setYoutubeMadeForKids(true)}
+                            className={`py-1.5 px-2 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer ${
+                              youtubeMadeForKids
+                                ? "bg-indigo-600 text-white shadow-xs"
+                                : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                            }`}
+                          >
+                            Yes, for kids
+                          </button>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="font-bold text-slate-800">Made for Kids</span>
-                        <span className="text-[9.5px] text-slate-400">COPPA</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-slate-100/80 border border-slate-200/60">
-                        <button
-                          type="button"
-                          onClick={() => setYoutubeMadeForKids(false)}
-                          className={`py-1 px-2 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer ${
-                            !youtubeMadeForKids
-                              ? "bg-indigo-600 text-white shadow-xs"
-                              : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
-                          }`}
+                      {/* Category Dropdown */}
+                      <div className="space-y-1 pt-1">
+                        <span className="text-[11px] font-bold text-slate-800">Category</span>
+                        <select
+                          value={youtubeCategory}
+                          onChange={e => setYoutubeCategory(e.target.value)}
+                          className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800 focus:outline-none focus:border-red-500 focus:bg-white transition-all shadow-2xs"
                         >
-                          No (Default)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setYoutubeMadeForKids(true)}
-                          className={`py-1 px-2 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer ${
-                            youtubeMadeForKids
-                              ? "bg-indigo-600 text-white shadow-xs"
-                              : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
-                          }`}
-                        >
-                          Yes, for kids
-                        </button>
+                          <option value="22">People & Blogs (Default)</option>
+                          <option value="24">Entertainment</option>
+                          <option value="27">Education</option>
+                          <option value="28">Science & Technology</option>
+                          <option value="26">Howto & Style</option>
+                          <option value="20">Gaming</option>
+                          <option value="1">Film & Animation</option>
+                          <option value="10">Music</option>
+                        </select>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Category Dropdown */}
-                  <div className="space-y-1 pt-1">
-                    <span className="text-[11px] font-bold text-slate-800">Category</span>
-                    <select
-                      value={youtubeCategory}
-                      onChange={e => setYoutubeCategory(e.target.value)}
-                      className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800 focus:outline-none focus:border-red-500 focus:bg-white transition-all shadow-2xs"
-                    >
-                      <option value="22">People & Blogs (Default)</option>
-                      <option value="24">Entertainment</option>
-                      <option value="27">Education</option>
-                      <option value="28">Science & Technology</option>
-                      <option value="26">Howto & Style</option>
-                      <option value="20">Gaming</option>
-                      <option value="1">Film & Animation</option>
-                      <option value="10">Music</option>
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              {/* INSTAGRAM SETTINGS */}
-              {hasInstagramSelected && (
-                <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-3 text-xs">
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                    <div className="flex items-center gap-2 font-bold text-slate-900">
-                      <div className="w-6 h-6 rounded-lg bg-pink-50 text-pink-600 flex items-center justify-center">
-                        <PlatformIcon platform="instagram" className="w-3.5 h-3.5 text-pink-600" />
-                      </div>
-                      <span>Instagram Placement</span>
-                    </div>
-                    <span className="text-[10px] font-bold text-pink-700 bg-pink-50 px-2 py-0.5 rounded-md border border-pink-200/60">
-                      Meta Graph
-                    </span>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <span className="text-[11px] font-bold text-slate-800">Media Format</span>
-                    <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-slate-100/80 border border-slate-200/60">
-                      {[
-                        { id: "reels", label: "Reels (9:16)" },
-                        { id: "feed", label: "Feed Post" },
-                        { id: "stories", label: "Stories" }
-                      ].map(opt => (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => setInstagramPlacement(opt.id)}
-                          className={`py-1.5 px-1 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer ${
-                            instagramPlacement === opt.id
-                              ? "bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 text-white shadow-xs"
-                              : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {instagramPlacement === "reels" && (
-                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
-                      <div>
-                        <p className="text-[11px] font-bold text-slate-800">Share Reels to Main Feed</p>
-                        <p className="text-[10px] text-slate-500">Also displays on profile grid</p>
-                      </div>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={instagramShareToFeed}
-                        onClick={() => setInstagramShareToFeed(prev => !prev)}
-                        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                          instagramShareToFeed ? "bg-rose-600" : "bg-slate-300"
-                        }`}
-                      >
-                        <span
-                          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                            instagramShareToFeed ? "translate-x-4" : "translate-x-0"
-                          }`}
-                        />
-                      </button>
                     </div>
                   )}
-                </div>
-              )}
 
-              {/* FACEBOOK SETTINGS */}
-              {hasFacebookSelected && (
-                <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-3 text-xs">
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                    <div className="flex items-center gap-2 font-bold text-slate-900">
-                      <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                        <PlatformIcon platform="facebook" className="w-3.5 h-3.5 text-blue-600" />
+                  {/* INSTAGRAM SETTINGS */}
+                  {hasInstagramSelected && (
+                    <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-3 text-xs">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                        <div className="flex items-center gap-2 font-bold text-slate-900">
+                          <div className="w-6 h-6 rounded-lg bg-pink-50 text-pink-600 flex items-center justify-center">
+                            <PlatformIcon platform="instagram" className="w-3.5 h-3.5 text-pink-600" />
+                          </div>
+                          <span>Instagram Placement</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-pink-700 bg-pink-50 px-2 py-0.5 rounded-md border border-pink-200/60">
+                          Meta Graph
+                        </span>
                       </div>
-                      <span>Facebook Placement</span>
-                    </div>
-                    <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200/60">
-                      Meta Pages
-                    </span>
-                  </div>
 
-                  <div className="space-y-1.5">
-                    <span className="text-[11px] font-bold text-slate-800">Placement Mode</span>
-                    <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-slate-100/80 border border-slate-200/60">
-                      {[
-                        { id: "reels_video", label: "Reels / Video Post" },
-                        { id: "feed", label: "Page Feed Post" }
-                      ].map(opt => (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => setFacebookPlacement(opt.id)}
-                          className={`py-1.5 px-1 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer ${
-                            facebookPlacement === opt.id
-                              ? "bg-blue-600 text-white shadow-xs"
-                              : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
+                      <div className="space-y-1.5">
+                        <span className="text-[11px] font-bold text-slate-800">Media Format</span>
+                        <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-slate-100/80 border border-slate-200/60">
+                          {[
+                            { id: "reels", label: "Reels (9:16)" },
+                            { id: "feed", label: "Feed Post" },
+                            { id: "stories", label: "Stories" }
+                          ].map(opt => (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => setInstagramPlacement(opt.id)}
+                              className={`py-1.5 px-1 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer ${
+                                instagramPlacement === opt.id
+                                  ? "bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 text-white shadow-xs"
+                                  : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {instagramPlacement === "reels" && (
+                        <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
+                          <div>
+                            <p className="text-[11px] font-bold text-slate-800">Share Reels to Main Feed</p>
+                            <p className="text-[10px] text-slate-500">Also displays on profile grid</p>
+                          </div>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={instagramShareToFeed}
+                            onClick={() => setInstagramShareToFeed(prev => !prev)}
+                            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                              instagramShareToFeed ? "bg-rose-600" : "bg-slate-300"
+                            }`}
+                          >
+                            <span
+                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                instagramShareToFeed ? "translate-x-4" : "translate-x-0"
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  )}
+
+                  {/* FACEBOOK SETTINGS */}
+                  {hasFacebookSelected && (
+                    <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-3 text-xs">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                        <div className="flex items-center gap-2 font-bold text-slate-900">
+                          <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <PlatformIcon platform="facebook" className="w-3.5 h-3.5 text-blue-600" />
+                          </div>
+                          <span>Facebook Placement</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200/60">
+                          Meta Pages
+                        </span>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <span className="text-[11px] font-bold text-slate-800">Placement Mode</span>
+                        <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-slate-100/80 border border-slate-200/60">
+                          {[
+                            { id: "reels_video", label: "Reels / Video Post" },
+                            { id: "feed", label: "Page Feed Post" }
+                          ].map(opt => (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => setFacebookPlacement(opt.id)}
+                              className={`py-1.5 px-1 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer ${
+                                facebookPlacement === opt.id
+                                  ? "bg-blue-600 text-white shadow-xs"
+                                  : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
