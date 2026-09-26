@@ -122,6 +122,13 @@ export async function POST(req) {
   let mediaUrl = null;
   let mediaType = null;
   let disableComments = false;
+  let youtubeFormat = "auto";
+  let youtubePrivacy = "public";
+  let youtubeMadeForKids = false;
+  let youtubeCategory = "22";
+  let instagramPlacement = "reels";
+  let instagramShareToFeed = true;
+  let facebookPlacement = "reels_video";
   let rawUserId = req.headers.get("x-user-id");
   let userId = (rawUserId && rawUserId !== "undefined" && rawUserId !== "null" && rawUserId.trim() !== "") 
     ? rawUserId.trim() 
@@ -151,6 +158,13 @@ export async function POST(req) {
     publishMode = json.publishMode || (json.scheduledAt ? "schedule" : "draft");
     scheduledAt = json.scheduledAt || null;
     disableComments = Boolean(json.disableComments);
+    youtubeFormat = json.youtubeFormat || "auto";
+    youtubePrivacy = json.youtubePrivacy || "public";
+    youtubeMadeForKids = Boolean(json.youtubeMadeForKids);
+    youtubeCategory = json.youtubeCategory || "22";
+    instagramPlacement = json.instagramPlacement || "reels";
+    instagramShareToFeed = json.instagramShareToFeed !== false;
+    facebookPlacement = json.facebookPlacement || "reels_video";
     if (json.mediaUrl) {
       mediaUrl = json.mediaUrl;
       mediaType = json.mediaType || (json.mediaUrl.includes("video") ? "video" : "image");
@@ -172,6 +186,13 @@ export async function POST(req) {
     publishMode = formData.get("publishMode") || "now";
     scheduledAt = formData.get("scheduledAt") || null;
     disableComments = formData.get("disableComments") === "true";
+    youtubeFormat = formData.get("youtubeFormat") || "auto";
+    youtubePrivacy = formData.get("youtubePrivacy") || "public";
+    youtubeMadeForKids = formData.get("youtubeMadeForKids") === "true";
+    youtubeCategory = formData.get("youtubeCategory") || "22";
+    instagramPlacement = formData.get("instagramPlacement") || "reels";
+    instagramShareToFeed = formData.get("instagramShareToFeed") !== "false";
+    facebookPlacement = formData.get("facebookPlacement") || "reels_video";
     if (!file && mediaUrlFromForm) {
       mediaUrl = mediaUrlFromForm;
       mediaType = mediaTypeFromForm || (mediaUrlFromForm.includes("video") ? "video" : "image");
@@ -248,6 +269,13 @@ export async function POST(req) {
       mediaUrl,
       mediaType,
       disableComments: !!disableComments,
+      youtubeFormat,
+      youtubePrivacy,
+      youtubeMadeForKids: Boolean(youtubeMadeForKids),
+      youtubeCategory,
+      instagramPlacement,
+      instagramShareToFeed: Boolean(instagramShareToFeed),
+      facebookPlacement,
       accountIds: selectedAccountIds,
       status: publishMode === "schedule" ? "Scheduled" : "Draft",
       scheduledAt: scheduledAt || new Date().toISOString(),
@@ -315,7 +343,11 @@ export async function POST(req) {
             videoBuffer: buffer,
             title,
             description,
-            tags
+            tags,
+            youtubeFormat,
+            privacyStatus: youtubePrivacy,
+            madeForKids: youtubeMadeForKids,
+            categoryId: youtubeCategory
           });
           break;
 
@@ -327,7 +359,8 @@ export async function POST(req) {
             mediaUrl: mediaUrl,
             title,
             description,
-            isVideo
+            isVideo,
+            placement: facebookPlacement
           });
           break;
 
@@ -339,7 +372,9 @@ export async function POST(req) {
             mediaUrl: directUrl,
             caption: `${title}\n\n${description}`,
             isVideo,
-            disableComments
+            disableComments,
+            placement: instagramPlacement,
+            shareToFeed: instagramShareToFeed
           });
           break;
         }
@@ -429,6 +464,13 @@ export async function POST(req) {
     mediaUrl,
     mediaType,
     disableComments: !!disableComments,
+    youtubeFormat,
+    youtubePrivacy,
+    youtubeMadeForKids: Boolean(youtubeMadeForKids),
+    youtubeCategory,
+    instagramPlacement,
+    instagramShareToFeed: Boolean(instagramShareToFeed),
+    facebookPlacement,
     accountIds: selectedAccountIds,
     status: postStatus,
     results,
@@ -489,6 +531,13 @@ export async function PUT(req) {
       if (body.mediaUrl !== undefined) updatePayload.mediaUrl = body.mediaUrl;
       if (body.mediaType !== undefined) updatePayload.mediaType = body.mediaType;
       if (body.disableComments !== undefined) updatePayload.disableComments = !!body.disableComments;
+      if (body.youtubeFormat !== undefined) updatePayload.youtubeFormat = body.youtubeFormat;
+      if (body.youtubePrivacy !== undefined) updatePayload.youtubePrivacy = body.youtubePrivacy;
+      if (body.youtubeMadeForKids !== undefined) updatePayload.youtubeMadeForKids = Boolean(body.youtubeMadeForKids);
+      if (body.youtubeCategory !== undefined) updatePayload.youtubeCategory = body.youtubeCategory;
+      if (body.instagramPlacement !== undefined) updatePayload.instagramPlacement = body.instagramPlacement;
+      if (body.instagramShareToFeed !== undefined) updatePayload.instagramShareToFeed = Boolean(body.instagramShareToFeed);
+      if (body.facebookPlacement !== undefined) updatePayload.facebookPlacement = body.facebookPlacement;
 
       const updated = await updatePost(postId, updatePayload);
       try {

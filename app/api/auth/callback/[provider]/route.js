@@ -674,68 +674,16 @@ export async function GET(req, { params }) {
               };
               upsertPromises.push(upsertAccount(igAccount));
               savedIGAccounts.push(igAcc.username || igAcc.id);
-
-              // Auto-connect Threads profile associated with this IG Business account
-              const threadsAccount = {
-                platform: "threads",
-                providerAccountId: igAcc.id,
-                threadsUserId: igAcc.id,
-                linkedPageId: page.id,
-                linkedPageName: page.name,
-                userId,
-                accessToken: page.access_token,
-                name: igAcc.name || igAcc.username || `${page.name} Threads`,
-                username: igAcc.username || null,
-                avatar: igAcc.profile_picture_url || page.picture?.data?.url || null,
-                biography: igAcc.biography || null,
-                website: igAcc.website || null,
-                followers: igFollowers,
-                followersFormatted:
-                  igFollowers > 1000000
-                    ? `${(igFollowers / 1000000).toFixed(1)}M`
-                    : igFollowers > 1000
-                    ? `${(igFollowers / 1000).toFixed(1)}K`
-                    : `${igFollowers}`,
-                connectedAt: new Date().toISOString(),
-                raw: { page_id: page.id, ig_id: igAcc.id }
-              };
-              upsertPromises.push(upsertAccount(threadsAccount));
-              savedThreadsAccounts.push(igAcc.username || igAcc.id);
             } else {
               console.log(
                 `[Meta] Page "${page.name}" (${page.id}) has no linked Instagram Business Account`
               );
-              // Save a Threads profile entry for the Facebook page if no Instagram is linked
-              if (page.access_token) {
-                const threadsAccount = {
-                  platform: "threads",
-                  providerAccountId: `threads_page_${page.id}`,
-                  threadsUserId: page.id,
-                  linkedPageId: page.id,
-                  linkedPageName: page.name,
-                  userId,
-                  accessToken: page.access_token,
-                  name: `${page.name} (Threads)`,
-                  username: page.name.toLowerCase().replace(/[^a-z0-9._]/g, ""),
-                  avatar: page.picture?.data?.url || null,
-                  followers: page.fan_count || 0,
-                  followersFormatted:
-                    (page.fan_count || 0) > 1000
-                      ? `${((page.fan_count || 0) / 1000).toFixed(1)}K`
-                      : `${page.fan_count || 0}`,
-                  connectedAt: new Date().toISOString(),
-                  raw: { page_id: page.id }
-                };
-                upsertPromises.push(upsertAccount(threadsAccount));
-                savedThreadsAccounts.push(page.name);
-              }
             }
           }
 
           console.log(
             `[Meta] Saving: ${savedFBPages.length} FB pages [${savedFBPages.join(", ")}], ` +
-              `${savedIGAccounts.length} IG accounts [${savedIGAccounts.join(", ")}], ` +
-              `${savedThreadsAccounts.length} Threads accounts [${savedThreadsAccounts.join(", ")}]`
+              `${savedIGAccounts.length} IG accounts [${savedIGAccounts.join(", ")}]`
           );
 
           if (upsertPromises.length > 0) {

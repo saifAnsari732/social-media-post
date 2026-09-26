@@ -50,12 +50,10 @@ export async function GET(req, { params }) {
       )}&state=${state}&scope=${encodeURIComponent(linkedinScope)}`;
     },
     threads: () => {
-      // Direct Meta Connection -> Redirects to Meta OAuth Dialog and automatically discovers Instagram & Threads!
-      return `https://www.facebook.com/v20.0/dialog/oauth?client_id=${metaAppId}&redirect_uri=${encodeURIComponent(
-        metaRedirectUri
-      )}&state=${state}&auth_type=rerequest&scope=${encodeURIComponent(
-        "pages_show_list,pages_read_engagement,pages_manage_posts,pages_manage_metadata,instagram_basic,instagram_content_publish,instagram_manage_messages,instagram_manage_comments,instagram_manage_insights,business_management"
-      )}`;
+      // Official Threads OAuth 2.0 Authorization Dialog
+      return `https://threads.net/oauth/authorize?client_id=${threadsAppId}&redirect_uri=${encodeURIComponent(
+        threadsRedirectUri
+      )}&scope=${encodeURIComponent("threads_basic,threads_content_publish")}&response_type=code&state=${state}`;
     },
     pinterest: () =>
       `https://www.pinterest.com/oauth/?client_id=${process.env.PINTEREST_CLIENT_ID}&redirect_uri=${encodeURIComponent(
