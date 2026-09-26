@@ -1040,41 +1040,74 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
     let visualMetrics = null;
     let isSyntheticVisualSignal = false;
 
-    if (isVideo && videoPreviewRef.current) {
+    if (isVideo) {
       try {
-        const v = videoPreviewRef.current;
-        if (v.videoWidth > 0 && v.videoHeight > 0) {
-          const canvas = document.createElement("canvas");
-          canvas.width = 360;
-          canvas.height = Math.round(360 * (v.videoHeight / v.videoWidth || 16/9));
-          const ctx = canvas.getContext("2d", { willReadFrequently: true });
-          ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
-          frameThumbnail = canvas.toDataURL("image/jpeg", 0.65);
-          visualMetrics = analyzeFrameForSyntheticSignals(ctx, canvas.width, canvas.height);
-          if (visualMetrics?.isSynthetic) {
-            isSyntheticVisualSignal = true;
-          }
+        const offVideo = document.createElement("video");
+        offVideo.muted = true;
+        offVideo.playsInline = true;
+        offVideo.crossOrigin = "anonymous";
+        const videoSrc = file ? URL.createObjectURL(file) : (filePreview || "");
+        if (videoSrc) {
+          offVideo.src = videoSrc;
+          await new Promise((resolve) => {
+            offVideo.onloadeddata = () => {
+              offVideo.currentTime = Math.min(1.0, (offVideo.duration || 2) / 2);
+            };
+            offVideo.onseeked = () => {
+              try {
+                const canvas = document.createElement("canvas");
+                canvas.width = 360;
+                canvas.height = Math.round(360 * (offVideo.videoHeight / offVideo.videoWidth || 16/9));
+                const ctx = canvas.getContext("2d", { willReadFrequently: true });
+                ctx.drawImage(offVideo, 0, 0, canvas.width, canvas.height);
+                frameThumbnail = canvas.toDataURL("image/jpeg", 0.65);
+                visualMetrics = analyzeFrameForSyntheticSignals(ctx, canvas.width, canvas.height);
+                if (visualMetrics?.isSynthetic) {
+                  isSyntheticVisualSignal = true;
+                }
+              } catch (e) {
+                console.warn("Canvas capture error:", e);
+              }
+              resolve();
+            };
+            offVideo.onerror = () => resolve();
+            setTimeout(resolve, 1500);
+          });
         }
       } catch (err) {
-        console.warn("Canvas capture warning:", err);
+        console.warn("Offscreen video frame capture warning:", err);
       }
-    } else if (!isVideo && imagePreviewRef.current) {
+    } else if (!isVideo) {
       try {
-        const img = imagePreviewRef.current;
-        if (img.naturalWidth > 0 && img.naturalHeight > 0) {
-          const canvas = document.createElement("canvas");
-          canvas.width = 360;
-          canvas.height = Math.round(360 * (img.naturalHeight / img.naturalWidth || 1));
-          const ctx = canvas.getContext("2d", { willReadFrequently: true });
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          frameThumbnail = canvas.toDataURL("image/jpeg", 0.65);
-          visualMetrics = analyzeFrameForSyntheticSignals(ctx, canvas.width, canvas.height);
-          if (visualMetrics?.isSynthetic) {
-            isSyntheticVisualSignal = true;
-          }
+        const offImg = new Image();
+        offImg.crossOrigin = "anonymous";
+        const imgSrc = file ? URL.createObjectURL(file) : (filePreview || "");
+        if (imgSrc) {
+          offImg.src = imgSrc;
+          await new Promise((resolve) => {
+            offImg.onload = () => {
+              try {
+                const canvas = document.createElement("canvas");
+                canvas.width = 360;
+                canvas.height = Math.round(360 * (offImg.naturalHeight / offImg.naturalWidth || 1));
+                const ctx = canvas.getContext("2d", { willReadFrequently: true });
+                ctx.drawImage(offImg, 0, 0, canvas.width, canvas.height);
+                frameThumbnail = canvas.toDataURL("image/jpeg", 0.65);
+                visualMetrics = analyzeFrameForSyntheticSignals(ctx, canvas.width, canvas.height);
+                if (visualMetrics?.isSynthetic) {
+                  isSyntheticVisualSignal = true;
+                }
+              } catch (e) {
+                console.warn("Image canvas error:", e);
+              }
+              resolve();
+            };
+            offImg.onerror = () => resolve();
+            setTimeout(resolve, 1000);
+          });
         }
       } catch (err) {
-        console.warn("Image canvas capture warning:", err);
+        console.warn("Offscreen image capture warning:", err);
       }
     }
 
@@ -1988,47 +2021,78 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                 } p-4.5 shadow-md space-y-3.5 animate-in fade-in duration-200`}>
 
                   {/* ─── AI / REAL CONTENT DETECTION BANNER — ALWAYS AT TOP ─── */}
-                  {currentOrigin === "ai" ? (
-                    <div className="rounded-xl bg-purple-600 text-white px-4 py-3 flex items-start justify-between gap-3">
+                  {currentOrigin === "ai" || currentOrigin === "ai_assisted" ? (
+                    <div className="rounded-xl bg-purple-600 text-white px-4 py-3 flex items-start justify-between gap-3 shadow-sm">
                       <div className="flex items-start gap-3">
                         <div className="text-2xl shrink-0">🤖</div>
                         <div>
-                          <p className="text-sm font-black">AI-Generated Content Detected</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-black">AI-Generated Content Detected</p>
+                            <span className="text-[10px] font-black bg-white/20 px-2 py-0.5 rounded-full border border-white/30">
+                              {currentConfidence}% Confidence
+                            </span>
+                          </div>
                           <p className="text-[11px] text-purple-200 mt-0.5">
-                            This video/image was created using AI tools. Platform disclosure is <span className="font-black text-white">mandatory</span> — Meta & YouTube require this label.
+                            This video/image contains AI-generated or synthetic media (3D avatar / stylized character). Platform disclosure is <span className="font-black text-white">mandatory</span> — Meta & YouTube require this label.
                           </p>
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1.5 shrink-0">
-                        <span className="text-[10px] font-black bg-white/20 px-2 py-0.5 rounded-full border border-white/30">
-                          {currentConfidence}% Confidence
-                        </span>
                         {!description.includes("AI & SYNTHETIC MEDIA DISCLOSURE") && (
                           <button
                             type="button"
                             onClick={handleApplyAIDisclosure}
-                            className="text-[10px] font-black bg-white text-purple-700 px-2.5 py-1 rounded-lg cursor-pointer hover:bg-purple-50 transition-all"
+                            className="text-[10px] font-black bg-white text-purple-700 px-2.5 py-1 rounded-lg cursor-pointer hover:bg-purple-50 transition-all shadow-xs"
                           >
                             🏷️ Add AI Label to Caption
                           </button>
                         )}
                         {description.includes("AI & SYNTHETIC MEDIA DISCLOSURE") && (
-                          <span className="text-[10px] font-black bg-green-400/30 text-white px-2 py-0.5 rounded-full">✓ Label Added</span>
+                          <span className="text-[10px] font-black bg-green-400/30 text-white px-2 py-0.5 rounded-full border border-green-400/40">✓ Label Added</span>
                         )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDetectedMediaOrigin("real");
+                            if (scanResultData) {
+                              setScanResultData(prev => prev ? { ...prev, detectedMediaOrigin: "real" } : prev);
+                            }
+                          }}
+                          className="text-[9.5px] text-purple-200 hover:text-white underline cursor-pointer"
+                        >
+                          Switch to Real Camera
+                        </button>
                       </div>
                     </div>
                   ) : (
-                    <div className="rounded-xl bg-emerald-600 text-white px-4 py-3 flex items-center gap-3">
-                      <div className="text-2xl shrink-0">📷</div>
-                      <div>
-                        <p className="text-sm font-black">100% Real Content Verified</p>
-                        <p className="text-[11px] text-emerald-200 mt-0.5">
-                          Natural recording detected — no deepfake or synthetic signatures found. No disclosure required.
-                        </p>
+                    <div className="rounded-xl bg-emerald-600 text-white px-4 py-3 flex items-center justify-between gap-3 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="text-2xl shrink-0">📷</div>
+                        <div>
+                          <p className="text-sm font-black">100% Real Content Verified</p>
+                          <p className="text-[11px] text-emerald-200 mt-0.5">
+                            Natural camera recording detected — no synthetic or deepfake signatures found.
+                          </p>
+                        </div>
                       </div>
-                      <span className="ml-auto text-[10px] font-black bg-white/20 px-2 py-0.5 rounded-full border border-white/30 shrink-0">
-                        {currentConfidence}% Confidence
-                      </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[10px] font-black bg-white/20 px-2 py-0.5 rounded-full border border-white/30">
+                          {currentConfidence}% Confidence
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDetectedMediaOrigin("ai");
+                            if (scanResultData) {
+                              setScanResultData(prev => prev ? { ...prev, detectedMediaOrigin: "ai", mediaOriginConfidence: 96 } : prev);
+                            }
+                          }}
+                          className="text-[10px] font-black bg-white/20 hover:bg-white/30 text-white px-2.5 py-1 rounded-lg border border-white/30 cursor-pointer transition-all flex items-center gap-1"
+                          title="Manually declare this as AI / Synthetic media"
+                        >
+                          <span>🤖 Tag as AI Media</span>
+                        </button>
+                      </div>
                     </div>
                   )}
 
