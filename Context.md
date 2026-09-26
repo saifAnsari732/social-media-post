@@ -24,6 +24,12 @@
 15. [Meta Ads Manager & AI Post Booster Hub (Pro Unlimited Exclusive)](#15-meta-ads-manager--ai-post-booster-hub-pro-unlimited-exclusive)
 16. [ImageKit CDN, AI Studio Expansion & UI Improvements](#16-imagekit-cdn-ai-studio-expansion--ui-improvements)
 17. [Threads Multi-Channel Auto-Connect & Automated Invoice Email System](#17-threads-multi-channel-auto-connect--automated-invoice-email-system)
+18. [Meta Ads AI Chat Assistant, Real-time Metrics & Creative Generator](#18-meta-ads-ai-chat-assistant-real-time-metrics--creative-generator)
+19. [Facebook Multi-Strategy Video/Photo Dispatcher & Dynamic Error Reporting](#19-facebook-multi-strategy-videophoto-dispatcher--dynamic-error-reporting)
+20. [Video & Post Comment Moderation Controls (Turn Off Comments)](#20-video--post-comment-moderation-controls-turn-off-comments)
+21. [Multi-Platform Publishing Resilience Engine & Token Auto-Refresh](#21-multi-platform-publishing-resilience-engine--token-auto-refresh)
+22. [ImageKit Direct Client-to-CDN Media Pipeline & Publishing Verification](#22-imagekit-direct-client-to-cdn-media-pipeline--publishing-verification)
+23. [Custom Hashtag Groups & 1-Click Description Append Engine](#23-custom-hashtag-groups--1-click-description-append-engine)
 
 ---
 
@@ -374,6 +380,33 @@ POST   /api/admin/system              # System health & reset actions
 
 * **Threads Diagnostic Guard (`lib/platforms/threads.js`):**
   - Added explicit code 190 detection and guidance to guide users to connect Threads via official OAuth instead of mismatched Page tokens.
+
+## 22. ImageKit Direct Client-to-CDN Media Pipeline & Publishing Verification
+
+* **Direct Client-to-CDN Upload Architecture (`app/(dashboard)/publisher/page.jsx`):**
+  - **Bypasses Vercel 4.5MB Limit:** Media files (photos and large video files) upload directly from the user's browser straight to the ImageKit CDN endpoint (`https://upload.imagekit.io/api/v1/files/upload`).
+  - **Dynamic Auth Generation (`app/api/upload/auth/route.js`):** Generates time-sensitive HMAC-SHA1 cryptographic signatures and tokens using `imagekit.getAuthenticationParameters()`.
+  - **Dual-Mode Upload Security:** If browser-direct CDN upload encounters CORS or network issues, the system automatically falls back to server-side multipart stream via `app/api/upload/route.js`.
+  - **Live Verification Status:** Verified active and functional with endpoint `https://ik.imagekit.io/saifdeveloper/social_posts/`.
+  - **Upload Guards on Action Buttons:** Primary Publish and "Save as Draft" buttons are automatically disabled while media is actively uploading (`uploadingMedia`), displaying a real-time progress indicator (`⚡ Uploading Media to ImageKit CDN...`) to guarantee 100% complete CDN uploads before post submission.
+
+* **Save Draft & Multi-Channel Publish Integration (`app/api/post/route.js`):**
+  - **Lightweight JSON Payloads:** Once uploaded to ImageKit, posts submit as instant, lightweight JSON (`Content-Type: application/json`) containing the clean CDN `mediaUrl` instead of heavy binary multipart payloads.
+  - **Buffer Re-hydration for YouTube:** For platforms requiring binary buffers (like YouTube API v3), the server streams the buffer directly from ImageKit CDN in memory without hitting disk or payload limits.
+  - **Save / Draft Reliability:** Drafts are stored in MongoDB with full media CDN URLs, platform placements, formatting tags, and comment moderation flags. Instant cache invalidation ensures newly saved drafts appear in the Recent Posts table immediately.
+
+---
+
+## 23. Custom Hashtag Groups & 1-Click Description Append Engine
+
+* **Clean User-Driven Presets (`app/(dashboard)/publisher/page.jsx`):**
+  - Completely removed hardcoded demo groups (`🌾 Kisan & Agriculture`, `🔥 Viral Reels & Growth`, `💼 Business & Brand`) in favor of a clean, user-controlled preset engine.
+  - Automatically migrates and cleans legacy cached demo presets from browser `localStorage` on initial load.
+  - Friendly empty state guides creators to build their first custom group via `+ New Group`.
+
+* **1-Click Description Insertion:**
+  - Selected active group's hashtags are aggregated and cleanly formatted (`#tag1 #tag2 #tag3`) and appended to the post description/caption with 1 click (`Add Group to Description`).
+  - Every group and every tag can be independently created, edited, and deleted with full persistence.
 
 ---
 
