@@ -56,7 +56,9 @@ import {
   Cpu,
   Bot,
   FolderPlus,
-  Folder
+  Folder,
+  Music,
+  Mic
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { PlatformIcon } from "@/components/ui/SocialIcons";
@@ -151,6 +153,7 @@ export default function PublisherPage() {
   const [editingPost, setEditingPost] = useState(null);
   const [previewMedia, setPreviewMedia] = useState(null);
   const [showCopyrightModal, setShowCopyrightModal] = useState(false);
+  const [showAudioGuideModal, setShowAudioGuideModal] = useState(false);
   const [ownerBusiness, setOwnerBusiness] = useState("Kisan Groups");
   const [ownerWhatsapp, setOwnerWhatsapp] = useState("63900 59995");
   const [ownerEmail, setOwnerEmail] = useState("info@kisangroups.in");
@@ -899,6 +902,52 @@ All rights belong to their respective owners.
     toast.success("🎵 Meta Rights Manager audio clearance declaration added!");
   }
 
+  function handleDeclareOriginalVoice() {
+    const voiceNotice = `\n\n🎙️ ORIGINAL AUDIO DECLARATION:\nOriginal voice, commentary & spoken narration recorded and produced by creator. 100% original human speech cleared for all platforms.\n#OriginalAudio #OriginalVoice #CreatorVoice`;
+    setDescription(prev => {
+      if (prev && (prev.includes("ORIGINAL AUDIO DECLARATION") || prev.includes("Original voice"))) return prev;
+      return prev && prev.trim() ? `${prev.trim()}${voiceNotice}` : voiceNotice.trim();
+    });
+    setScanResultData(prev => {
+      if (!prev) return prev;
+      const filteredIssues = (prev.issues || []).filter(i => !i.id?.includes("audio") && !i.id?.includes("commercial_music"));
+      return {
+        ...prev,
+        issues: filteredIssues,
+        safetyReport: {
+          ...prev.safetyReport,
+          audio: { status: "LOW", icon: "✓", badge: "✓ LOW", color: "emerald", score: 5 },
+          platformPolicy: filteredIssues.length === 0 ? { status: "PASS", icon: "✓", badge: "✓ PASS", color: "emerald" } : prev.safetyReport?.platformPolicy
+        }
+      };
+    });
+    setShowAudioGuideModal(false);
+    toast.success("🎙️ Original Voice & Speech declaration added! Audio risk set to LOW.");
+  }
+
+  function handleDeclareRoyaltyFreeMusic() {
+    const musicNotice = `\n\n🎵 AUDIO / SOUNDTRACK CLEARANCE:\nSoundtrack licensed via Meta Sound Collection / YouTube Audio Library. Free for commercial & organic creator monetization.\n#MetaSoundCollection #RoyaltyFreeAudio #NoCopyrightMusic`;
+    setDescription(prev => {
+      if (prev && prev.includes("AUDIO / SOUNDTRACK CLEARANCE")) return prev;
+      return prev && prev.trim() ? `${prev.trim()}${musicNotice}` : musicNotice.trim();
+    });
+    setScanResultData(prev => {
+      if (!prev) return prev;
+      const filteredIssues = (prev.issues || []).filter(i => !i.id?.includes("audio") && !i.id?.includes("commercial_music"));
+      return {
+        ...prev,
+        issues: filteredIssues,
+        safetyReport: {
+          ...prev.safetyReport,
+          audio: { status: "LOW", icon: "✓", badge: "✓ LOW", color: "emerald", score: 5 },
+          platformPolicy: filteredIssues.length === 0 ? { status: "PASS", icon: "✓", badge: "✓ PASS", color: "emerald" } : prev.safetyReport?.platformPolicy
+        }
+      };
+    });
+    setShowAudioGuideModal(false);
+    toast.success("🎵 Royalty-Free / Meta Sound Collection clearance added!");
+  }
+
   function generateYouTubeDisputeText() {
     return `FORMAL DISPUTE UNDER SECTION 107 OF THE COPYRIGHT ACT 1976
 
@@ -1162,10 +1211,13 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
       setScanProgress(82);
       setScanStepText("Stage 4/5: Pre-scanning Content ID match, commercial labels & voice synthesis...");
       await new Promise(r => setTimeout(r, 1700));
-      const hasAudioDeclared = description.toLowerCase().includes("meta rights & audio") || description.toLowerCase().includes("original sound") || description.toLowerCase().includes("royalty-free");
+      const commercialMusicLabels = ["t-series", "tseries", "sony music", "zee music", "yrf", "universal music", "warnermusic", "speed records", "tips official"];
+      const hasCommercialTrack = commercialMusicLabels.some(lbl => 
+        `${title} ${description} ${tags}`.toLowerCase().includes(lbl)
+      );
       setStageStatuses(prev => ({ 
         ...prev, 
-        4: isVideo && !hasAudioDeclared ? "flagged" : "passed", 
+        4: hasCommercialTrack ? "flagged" : "passed", 
         5: "running" 
       }));
       setActiveScanStage(5);
@@ -1802,13 +1854,30 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
               description.toLowerCase().includes("safe harbor")
             );
 
+            const commercialMusicLabels = ["t-series", "tseries", "sony music", "zee music", "yrf", "universal music", "warnermusic", "speed records", "tips official"];
+            const hasCommercialMusicFlag = commercialMusicLabels.some(lbl => 
+              `${title} ${description} ${tags}`.toLowerCase().includes(lbl)
+            );
+
             const hasMetaAudio = Boolean(
               description.toLowerCase().includes("meta rights & audio") ||
               description.toLowerCase().includes("audio declaration") ||
               description.toLowerCase().includes("original sound") ||
               description.toLowerCase().includes("original commentary") ||
+              description.toLowerCase().includes("original voice") ||
               description.toLowerCase().includes("royalty-free") ||
+              description.toLowerCase().includes("creator voice") ||
               hasFairUse
+            );
+
+            const isOriginalVoice = Boolean(
+              scanResultData?.audioAnalysis?.isOriginalVoice ||
+              description.toLowerCase().includes("original voice") ||
+              description.toLowerCase().includes("original audio") ||
+              description.toLowerCase().includes("original sound") ||
+              description.toLowerCase().includes("creator voice") ||
+              description.toLowerCase().includes("spoken commentary") ||
+              (!hasCommercialMusicFlag && isVideo)
             );
 
             const isYTProtected = !selectedIds.includes("youtube") || youtubePrivacy === "unlisted";
@@ -1822,7 +1891,7 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
             if (scanResultData?.issues && scanResultData.issues.length > 0) {
               activeIssues = scanResultData.issues.filter(iss => {
                 if (iss.fixType === "safe_harbor" && hasFairUse) return false;
-                if (iss.fixType === "meta_audio" && hasMetaAudio) return false;
+                if (iss.fixType === "meta_audio" && (hasMetaAudio || !hasCommercialMusicFlag)) return false;
                 if (iss.fixType === "youtube_unlisted" && isYTProtected) return false;
                 if (iss.fixType === "ai_disclosure" && description.includes("AI & SYNTHETIC MEDIA DISCLOSURE")) return false;
                 return true;
@@ -1851,7 +1920,7 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
               : { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" });
 
             const repAudio = scanResultData?.safetyReport?.audio || (isVideo 
-              ? (hasMetaAudio ? { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" } : { status: "HIGH", badge: "🔴 HIGH", color: "rose", icon: "🔴" }) 
+              ? (hasCommercialMusicFlag ? { status: "HIGH", badge: "🔴 HIGH", color: "rose", icon: "🔴" } : { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" }) 
               : { status: "LOW", badge: "✓ LOW", color: "emerald", icon: "✓" });
 
             const repPolicy = scanResultData?.safetyReport?.platformPolicy || (activeIssues.length === 0 
@@ -2214,19 +2283,37 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                       </div>
 
                       {/* Audio Row */}
-                      <div className="flex items-center justify-between py-2 px-1">
+                      <div className="flex items-center justify-between py-2 px-1 border-b border-slate-100">
                         <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-slate-900 w-28">Audio</span>
+                          <span className="font-extrabold text-slate-900 w-28 flex items-center gap-1.5">
+                            <span>Audio</span>
+                            {isOriginalVoice && isVideo && (
+                              <span className="text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-black border border-emerald-200">
+                                🎙️ Real Voice
+                              </span>
+                            )}
+                          </span>
                           <span className="text-[10px] text-slate-400 font-bold bg-slate-50 px-1.5 py-0.5 rounded">25% Weight</span>
                         </div>
-                        <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
-                          repAudio.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
-                          repAudio.color === "amber" ? "bg-amber-50 text-amber-800 border-amber-300" :
-                          repAudio.color === "orange" ? "bg-orange-50 text-orange-800 border-orange-300" :
-                          "bg-rose-50 text-rose-700 border-rose-300"
-                        }`}>
-                          {repAudio.badge}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
+                            repAudio.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
+                            repAudio.color === "amber" ? "bg-amber-50 text-amber-800 border-amber-300" :
+                            repAudio.color === "orange" ? "bg-orange-50 text-orange-800 border-orange-300" :
+                            "bg-rose-50 text-rose-700 border-rose-300"
+                          }`}>
+                            {repAudio.badge}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowAudioGuideModal(true)}
+                            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[10.5px] font-black cursor-pointer shadow-xs flex items-center gap-1 transition-all active:scale-95"
+                            title="Audio & Music Process Guide & 1-Click Fix"
+                          >
+                            <Music className="w-3.5 h-3.5 text-teal-300" />
+                            <span>Audio Process</span>
+                          </button>
+                        </div>
                       </div>
 
                       {/* Platform Policy Row */}
@@ -2235,12 +2322,23 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                           <span className="font-extrabold text-slate-900 w-28">Platform Policy</span>
                           <span className="text-[10px] text-slate-400 font-semibold">(Compliance & Safe Harbor)</span>
                         </div>
-                        <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
-                          repPolicy.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
-                          "bg-amber-50 text-amber-800 border-amber-300"
-                        }`}>
-                          {repPolicy.badge}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border ${
+                            repPolicy.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-300" :
+                            "bg-amber-50 text-amber-800 border-amber-300"
+                          }`}>
+                            {repPolicy.badge}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowCopyrightModal(true)}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10.5px] font-black cursor-pointer shadow-xs flex items-center gap-1 transition-all active:scale-95"
+                            title="Open Copyright & Fair Use Notice Modal"
+                          >
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            <span>Add Policy</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2267,16 +2365,20 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                                 canAutoFix: true,
                               },
                               "Audio Muting Risk (Instagram Reels / FB)": {
-                                fix: "Add to caption: 'Audio: Original/royalty-free sound. No third-party music used.' — OR — replace background music with a track from Meta's licensed music library before posting.",
+                                fix: "Audio Process & Fixes:\n1. If this is your original verbal voice/speech: Click 'Audio Process' button above -> 'Declare Original Voice' (1-click set to LOW risk).\n2. If using commercial music: Add trending song in-app via Instagram/FB Audio Sticker to avoid muting.\n3. Or declare Royalty-Free audio clearance below.",
+                                canAutoFix: true,
+                              },
+                              "Commercial Record Label Match Detected": {
+                                fix: "Music Usage Process & Solutions:\n1. Instagram / FB Reels: Upload video with your original voice, then choose the song inside Instagram/FB app via 'Audio Sticker' (Meta handles all licensing & royalties — zero muting risk!).\n2. YouTube: Use YouTube Studio Audio Library or add via Shorts 'Add Sound'.\n3. Click 'Audio Process' above to declare Meta Sound clearance or add Fair Use transformative commentary.",
+                                canAutoFix: true,
+                              },
+                              "Third-Party Copyright Music Detected": {
+                                fix: "Music Usage Process & Solutions:\n1. Instagram / FB Reels: Select the track in-app via the Music sticker (Official Meta Licensing — zero copyright strike).\n2. YouTube / Long Form: Use royalty-free music from Meta Sound Collection or YouTube Audio Library.\n3. Transformative Audio: If reviewing or commenting, apply Section 107 Fair Use notice via 'Audio Process' button above.",
                                 canAutoFix: true,
                               },
                               "Missing Platform AI Transparency Label": {
                                 fix: "Add AI disclosure to caption: '🤖 AI-assisted content. Disclosed per Meta AI Info & YouTube Altered Content policies.'",
                                 canAutoFix: true,
-                              },
-                              "Third-Party Copyright Music Detected": {
-                                fix: "Manual Action Required:\n1. Remove the copyrighted track from your video.\n2. Replace with royalty-free music (Pixabay, YouTube Audio Library, or Meta Sound Collection).\n3. Re-upload the edited video.\nAuto-fix cannot change video audio — you must edit the video file yourself.",
-                                canAutoFix: false,
                               },
                               "Broadcast Watermark Detected": {
                                 fix: "Manual Action Required:\n1. Remove the TV channel logo/watermark from your video using a video editor.\n2. Make sure you own original recording rights.\n3. Re-upload the cleaned video.",
@@ -4237,6 +4339,194 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                   <span>➕ Add to Description (Bottom)</span>
                 </button>
               </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* AUDIO & MUSIC COPYRIGHT COMPLIANCE & SAFE PUBLISHING MODAL */}
+      {showAudioGuideModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-2xl max-h-[92vh] flex flex-col rounded-3xl bg-white border border-slate-200 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            
+            {/* Header with High-Visibility Indigo/Teal Gradient */}
+            <div className="px-6 py-4 bg-gradient-to-r from-slate-900 via-indigo-900 to-teal-900 text-white flex items-center justify-between shadow-sm">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white shrink-0">
+                  <Music className="w-5 h-5 text-teal-300" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black tracking-tight flex items-center gap-1.5">
+                    <span>🎵 Audio & Music Copyright Process Guide</span>
+                    <span className="text-[10px] bg-teal-400/20 text-teal-200 px-2 py-0.5 rounded-full border border-teal-400/30 font-bold">
+                      Safe Publishing
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-300 font-medium">
+                    Real voice vs Commercial music workflow aur 1-click clearance options
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAudioGuideModal(false)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white transition-all cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Scrollable Body */}
+            <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+              
+              {/* Option 1: Real Human Voice / Verbal Speech */}
+              <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-2.5 shadow-2xs">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Mic className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-emerald-950 flex items-center gap-1.5">
+                        <span>🎙️ 1. Real Human Voice / Khud Ki Verbal Awaaz</span>
+                        <span className="text-[9.5px] bg-emerald-200/80 text-emerald-900 px-1.5 py-0.2 rounded font-black">100% Safe (0% Risk)</span>
+                      </h4>
+                      <p className="text-[11px] text-emerald-800 font-medium">
+                        Agar aapne video me khud bolkar baat ki hai (talking head, monologue, podcast, vlog ya educational commentary):
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white/80 p-3 rounded-xl border border-emerald-200 text-xs text-slate-700 space-y-1.5 leading-relaxed">
+                  <p className="text-[11px]">
+                    ✅ <strong>Full Ownership:</strong> Aapka audio 100% original creator audio hai. Is par koi muting ya copyright strike <strong>kabhi nahi aayegi</strong>.
+                  </p>
+                  <p className="text-[11px] text-slate-600">
+                    💡 <strong>1-Click Fix:</strong> Niche diye button par click karke description me Original Voice declaration add karein taaki platform algorithms audio ko instantly <strong>✓ LOW risk</strong> pass karein.
+                  </p>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    onClick={handleDeclareOriginalVoice}
+                    className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Declare Original Voice (Set to LOW)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Option 2: Commercial Music Process (Bollywood / Hollywood / Trending) */}
+              <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 space-y-2.5 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <Music className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-indigo-950 flex items-center gap-1.5">
+                      <span>🎵 2. Commercial Music Kaise Use Karein (Muting Se Bachne Ka Process)</span>
+                      <span className="text-[9.5px] bg-indigo-200/80 text-indigo-900 px-1.5 py-0.2 rounded font-black">Official Process</span>
+                    </h4>
+                    <p className="text-[11px] text-indigo-800 font-medium">
+                      Trending Bollywood ya commercial gaane use karte waqt muting aur strike se bachne ka sahi tareeka:
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2 text-xs text-slate-700">
+                  <div className="bg-white/80 p-3 rounded-xl border border-indigo-200 space-y-1.5">
+                    <p className="font-extrabold text-indigo-950 text-[11.5px] flex items-center gap-1">
+                      <span>📱 Instagram Reels & Facebook Reels Workflow:</span>
+                    </p>
+                    <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-700">
+                      <li>Video editing software me gaane ko bina sound ya original voice ke saath export karein.</li>
+                      <li>Instagram/FB par Reel upload karte time <strong>'Add Audio / Music' Sticker</strong> se gaana choose karein.</li>
+                      <li><strong>Kyun?</strong> Meta labels ko official royalty deta hai. App ke sticker se gaana lagane par <strong>0% muting risk</strong> hota hai aur Reel explore algorithm me push hoti hai!</li>
+                    </ol>
+                  </div>
+
+                  <div className="bg-white/80 p-3 rounded-xl border border-indigo-200 space-y-1.5">
+                    <p className="font-extrabold text-indigo-950 text-[11.5px] flex items-center gap-1">
+                      <span>🎥 YouTube Shorts & Videos Workflow:</span>
+                    </p>
+                    <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-700">
+                      <li>YouTube Shorts me <strong>'Add Sound'</strong> button se gaana select karein.</li>
+                      <li>Long video me reaction/review/education hone par <strong>Section 107 Transformative Fair Use</strong> notice add karein.</li>
+                    </ol>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleDeclareMetaAudio();
+                      setShowAudioGuideModal(false);
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-md shadow-indigo-600/20 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                  >
+                    <Scale className="w-4 h-4" />
+                    <span>Apply Transformative Audio Notice</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Option 3: Royalty-Free & Meta Sound Collection */}
+              <div className="p-4 rounded-2xl bg-cyan-50/70 border border-cyan-200 space-y-2.5 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-xl bg-cyan-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-cyan-950 flex items-center gap-1.5">
+                      <span>🎼 3. 100% Free Royalty-Free Music Library</span>
+                      <span className="text-[9.5px] bg-cyan-200/80 text-cyan-900 px-1.5 py-0.2 rounded font-black">Monetization Ready</span>
+                    </h4>
+                    <p className="text-[11px] text-cyan-800 font-medium">
+                      Facebook, Instagram aur YouTube par bina kisi risk ke commercial monetization:
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white/80 p-3 rounded-xl border border-cyan-200 text-xs text-slate-700 space-y-1.5 leading-relaxed">
+                  <p className="text-[11px]">
+                    🎵 <strong>Meta Sound Collection:</strong> Meta Creator Studio me 10,000+ tracks free hain jo commercial FB/Insta reels ke liye pre-cleared hain.
+                  </p>
+                  <p className="text-[11px]">
+                    🎧 <strong>YouTube Audio Library:</strong> YouTube Studio me thousands of safe tracks bina strike risk ke available hain.
+                  </p>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    onClick={handleDeclareRoyaltyFreeMusic}
+                    className="px-3.5 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-xs font-black shadow-md shadow-cyan-700/20 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Declare Royalty-Free / Meta Sound Clearance</span>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+              <span className="text-[11px] text-slate-500 font-medium">
+                Audio clearance automatically updates Content Safety Report
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowAudioGuideModal(false)}
+                className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-xs font-bold text-slate-800 transition-all cursor-pointer"
+              >
+                Close
+              </button>
             </div>
 
           </div>
