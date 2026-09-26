@@ -1644,6 +1644,10 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
 
             const isYTProtected = !selectedIds.includes("youtube") || youtubePrivacy === "unlisted";
 
+            // Effective media origin & confidence from API result
+            const currentOrigin = scanResultData?.detectedMediaOrigin || detectedMediaOrigin || "real";
+            const currentConfidence = scanResultData?.mediaOriginConfidence || mediaOriginConfidence || 95;
+
             // Resolve active issues dynamically based on current post state
             let activeIssues = [];
             if (scanResultData?.issues && scanResultData.issues.length > 0) {
@@ -1654,52 +1658,12 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                 if (iss.fixType === "ai_disclosure" && description.includes("AI & SYNTHETIC MEDIA DISCLOSURE")) return false;
                 return true;
               });
-            } else if (!scanResultData && scanStatus === "completed") {
-              if (isVideo && !hasFairUse) {
-                activeIssues.push({
-                  id: "missing_fair_use",
-                  severity: "high",
-                  title: "Missing Statutory Fair Use Notice",
-                  desc: "Caption lacks Section 107 (US) & Section 52 (India) Fair Use legal attribution. Automated algorithms may flag content.",
-                  fixType: "safe_harbor"
-                });
-              }
-              if (isVideo && !hasMetaAudio) {
-                activeIssues.push({
-                  id: "audio_muting_risk",
-                  severity: "high",
-                  title: "Audio Muting Risk (Instagram Reels / FB)",
-                  desc: "Soundtrack lacks original/royalty-free transformative declaration. Instagram & FB may mute audio in select regions.",
-                  fixType: "meta_audio"
-                });
-              }
-              if (selectedIds.includes("youtube") && youtubePrivacy === "public") {
-                activeIssues.push({
-                  id: "youtube_privacy_risk",
-                  severity: "medium",
-                  title: "YouTube Instant Public Upload Risk",
-                  desc: "Uploading directly to 'Public' bypasses Content ID pre-checks. 'Unlisted' is recommended for safe 15-minute verification.",
-                  fixType: "youtube_unlisted"
-                });
-              }
-              if (detectedMediaOrigin === "ai" && !description.includes("AI & SYNTHETIC MEDIA DISCLOSURE")) {
-                activeIssues.push({
-                  id: "ai_disclosure_missing",
-                  severity: "medium",
-                  title: "Missing Platform AI Transparency Label",
-                  desc: "Synthetic media detected. Meta AI Info & YouTube Altered Content policies require transparent disclosure.",
-                  fixType: "ai_disclosure"
-                });
-              }
             }
 
-            // Risk Engine: Simple Weighted System (0 — 100)
-            // TEXT RISK: 20% | IMAGE RISK: 25% | VIDEO RISK: 30% | AUDIO RISK: 25%
-            // Tiers: 0–29 Low | 30–59 Review | 60–79 High | 80–100 Critical
-            // Strictly named: Content Risk Score
+            // Risk Engine: Use exact Content Risk Score returned by API
             const currentRiskScore = scanResultData?.contentRiskScore !== undefined
-              ? (activeIssues.length === 0 ? Math.min(15, scanResultData.contentRiskScore) : scanResultData.contentRiskScore)
-              : (activeIssues.length === 0 ? 8 : Math.min(85, 20 + activeIssues.length * 25));
+              ? scanResultData.contentRiskScore
+              : (activeIssues.length === 0 ? 12 : Math.min(85, 20 + activeIssues.length * 20));
 
             const isLowRisk = currentRiskScore <= 29;
             const currentTier = currentRiskScore <= 29 ? "low" : (currentRiskScore <= 59 ? "review" : (currentRiskScore <= 79 ? "high" : "critical"));
@@ -1785,7 +1749,7 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                 } p-4.5 shadow-md space-y-3.5 animate-in fade-in duration-200`}>
 
                   {/* ─── AI / REAL CONTENT DETECTION BANNER — ALWAYS AT TOP ─── */}
-                  {detectedMediaOrigin === "ai" ? (
+                  {currentOrigin === "ai" ? (
                     <div className="rounded-xl bg-purple-600 text-white px-4 py-3 flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
                         <div className="text-2xl shrink-0">🤖</div>
@@ -1798,7 +1762,7 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                       </div>
                       <div className="flex flex-col items-end gap-1.5 shrink-0">
                         <span className="text-[10px] font-black bg-white/20 px-2 py-0.5 rounded-full border border-white/30">
-                          {mediaOriginConfidence}% Confidence
+                          {currentConfidence}% Confidence
                         </span>
                         {!description.includes("AI & SYNTHETIC MEDIA DISCLOSURE") && (
                           <button
@@ -1824,7 +1788,7 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                         </p>
                       </div>
                       <span className="ml-auto text-[10px] font-black bg-white/20 px-2 py-0.5 rounded-full border border-white/30 shrink-0">
-                        {mediaOriginConfidence}% Confidence
+                        {currentConfidence}% Confidence
                       </span>
                     </div>
                   )}
