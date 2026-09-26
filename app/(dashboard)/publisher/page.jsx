@@ -431,12 +431,19 @@ export default function PublisherPage() {
       toast.error("Upload error: " + (err.message || "Failed to upload media"));
     } finally {
       setUploadingMedia(false);
+      if (f) {
+        setTimeout(() => {
+          handleStartScan(true);
+        }, 300);
+      }
     }
   }
 
   function removeFile() {
     setFile(null);
     setFilePreview(null);
+    setScanStatus("idle");
+    setScanResultData(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -1682,35 +1689,6 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
               </button>
             </div>
 
-            {/* AI Tone of Voice Selector */}
-            <div className="space-y-1.5 pt-1 border-t border-indigo-100/80">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-indigo-950">Content Tone & Style:</span>
-                <span className="text-[10px] text-slate-400 font-medium">Customizes voice & retention</span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-1">
-                {[
-                  { id: "viral", label: "Viral & Hook 🔥" },
-                  { id: "professional", label: "Authority 💼" },
-                  { id: "story", label: "Story 📖" },
-                  { id: "promo", label: "Sales & Offer 🚀" },
-                  { id: "educational", label: "Actionable 💡" }
-                ].map(t => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setSelectedTone(t.id)}
-                    className={`py-1.5 px-2 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer truncate ${
-                      selectedTone === t.id
-                        ? "bg-indigo-600 text-white shadow-2xs"
-                        : "bg-white text-slate-700 border border-slate-200 hover:bg-indigo-50"
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            </div>
 
             {/* Configurable Generation Options (Length & Hashtags) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-indigo-100/80">
@@ -1977,6 +1955,51 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
             const repPolicy = (hasFairUse || activeIssues.length === 0 || scanResultData?.safetyReport?.platformPolicy?.status === "PASS")
               ? { status: "PASS", badge: "✓ PASS", color: "emerald", icon: "✓" } 
               : { status: "ACTION NEEDED", badge: "⚠️ ACTION NEEDED", color: "amber", icon: "⚠️" };
+
+            const hasContentToScan = Boolean(file || filePreview || description?.trim() || title?.trim());
+
+            // 0. IDLE / AWAITING CONTENT STATE: Show standby banner if no content or scan not started
+            if (!hasContentToScan || scanStatus === "idle") {
+              return (
+                <div className="rounded-2xl border-2 border-dashed border-teal-300/80 bg-gradient-to-r from-emerald-50/40 via-teal-50/30 to-slate-50 p-4 sm:p-5 shadow-2xs flex flex-wrap items-center justify-between gap-4 transition-all">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white flex items-center justify-center shadow-md shadow-teal-600/25 shrink-0">
+                      <ShieldCheck className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-2 flex-wrap">
+                        <span>Multi-Engine AI Content Safety Scanner</span>
+                        <span className="text-[10px] bg-teal-100 text-teal-800 px-2.5 py-0.5 rounded-full font-bold border border-teal-200">
+                          Gemini 2.5 Vision & Spectrum
+                        </span>
+                      </h3>
+                      <p className="text-[11.5px] text-slate-500 font-semibold mt-0.5">
+                        {hasContentToScan 
+                          ? "Content detected! Click below to run a deep Gemini AI audit on your media & caption." 
+                          : "Standby Mode — Upload a photo/video or enter caption text above to perform real-time Gemini AI safety audit."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleStartScan(true)}
+                      disabled={!hasContentToScan}
+                      className={`px-5 py-2.5 rounded-xl font-black text-xs flex items-center gap-2 transition-all ${
+                        hasContentToScan
+                          ? "bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:via-teal-500 hover:to-cyan-500 text-white shadow-lg shadow-teal-600/30 cursor-pointer active:scale-95"
+                          : "bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed opacity-75 shadow-none"
+                      }`}
+                      title={hasContentToScan ? "Run Deep AI Scan" : "Upload media or add caption text first"}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>{hasContentToScan ? "Run Deep AI Content Safety Scan" : "Upload Content to Scan"}</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            }
 
             // 1. SCANNING STATE (5-STAGE COMPREHENSIVE LIVE AUDIT)
             if (scanStatus === "scanning") {
@@ -2484,7 +2507,7 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                         <button
                           type="button"
                           onClick={handleFixAllAndProtect}
-                          className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:via-teal-500 hover:to-cyan-500 text-white text-xs font-black shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
+                          className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-black shadow-lg shadow-teal-600/40 ring-2 ring-teal-400/50 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
                         >
                           <ShieldCheck className="w-4 h-4" />
                           <span>🛡️ Fix All & Reduce Risk to Low</span>
@@ -2502,7 +2525,7 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
             return (
               <div className="rounded-2xl border-2 border-teal-200/80 bg-gradient-to-r from-emerald-50/60 via-teal-50/40 to-slate-50 p-3.5 sm:p-4 shadow-2xs flex flex-wrap items-center justify-between gap-3 transition-all">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white flex items-center justify-center shadow-md shadow-teal-600/25 shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-md shadow-teal-600/30 shrink-0">
                     <ShieldCheck className="w-5 h-5" />
                   </div>
                   <div>
@@ -2525,7 +2548,7 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                   <button
                     type="button"
                     onClick={() => handleStartScan(true)}
-                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:via-teal-500 hover:to-cyan-500 text-white text-xs font-black shadow-lg shadow-teal-600/30 flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                    className="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-black shadow-lg shadow-teal-600/40 ring-2 ring-teal-400/50 flex items-center gap-2 cursor-pointer transition-all active:scale-95"
                   >
                     <ShieldCheck className="w-4 h-4" />
                     <span>Run Deep AI Content Safety Scan</span>
@@ -4001,8 +4024,8 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
         )}
       </div>
 
-      {/* PROCESSING / UPLOADING POPUP MODAL */}
-      {(posting || uploadingMedia) && (
+      {/* PROCESSING POPUP MODAL (PUBLISHING / DRAFTING / SCHEDULING ONLY) */}
+      {posting && (
         <div className="fixed inset-0 z-[99999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl max-w-sm w-full p-6 text-center space-y-5 shadow-2xl border border-slate-100 relative overflow-hidden animate-in zoom-in-95 duration-200">
             {/* Top ambient glow light */}
@@ -4011,8 +4034,6 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                 ? "bg-amber-500/25"
                 : processingAction === "schedule"
                 ? "bg-blue-500/25"
-                : uploadingMedia || processingAction === "upload"
-                ? "bg-cyan-500/25"
                 : "bg-indigo-500/25"
             }`} />
 
@@ -4023,8 +4044,6 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                   ? "border-amber-100"
                   : processingAction === "schedule"
                   ? "border-blue-100"
-                  : uploadingMedia || processingAction === "upload"
-                  ? "border-cyan-100"
                   : "border-indigo-100"
               }`} />
               <div className={`absolute inset-0 rounded-full border-4 border-t-transparent animate-spin ${
@@ -4032,8 +4051,6 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                   ? "border-amber-500"
                   : processingAction === "schedule"
                   ? "border-blue-500"
-                  : uploadingMedia || processingAction === "upload"
-                  ? "border-cyan-500"
                   : "border-indigo-600"
               }`} />
               <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center shadow-inner ${
@@ -4041,13 +4058,9 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                   ? "bg-amber-50 border-amber-100 text-amber-600"
                   : processingAction === "schedule"
                   ? "bg-blue-50 border-blue-100 text-blue-600"
-                  : uploadingMedia || processingAction === "upload"
-                  ? "bg-cyan-50 border-cyan-100 text-cyan-600"
                   : "bg-indigo-50 border-indigo-100 text-indigo-600"
               }`}>
-                {uploadingMedia || processingAction === "upload" ? (
-                  <UploadCloud className="w-6 h-6 animate-bounce text-cyan-600" />
-                ) : processingAction === "draft" ? (
+                {processingAction === "draft" ? (
                   <Bookmark className="w-6 h-6 fill-amber-500 text-amber-500 animate-pulse" />
                 ) : processingAction === "schedule" ? (
                   <Calendar className="w-6 h-6 text-blue-600 animate-pulse" />
@@ -4062,18 +4075,14 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
             {/* Status Titles */}
             <div className="space-y-1.5">
               <h3 className="text-base font-black text-slate-900 tracking-tight">
-                {uploadingMedia || processingAction === "upload"
-                  ? "⚡ Uploading Media to CDN..."
-                  : processingAction === "draft"
+                {processingAction === "draft"
                   ? "📌 Saving Post as Draft..."
                   : processingAction === "schedule"
                   ? "📅 Scheduling Channels..."
                   : `🚀 Publishing to ${selectedIds.length} Channel(s)...`}
               </h3>
               <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                {uploadingMedia || processingAction === "upload"
-                  ? "Direct high-speed transfer to ImageKit Cloud CDN in progress. Large videos may take a few moments."
-                  : processingAction === "draft"
+                {processingAction === "draft"
                   ? "Safely saving your creative content, caption, hashtags, and media into MongoDB draft storage."
                   : processingAction === "schedule"
                   ? `Queuing your post for automated multi-channel delivery on ${scheduleDate || "selected date"}.`
