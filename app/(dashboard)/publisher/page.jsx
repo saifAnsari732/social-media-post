@@ -89,6 +89,36 @@ function convertToUnicodeItalic(str) {
   return str.split('').map(c => map[c] || c).join('');
 }
 
+function renderFormattedHashtags(text, customHighlightClass = "text-indigo-600 font-semibold hover:underline cursor-pointer") {
+  if (!text) return null;
+  const regex = /(#[a-zA-Z0-9_\u0900-\u097F]+|@[a-zA-Z0-9_.]+|https?:\/\/[^\s]+)/g;
+  const parts = text.split(regex);
+  return parts.map((part, i) => {
+    if (part.startsWith("#")) {
+      return (
+        <span key={i} className={customHighlightClass}>
+          {part}
+        </span>
+      );
+    }
+    if (part.startsWith("@")) {
+      return (
+        <span key={i} className="text-indigo-600 font-bold hover:underline cursor-pointer">
+          {part}
+        </span>
+      );
+    }
+    if (part.startsWith("http://") || part.startsWith("https://")) {
+      return (
+        <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-medium">
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+}
+
 export default function PublisherPage() {
   const [user, setUser] = useState(null);
   const [accounts, setAccounts] = useState([]);
@@ -1752,8 +1782,53 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                     ? "border-amber-300 bg-gradient-to-br from-amber-50/80 via-white to-orange-50/40"
                     : "border-rose-400 bg-gradient-to-br from-rose-50/80 via-white to-amber-50/40"
                 } p-4.5 shadow-md space-y-3.5 animate-in fade-in duration-200`}>
-                  
-                  {/* Top Header with Big Icon & Content Risk Score */}
+
+                  {/* ─── AI / REAL CONTENT DETECTION BANNER — ALWAYS AT TOP ─── */}
+                  {detectedMediaOrigin === "ai" ? (
+                    <div className="rounded-xl bg-purple-600 text-white px-4 py-3 flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className="text-2xl shrink-0">🤖</div>
+                        <div>
+                          <p className="text-sm font-black">AI-Generated Content Detected</p>
+                          <p className="text-[11px] text-purple-200 mt-0.5">
+                            This video/image was created using AI tools. Platform disclosure is <span className="font-black text-white">mandatory</span> — Meta & YouTube require this label.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        <span className="text-[10px] font-black bg-white/20 px-2 py-0.5 rounded-full border border-white/30">
+                          {mediaOriginConfidence}% Confidence
+                        </span>
+                        {!description.includes("AI & SYNTHETIC MEDIA DISCLOSURE") && (
+                          <button
+                            type="button"
+                            onClick={handleApplyAIDisclosure}
+                            className="text-[10px] font-black bg-white text-purple-700 px-2.5 py-1 rounded-lg cursor-pointer hover:bg-purple-50 transition-all"
+                          >
+                            🏷️ Add AI Label to Caption
+                          </button>
+                        )}
+                        {description.includes("AI & SYNTHETIC MEDIA DISCLOSURE") && (
+                          <span className="text-[10px] font-black bg-green-400/30 text-white px-2 py-0.5 rounded-full">✓ Label Added</span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl bg-emerald-600 text-white px-4 py-3 flex items-center gap-3">
+                      <div className="text-2xl shrink-0">📷</div>
+                      <div>
+                        <p className="text-sm font-black">100% Real Content Verified</p>
+                        <p className="text-[11px] text-emerald-200 mt-0.5">
+                          Natural recording detected — no deepfake or synthetic signatures found. No disclosure required.
+                        </p>
+                      </div>
+                      <span className="ml-auto text-[10px] font-black bg-white/20 px-2 py-0.5 rounded-full border border-white/30 shrink-0">
+                        {mediaOriginConfidence}% Confidence
+                      </span>
+                    </div>
+                  )}
+
+                  {/* ─── RISK SCORE HEADER ─── */}
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
                     <div className="flex items-center gap-3">
                       {isLowRisk ? (
@@ -1772,16 +1847,11 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                           <span className={`text-[10.5px] px-2.5 py-0.5 rounded-full font-black border ${tierBadgeColor}`}>
                             Content Risk Score: {currentRiskScore}/100 ({currentTier.toUpperCase()})
                           </span>
-                          {scanResultData?.costSaved && (
-                            <span className="text-[9.5px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-extrabold border border-emerald-200">
-                              💰 API Cost Saved (Layer 1 Filter)
-                            </span>
-                          )}
                         </h4>
                         <p className="text-[11px] text-slate-600">
                           {isLowRisk
-                            ? "Content passed multi-vector Text, Visual, and Audio analysis. Safe harbor protections verified for multi-channel distribution."
-                            : "Risk factors detected in soundtrack or text. 1-Click protection available to immediately reduce score to safe."}
+                            ? "Content passed Text, Visual, and Audio analysis. Safe for multi-channel publishing."
+                            : "Risk factors detected. See issues & solutions below — fix them before publishing."}
                         </p>
                       </div>
                     </div>
@@ -1810,6 +1880,7 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                   </div>
 
                   {/* DEDICATED CONTENT SAFETY REPORT TABLE */}
+
                   <div className="rounded-xl border border-slate-200/90 bg-white p-3 sm:p-3.5 space-y-2 shadow-2xs">
                     <div className="flex items-center justify-between border-b border-slate-200/70 pb-2">
                       <div className="flex items-center gap-2">
@@ -1907,123 +1978,6 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                   </div>
 
 
-                  {/* Content Analyzer 3-Vector Diagnostic Cards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-0.5">
-                    <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-xs shadow-2xs space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-extrabold text-slate-900 flex items-center gap-1.5">
-                          <FileCheck className="w-4 h-4 text-slate-600" />
-                          <span>Text Analyzer</span>
-                        </span>
-                        <span className={`text-[10px] font-bold px-2 py-0.2 rounded border ${hasFairUse ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
-                          {hasFairUse ? "Safe" : "Attention"}
-                        </span>
-                      </div>
-                      <p className="text-[10.5px] text-slate-500 leading-snug">
-                        {scanResultData?.contentAnalyzer?.text?.findings || (hasFairUse ? "Low phrase similarity. Fair use attribution compliant." : "Section 107 / Sec 52 Fair Use notice missing.")}
-                      </p>
-                    </div>
-
-                    <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-xs shadow-2xs space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-extrabold text-slate-900 flex items-center gap-1.5">
-                          <Camera className="w-4 h-4 text-slate-600" />
-                          <span>Visual Analyzer</span>
-                        </span>
-                        <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.2 rounded">
-                          Cleared
-                        </span>
-                      </div>
-                      <p className="text-[10.5px] text-slate-500 leading-snug">
-                        {scanResultData?.contentAnalyzer?.visual?.findings || "Zero broadcast TV watermarks or stock photo signatures detected."}
-                      </p>
-                    </div>
-
-                    <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-xs shadow-2xs space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-extrabold text-slate-900 flex items-center gap-1.5">
-                          <Volume2 className="w-4 h-4 text-slate-600" />
-                          <span>Audio Analyzer</span>
-                        </span>
-                        <span className={`text-[10px] font-bold px-2 py-0.2 rounded border ${hasMetaAudio ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"}`}>
-                          {hasMetaAudio ? "Safe" : "Action"}
-                        </span>
-                      </div>
-                      <p className="text-[10.5px] text-slate-500 leading-snug">
-                        {scanResultData?.contentAnalyzer?.audio?.findings || (hasMetaAudio ? "Royalty-free audio clearance active." : "Soundtrack lacks original/royalty-free declaration.")}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Real vs AI Media Origin Card */}
-                  <div className="flex flex-wrap items-center justify-between gap-2.5 p-2.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
-                    <div className="flex items-center gap-2.5">
-                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-white ${
-                        detectedMediaOrigin === "real" ? "bg-emerald-600" : "bg-purple-600"
-                      }`}>
-                        {detectedMediaOrigin === "real" ? <Camera className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] font-black text-slate-900">
-                            Media Origin: {detectedMediaOrigin === "real" ? "Real / Authentic Recording (Human Created)" : "AI-Generated / Synthetic Media"}
-                          </span>
-                          <span className={`text-[9.5px] font-bold px-1.5 py-0.2 rounded border ${
-                            detectedMediaOrigin === "real" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-purple-50 text-purple-700 border-purple-200"
-                          }`}>
-                            {mediaOriginConfidence}% Confidence
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-slate-500">
-                          {detectedMediaOrigin === "real"
-                            ? "Natural capture detected. Free of deepfake signatures."
-                            : "Synthetic elements detected. Mandatory platform disclosure recommended."}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                      {detectedMediaOrigin === "ai" && !description.includes("AI & SYNTHETIC MEDIA DISCLOSURE") && (
-                        <button
-                          type="button"
-                          onClick={handleApplyAIDisclosure}
-                          className="px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-[10.5px] font-bold shadow-2xs cursor-pointer transition-all"
-                        >
-                          <span>🏷️ 1-Click AI Label</span>
-                        </button>
-                      )}
-
-                      <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-[10px] font-bold">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDetectedMediaOrigin("real");
-                            setMediaOriginConfidence(99);
-                            toast.success("Set as Real / Authentic Human Content");
-                          }}
-                          className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
-                            detectedMediaOrigin === "real" ? "bg-white text-emerald-700 shadow-2xs font-black" : "text-slate-500 hover:text-slate-800"
-                          }`}
-                        >
-                          Real
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDetectedMediaOrigin("ai");
-                            setMediaOriginConfidence(99);
-                            toast.success("Set as AI-Generated Content");
-                          }}
-                          className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
-                            detectedMediaOrigin === "ai" ? "bg-white text-purple-700 shadow-2xs font-black" : "text-slate-500 hover:text-slate-800"
-                          }`}
-                        >
-                          AI
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Detected Issues + Solutions (When Not Low Risk) */}
                   {!isLowRisk && (
                     <div className="space-y-3 pt-1 border-t-2 border-slate-100">
@@ -2038,15 +1992,39 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                           </div>
 
                           {activeIssues.map((issue, idx) => {
-                            // Solution lookup based on issue type
+                            // Expanded solution lookup — covers all known issue types
                             const solutionMap = {
-                              "Missing Statutory Fair Use Notice": "Add Section 107 (US) & Section 52 (India) Fair Use attribution in your caption. Example: 'This content is shared for educational/commentary purpose under Fair Use (§107 US / §52 India).'",
-                              "Audio Muting Risk (Instagram Reels / FB)": "Add a royalty-free audio declaration: 'Audio: Original/royalty-free sound. No third-party music used.' OR use Meta's licensed music library for your Reel.",
-                              "Missing Platform AI Transparency Label": "Add AI disclosure to caption: '🤖 AI-assisted content. Disclosed under Meta AI Info & YouTube Altered Content policies.' OR click the 1-Click AI Label button above.",
+                              "Missing Statutory Fair Use Notice": {
+                                fix: "Add this to your caption:\n'This content is shared for educational/commentary purpose under Fair Use (§107 US / §52 India).'",
+                                canAutoFix: true,
+                              },
+                              "Audio Muting Risk (Instagram Reels / FB)": {
+                                fix: "Add to caption: 'Audio: Original/royalty-free sound. No third-party music used.' — OR — replace background music with a track from Meta's licensed music library before posting.",
+                                canAutoFix: true,
+                              },
+                              "Missing Platform AI Transparency Label": {
+                                fix: "Add AI disclosure to caption: '🤖 AI-assisted content. Disclosed per Meta AI Info & YouTube Altered Content policies.'",
+                                canAutoFix: true,
+                              },
+                              "Third-Party Copyright Music Detected": {
+                                fix: "Manual Action Required:\n1. Remove the copyrighted track from your video.\n2. Replace with royalty-free music (Pixabay, YouTube Audio Library, or Meta Sound Collection).\n3. Re-upload the edited video.\nAuto-fix cannot change video audio — you must edit the video file yourself.",
+                                canAutoFix: false,
+                              },
+                              "Broadcast Watermark Detected": {
+                                fix: "Manual Action Required:\n1. Remove the TV channel logo/watermark from your video using a video editor.\n2. Make sure you own original recording rights.\n3. Re-upload the cleaned video.",
+                                canAutoFix: false,
+                              },
+                              "Stock Image License Violation": {
+                                fix: "Manual Action Required:\n1. Remove the unlicensed stock image.\n2. Replace with your own photo OR download from free sources (Unsplash, Pexels).\n3. If you purchased a license, add: 'Image: Licensed via [source]' in caption.",
+                                canAutoFix: false,
+                              },
                             };
+
+                            const matched = solutionMap[issue.title];
                             const solution = issue.solution
-                              || solutionMap[issue.title]
-                              || "Review your content against platform guidelines and remove any third-party copyrighted material, music, or branded elements.";
+                              || matched?.fix
+                              || "Manual Action Required:\n1. Review the issue carefully.\n2. Edit your content to remove the flagged element.\n3. Re-upload and run scan again.\n\nIf unsure, contact support or use the Dispute Letter option above.";
+                            const canAutoFix = matched?.canAutoFix ?? (issue.solution ? true : false);
 
                             return (
                               <div key={issue.id || idx} className="space-y-1.5">
@@ -2061,14 +2039,28 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                                   </div>
                                 </div>
 
-                                {/* Solution Card */}
-                                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-3 shadow-2xs ml-2">
-                                  <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5">
-                                    <svg viewBox="0 0 12 12" fill="none" className="w-3 h-3"><path d="M2 6l2.5 2.5L10 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                {/* Solution Card — green if auto-fixable, amber if manual action needed */}
+                                <div className={`p-3 rounded-xl flex items-start gap-3 shadow-2xs ml-2 ${
+                                  canAutoFix
+                                    ? "bg-emerald-50 border border-emerald-200"
+                                    : "bg-amber-50 border border-amber-300"
+                                }`}>
+                                  <div className={`w-5 h-5 rounded-full text-white flex items-center justify-center shrink-0 mt-0.5 text-[11px] ${
+                                    canAutoFix ? "bg-emerald-600" : "bg-amber-500"
+                                  }`}>
+                                    {canAutoFix
+                                      ? <svg viewBox="0 0 12 12" fill="none" className="w-3 h-3"><path d="M2 6l2.5 2.5L10 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                      : "!"}
                                   </div>
-                                  <div className="space-y-0.5 min-w-0">
-                                    <p className="text-[10px] font-black text-emerald-800 uppercase tracking-wide">Solution</p>
-                                    <p className="text-[11px] text-emerald-800 leading-snug">{solution}</p>
+                                  <div className="space-y-1 min-w-0">
+                                    <p className={`text-[10px] font-black uppercase tracking-wide ${
+                                      canAutoFix ? "text-emerald-800" : "text-amber-800"
+                                    }`}>
+                                      {canAutoFix ? "✅ Solution (Auto-Fixable)" : "⚠️ Manual Action Required"}
+                                    </p>
+                                    <p className={`text-[11px] leading-relaxed whitespace-pre-line ${
+                                      canAutoFix ? "text-emerald-800" : "text-amber-900"
+                                    }`}>{solution}</p>
                                   </div>
                                 </div>
                               </div>
@@ -2577,7 +2569,7 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                   <div className="text-xs text-slate-800 leading-relaxed font-normal whitespace-pre-wrap">
                     <span className="font-bold mr-1 text-slate-900">{user?.name ? user.name.toLowerCase().replace(/\s+/g, '') : "creator_hub"}</span>
                     {title && <span className="font-bold block text-slate-950 mb-0.5">{title}</span>}
-                    {description || <span className="text-slate-400 italic">Your Instagram caption will render here...</span>}
+                    {description ? renderFormattedHashtags(description, "text-indigo-600 font-semibold hover:underline cursor-pointer") : <span className="text-slate-400 italic">Your Instagram caption will render here...</span>}
                   </div>
                   {tags && (
                     <div className="text-[11px] font-semibold text-indigo-600">
@@ -2608,7 +2600,7 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
 
                 <div className="text-xs text-slate-800 leading-relaxed font-normal whitespace-pre-wrap">
                   {title && <h4 className="font-bold text-slate-950 text-sm mb-1">{title}</h4>}
-                  {description || <span className="text-slate-400 italic">Your Facebook post text will render here...</span>}
+                  {description ? renderFormattedHashtags(description, "text-blue-600 font-semibold hover:underline cursor-pointer") : <span className="text-slate-400 italic">Your Facebook post text will render here...</span>}
                 </div>
 
                 {filePreview && (
@@ -2759,7 +2751,7 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                         <button className="px-2.5 py-1 rounded-full bg-red-600 text-white font-bold text-[10px]">Subscribe</button>
                       </div>
                       <p className="text-[11.5px] text-slate-600 line-clamp-3 leading-relaxed whitespace-pre-wrap">
-                        {description || "Video description text will render here..."}
+                        {description ? renderFormattedHashtags(description, "text-blue-600 font-medium hover:underline cursor-pointer") : "Video description text will render here..."}
                       </p>
                     </div>
                   </div>
@@ -2782,7 +2774,7 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
 
                 <div className="text-xs text-slate-800 leading-relaxed font-normal whitespace-pre-wrap">
                   {title && <h4 className="font-bold text-slate-950 text-xs mb-1">{title}</h4>}
-                  {description || <span className="text-slate-400 italic">LinkedIn professional copy will render here...</span>}
+                  {description ? renderFormattedHashtags(description, "text-blue-700 font-semibold hover:underline cursor-pointer") : <span className="text-slate-400 italic">LinkedIn professional copy will render here...</span>}
                 </div>
 
                 {filePreview && (
@@ -2819,7 +2811,7 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
 
                 <div className="text-xs text-slate-900 leading-relaxed whitespace-pre-wrap">
                   {title && <p className="font-bold mb-1">{title}</p>}
-                  {description || <span className="text-slate-400 italic">Tweet body text will render here...</span>}
+                  {description ? renderFormattedHashtags(description, "text-sky-500 font-semibold hover:underline cursor-pointer") : <span className="text-slate-400 italic">Tweet body text will render here...</span>}
                 </div>
 
                 {filePreview && (
@@ -2987,37 +2979,39 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
 
           {/* PLATFORM-SPECIFIC VIDEO & POST SETTINGS */}
           {(hasYouTubeSelected || hasInstagramSelected || hasFacebookSelected) && (
-            <div className="space-y-3 pt-3 border-t border-slate-100 animate-in fade-in duration-200">
+            <div className="space-y-3.5 pt-3.5 border-t border-slate-100 animate-in fade-in duration-200">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                   <Sliders className="w-3.5 h-3.5 text-indigo-600" />
                   <span>Channel Optimization & Formats</span>
                 </label>
-                <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-                  Active
+                <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-200">
+                  Auto-Optimized
                 </span>
               </div>
 
               {/* YOUTUBE SETTINGS */}
               {hasYouTubeSelected && (
-                <div className="p-3.5 rounded-xl bg-red-50/60 border border-red-200/90 space-y-3 text-xs">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 font-black text-red-950">
-                      <PlatformIcon platform="youtube" className="w-4 h-4 text-red-600" />
+                <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-3 text-xs">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <div className="flex items-center gap-2 font-bold text-slate-900">
+                      <div className="w-6 h-6 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
+                        <PlatformIcon platform="youtube" className="w-3.5 h-3.5 text-red-600" />
+                      </div>
                       <span>YouTube Video Controls</span>
                     </div>
-                    <span className="text-[10px] font-bold text-red-700 bg-white px-2 py-0.5 rounded border border-red-200">
+                    <span className="text-[10px] font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded-md border border-red-200/60">
                       YouTube v3
                     </span>
                   </div>
 
                   {/* YouTube Shorts vs Long Video Selector */}
                   <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-slate-900">Format / Placement:</span>
-                      <span className="text-[10px] text-slate-500 font-medium">Shorts = 9:16 &le; 60s</span>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-bold text-slate-800">Format & Placement</span>
+                      <span className="text-[10px] text-slate-400">Shorts (&le; 60s 9:16)</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-1">
+                    <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-slate-100/80 border border-slate-200/60">
                       {[
                         { id: "auto", label: "Auto-Detect" },
                         { id: "shorts", label: "Shorts (#Shorts)" },
@@ -3027,90 +3021,91 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                           key={fmt.id}
                           type="button"
                           onClick={() => setYoutubeFormat(fmt.id)}
-                          className={`py-1.5 px-1 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer ${
+                          className={`py-1.5 px-2 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer ${
                             youtubeFormat === fmt.id
-                              ? "bg-red-600 text-white shadow-2xs"
-                              : "bg-white text-slate-700 border border-slate-200 hover:bg-red-50"
+                              ? "bg-red-600 text-white shadow-xs"
+                              : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
                           }`}
                         >
                           {fmt.label}
                         </button>
                       ))}
                     </div>
-                    {/* Dimension / Shorts info badge */}
                     {videoDimensions && (
-                      <p className="text-[10px] text-slate-600 bg-white/80 p-1.5 rounded-lg border border-red-200/60 leading-tight">
-                        {videoDimensions.isVertical 
-                          ? "📱 Vertical (9:16) video detected — YouTube will place it into the Shorts shelf!"
-                          : "🎬 Horizontal (16:9) video detected — YouTube will place it as Standard Long-form Video."}
+                      <p className="text-[10.5px] text-slate-600 bg-slate-50 p-2 rounded-xl border border-slate-200/80 leading-snug flex items-center gap-1.5">
+                        <span className="shrink-0">{videoDimensions.isVertical ? "📱" : "🎬"}</span>
+                        <span>{videoDimensions.isVertical 
+                          ? "Vertical (9:16) video detected — YouTube will automatically place it into the Shorts shelf!"
+                          : "Horizontal (16:9) video detected — YouTube will publish it as Standard Long-form Video."}</span>
                       </p>
                     )}
                   </div>
 
-                  {/* YouTube Privacy Status */}
-                  <div className="space-y-1">
-                    <span className="text-[11px] font-bold text-slate-900">Privacy Status:</span>
-                    <div className="grid grid-cols-3 gap-1">
-                      {[
-                        { id: "public", label: "Public" },
-                        { id: "unlisted", label: "Unlisted" },
-                        { id: "private", label: "Private" }
-                      ].map(p => (
+                  {/* YouTube Privacy & COPPA Row */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div className="space-y-1.5">
+                      <span className="text-[11px] font-bold text-slate-800">Privacy Status</span>
+                      <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-slate-100/80 border border-slate-200/60">
+                        {[
+                          { id: "public", label: "Public" },
+                          { id: "unlisted", label: "Unlisted" },
+                          { id: "private", label: "Private" }
+                        ].map(p => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => setYoutubePrivacy(p.id)}
+                            className={`py-1 px-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer text-center ${
+                              youtubePrivacy === p.id
+                                ? "bg-slate-900 text-white shadow-xs"
+                                : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                            }`}
+                          >
+                            {p.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-bold text-slate-800">Made for Kids</span>
+                        <span className="text-[9.5px] text-slate-400">COPPA</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-slate-100/80 border border-slate-200/60">
                         <button
-                          key={p.id}
                           type="button"
-                          onClick={() => setYoutubePrivacy(p.id)}
-                          className={`py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer ${
-                            youtubePrivacy === p.id
-                              ? "bg-slate-900 text-white"
-                              : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
+                          onClick={() => setYoutubeMadeForKids(false)}
+                          className={`py-1 px-2 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer ${
+                            !youtubeMadeForKids
+                              ? "bg-indigo-600 text-white shadow-xs"
+                              : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
                           }`}
                         >
-                          {p.label}
+                          No (Default)
                         </button>
-                      ))}
+                        <button
+                          type="button"
+                          onClick={() => setYoutubeMadeForKids(true)}
+                          className={`py-1 px-2 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer ${
+                            youtubeMadeForKids
+                              ? "bg-indigo-600 text-white shadow-xs"
+                              : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                          }`}
+                        >
+                          Yes, for kids
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  {/* COPPA Made for Kids */}
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-slate-900">Made for Kids (COPPA):</span>
-                      <span className="text-[10px] text-slate-400">Required</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setYoutubeMadeForKids(false)}
-                        className={`py-1 px-2 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer ${
-                          !youtubeMadeForKids
-                            ? "bg-indigo-600 text-white"
-                            : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
-                        }`}
-                      >
-                        No (Recommended)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setYoutubeMadeForKids(true)}
-                        className={`py-1 px-2 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer ${
-                          youtubeMadeForKids
-                            ? "bg-indigo-600 text-white"
-                            : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
-                        }`}
-                      >
-                        Yes, for kids
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* YouTube Video Category */}
-                  <div className="space-y-1">
-                    <span className="text-[11px] font-bold text-slate-900">Category:</span>
+                  {/* Category Dropdown */}
+                  <div className="space-y-1 pt-1">
+                    <span className="text-[11px] font-bold text-slate-800">Category</span>
                     <select
                       value={youtubeCategory}
                       onChange={e => setYoutubeCategory(e.target.value)}
-                      className="w-full h-8 px-2 rounded-lg border border-slate-300 bg-white text-[11px] font-semibold text-slate-800 focus:outline-none focus:border-red-500 shadow-2xs"
+                      className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800 focus:outline-none focus:border-red-500 focus:bg-white transition-all shadow-2xs"
                     >
                       <option value="22">People & Blogs (Default)</option>
                       <option value="24">Entertainment</option>
@@ -3127,20 +3122,22 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
 
               {/* INSTAGRAM SETTINGS */}
               {hasInstagramSelected && (
-                <div className="p-3.5 rounded-xl bg-pink-50/60 border border-pink-200/90 space-y-2.5 text-xs">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 font-black text-pink-950">
-                      <PlatformIcon platform="instagram" className="w-4 h-4 text-pink-600" />
+                <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-3 text-xs">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <div className="flex items-center gap-2 font-bold text-slate-900">
+                      <div className="w-6 h-6 rounded-lg bg-pink-50 text-pink-600 flex items-center justify-center">
+                        <PlatformIcon platform="instagram" className="w-3.5 h-3.5 text-pink-600" />
+                      </div>
                       <span>Instagram Placement</span>
                     </div>
-                    <span className="text-[10px] font-bold text-pink-700 bg-white px-2 py-0.5 rounded border border-pink-200">
+                    <span className="text-[10px] font-bold text-pink-700 bg-pink-50 px-2 py-0.5 rounded-md border border-pink-200/60">
                       Meta Graph
                     </span>
                   </div>
 
-                  <div className="space-y-1">
-                    <span className="text-[11px] font-bold text-slate-900">Media Format:</span>
-                    <div className="grid grid-cols-3 gap-1">
+                  <div className="space-y-1.5">
+                    <span className="text-[11px] font-bold text-slate-800">Media Format</span>
+                    <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-slate-100/80 border border-slate-200/60">
                       {[
                         { id: "reels", label: "Reels (9:16)" },
                         { id: "feed", label: "Feed Post" },
@@ -3152,8 +3149,8 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                           onClick={() => setInstagramPlacement(opt.id)}
                           className={`py-1.5 px-1 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer ${
                             instagramPlacement === opt.id
-                              ? "bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 text-white shadow-2xs"
-                              : "bg-white text-slate-700 border border-slate-200 hover:bg-pink-50"
+                              ? "bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 text-white shadow-xs"
+                              : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
                           }`}
                         >
                           {opt.label}
@@ -3163,9 +3160,9 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                   </div>
 
                   {instagramPlacement === "reels" && (
-                    <div className="flex items-center justify-between pt-1">
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
                       <div>
-                        <p className="text-[11px] font-bold text-slate-900">Share Reels to Main Feed</p>
+                        <p className="text-[11px] font-bold text-slate-800">Share Reels to Main Feed</p>
                         <p className="text-[10px] text-slate-500">Also displays on profile grid</p>
                       </div>
                       <button
@@ -3173,13 +3170,13 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                         role="switch"
                         aria-checked={instagramShareToFeed}
                         onClick={() => setInstagramShareToFeed(prev => !prev)}
-                        className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
                           instagramShareToFeed ? "bg-rose-600" : "bg-slate-300"
                         }`}
                       >
                         <span
-                          className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                            instagramShareToFeed ? "translate-x-3" : "translate-x-0"
+                          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                            instagramShareToFeed ? "translate-x-4" : "translate-x-0"
                           }`}
                         />
                       </button>
@@ -3190,20 +3187,22 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
 
               {/* FACEBOOK SETTINGS */}
               {hasFacebookSelected && (
-                <div className="p-3.5 rounded-xl bg-blue-50/60 border border-blue-200/90 space-y-2.5 text-xs">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 font-black text-blue-950">
-                      <PlatformIcon platform="facebook" className="w-4 h-4 text-blue-600" />
+                <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-3 text-xs">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <div className="flex items-center gap-2 font-bold text-slate-900">
+                      <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                        <PlatformIcon platform="facebook" className="w-3.5 h-3.5 text-blue-600" />
+                      </div>
                       <span>Facebook Placement</span>
                     </div>
-                    <span className="text-[10px] font-bold text-blue-700 bg-white px-2 py-0.5 rounded border border-blue-200">
+                    <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200/60">
                       Meta Pages
                     </span>
                   </div>
 
-                  <div className="space-y-1">
-                    <span className="text-[11px] font-bold text-slate-900">Placement:</span>
-                    <div className="grid grid-cols-2 gap-1">
+                  <div className="space-y-1.5">
+                    <span className="text-[11px] font-bold text-slate-800">Placement Mode</span>
+                    <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-slate-100/80 border border-slate-200/60">
                       {[
                         { id: "reels_video", label: "Reels / Video Post" },
                         { id: "feed", label: "Page Feed Post" }
@@ -3214,8 +3213,8 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                           onClick={() => setFacebookPlacement(opt.id)}
                           className={`py-1.5 px-1 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer ${
                             facebookPlacement === opt.id
-                              ? "bg-blue-600 text-white shadow-2xs"
-                              : "bg-white text-slate-700 border border-slate-200 hover:bg-blue-50"
+                              ? "bg-blue-600 text-white shadow-xs"
+                              : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
                           }`}
                         >
                           {opt.label}
