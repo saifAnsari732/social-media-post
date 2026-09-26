@@ -55,7 +55,8 @@ import {
   MessageSquare,
   Copy,
   Sparkles,
-  TrendingDown
+  TrendingDown,
+  Rocket
 } from "lucide-react";
 import { PlatformIcon } from "@/components/ui/SocialIcons";
 
