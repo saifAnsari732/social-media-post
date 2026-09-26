@@ -2145,10 +2145,10 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
 
                   {/* ─── AI / REAL CONTENT DETECTION BANNER — ALWAYS AT TOP ─── */}
                   {currentOrigin === "ai" || currentOrigin === "ai_assisted" ? (
-                    <div className="rounded-xl bg-purple-600 text-white px-4 py-3 flex items-start justify-between gap-3 shadow-sm">
-                      <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-white/20 text-white flex items-center justify-center shrink-0">
-                          <Sparkles className="w-5 h-5 text-purple-200" />
+                    <div className="rounded-xl bg-purple-600 text-white px-4 py-3 flex items-center justify-between gap-3 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-white/20 text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <Sparkles className="w-5 h-5 text-purple-100" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -2162,38 +2162,28 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                           </p>
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0">
                         {!description.includes("AI & SYNTHETIC MEDIA DISCLOSURE") && (
                           <button
                             type="button"
                             onClick={handleApplyAIDisclosure}
-                            className="text-[10px] font-black bg-white text-purple-700 px-2.5 py-1 rounded-lg cursor-pointer hover:bg-purple-50 transition-all shadow-xs flex items-center gap-1"
+                            className="text-[10.5px] font-black bg-white text-purple-700 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-purple-50 transition-all shadow-xs flex items-center gap-1.5 active:scale-95"
                           >
-                            <Sparkles className="w-3 h-3 text-purple-700" />
+                            <Sparkles className="w-3.5 h-3.5 text-purple-700" />
                             <span>Add AI Label to Caption</span>
                           </button>
                         )}
                         {description.includes("AI & SYNTHETIC MEDIA DISCLOSURE") && (
-                          <span className="text-[10px] font-black bg-green-400/30 text-white px-2 py-0.5 rounded-full border border-green-400/40">✓ Label Added</span>
+                          <span className="text-[10.5px] font-black bg-green-400/30 text-white px-3 py-1 rounded-full border border-green-400/40">✓ Label Added</span>
                         )}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDetectedMediaOrigin("real");
-                            if (scanResultData) {
-                              setScanResultData(prev => prev ? { ...prev, detectedMediaOrigin: "real" } : prev);
-                            }
-                          }}
-                          className="text-[9.5px] text-purple-200 hover:text-white underline cursor-pointer"
-                        >
-                          Switch to Real Camera
-                        </button>
                       </div>
                     </div>
                   ) : (
                     <div className="rounded-xl bg-emerald-600 text-white px-4 py-3 flex items-center justify-between gap-3 shadow-sm">
                       <div className="flex items-center gap-3">
-                        <div className="text-2xl shrink-0">📷</div>
+                        <div className="w-9 h-9 rounded-xl bg-white/20 text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <Camera className="w-5 h-5 text-emerald-100" />
+                        </div>
                         <div>
                           <p className="text-sm font-black">100% Real Content Verified</p>
                           <p className="text-[11px] text-emerald-200 mt-0.5">
@@ -2202,48 +2192,40 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-[10px] font-black bg-white/20 px-2 py-0.5 rounded-full border border-white/30">
+                        <span className="text-[10px] font-black bg-white/20 px-2.5 py-1 rounded-full border border-white/30">
                           {currentConfidence}% Confidence
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDetectedMediaOrigin("ai");
-                            if (scanResultData) {
-                              setScanResultData(prev => prev ? { ...prev, detectedMediaOrigin: "ai", mediaOriginConfidence: 96 } : prev);
-                            }
-                          }}
-                          className="text-[10px] font-black bg-white/20 hover:bg-white/30 text-white px-2.5 py-1 rounded-lg border border-white/30 cursor-pointer transition-all flex items-center gap-1"
-                          title="Manually declare this as AI / Synthetic media"
-                        >
-                          <Sparkles className="w-3.5 h-3.5 text-white" />
-                          <span>Tag as AI Media</span>
-                        </button>
                       </div>
                     </div>
                   )}
 
-                  {/* ─── RISK SCORE HEADER ─── */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
-                    <div className="flex items-center gap-3">
-                      {isLowRisk ? (
-                        <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center text-2xl font-black shadow-lg shadow-emerald-500/30 shrink-0">
-                          ✓
+                  {/* ─── RISK SCORE HEADER (LARGE HIGHLIGHTED DISPLAY) ─── */}
+                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200/80 pb-4 pt-1">
+                    <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
+                      {/* LARGE PROMINENT RISK SCORE BADGE */}
+                      <div className={`px-4 py-2.5 rounded-2xl border-2 shadow-md flex items-center gap-3 shrink-0 ${
+                        isLowRisk 
+                          ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-400" 
+                          : currentTier === "review"
+                          ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-amber-300"
+                          : "bg-gradient-to-r from-rose-600 to-red-600 text-white border-rose-400"
+                      }`}>
+                        <div className="flex flex-col items-center">
+                          <span className="text-[9px] uppercase tracking-widest font-black opacity-90">Risk Score</span>
+                          <span className="text-2xl sm:text-3xl font-black leading-none">{currentRiskScore}<span className="text-xs font-bold opacity-80">/100</span></span>
                         </div>
-                      ) : (
-                        <div className={`w-10 h-10 rounded-2xl ${currentTier === "critical" ? "bg-rose-600" : currentTier === "high" ? "bg-orange-500" : "bg-amber-500"} text-white flex items-center justify-center text-xl font-black shadow-lg shrink-0`}>
-                          <ShieldAlert className="w-5 h-5" />
+                        <div className="h-8 w-px bg-white/30" />
+                        <div className="flex flex-col">
+                          <span className="text-xs font-black uppercase tracking-wider">{currentTier === "low" ? "LOW RISK" : currentTier.toUpperCase()}</span>
+                          <span className="text-[10px] font-bold opacity-90 whitespace-nowrap">{isLowRisk ? "✓ Cleared to Publish" : "⚠️ Action Needed"}</span>
                         </div>
-                      )}
+                      </div>
 
                       <div>
-                        <h4 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-2 flex-wrap">
+                        <h4 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
                           <span>{tierTitle}</span>
-                          <span className={`text-[10.5px] px-2.5 py-0.5 rounded-full font-black border ${tierBadgeColor}`}>
-                            Content Risk Score: {currentRiskScore}/100 ({currentTier.toUpperCase()})
-                          </span>
                         </h4>
-                        <p className="text-[11px] text-slate-600">
+                        <p className="text-[11.5px] font-semibold text-slate-600 mt-0.5 max-w-xl">
                           {isLowRisk
                             ? "Content passed Text, Visual, and Audio analysis. Safe for multi-channel publishing."
                             : "Risk factors detected. See issues & solutions below — fix them before publishing."}
@@ -2251,24 +2233,14 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenDisputeModal("youtube")}
-                        className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-[10.5px] font-bold flex items-center gap-1 cursor-pointer shadow-2xs"
-                        title="View pre-drafted legal counter-notice template"
-                      >
-                        <Scale className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>Dispute Letter</span>
-                      </button>
-
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         type="button"
                         onClick={() => handleStartScan(true)}
-                        className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 text-[10.5px] font-bold flex items-center gap-1 cursor-pointer shadow-2xs transition-all"
+                        className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-95"
                         title="Run a new full deep scan"
                       >
-                        <RefreshCw className="w-3.5 h-3.5" />
+                        <RefreshCw className="w-3.5 h-3.5 text-slate-600" />
                         <span>Re-Scan</span>
                       </button>
                     </div>
