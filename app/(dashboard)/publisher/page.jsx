@@ -56,6 +56,7 @@ export default function PublisherPage() {
   const [publishMode, setPublishMode] = useState("draft"); // 'draft' (default) | 'now' | 'schedule'
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("18:30");
+  const [processingAction, setProcessingAction] = useState(""); // 'upload' | 'draft' | 'publish' | 'schedule'
   const [disableComments, setDisableComments] = useState(false);
   const [previewTab, setPreviewTab] = useState("instagram");
   const [editingPost, setEditingPost] = useState(null);
@@ -160,6 +161,8 @@ export default function PublisherPage() {
     const activeUserId = user?.userId || getStoredUser()?.userId;
     const allowed = checkPlanAccess({ action: "publish_post", router, toast });
     if (!allowed) return;
+    setPosting(true);
+    setProcessingAction("publish");
     try {
       const res = await fetch("/api/post", {
         method: "PUT",
@@ -178,6 +181,8 @@ export default function PublisherPage() {
       }
     } catch (err) {
       toast.error(err?.message || "Error publishing draft");
+    } finally {
+      setPosting(false);
     }
   }
 
@@ -206,6 +211,7 @@ export default function PublisherPage() {
     setFile(f);
     setFilePreview(URL.createObjectURL(f));
     setUploadingMedia(true);
+    setProcessingAction("upload");
 
     const isVideoFile = f.type?.startsWith("video/") || Boolean(f.name?.match(/\.(mp4|mov|webm|avi|m4v|mkv|3gp)$/i));
 
@@ -406,6 +412,7 @@ export default function PublisherPage() {
     }
 
     setPosting(true);
+    setProcessingAction(effectiveMode === "draft" ? "draft" : (effectiveMode === "schedule" ? "schedule" : "publish"));
     setResults(null);
     try {
       const activeUserId = user?.userId || getStoredUser()?.userId;
@@ -1584,18 +1591,54 @@ export default function PublisherPage() {
 
       {/* PROCESSING / UPLOADING POPUP MODAL */}
       {(posting || uploadingMedia) && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[99999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl max-w-sm w-full p-6 text-center space-y-5 shadow-2xl border border-slate-100 relative overflow-hidden animate-in zoom-in-95 duration-200">
             {/* Top ambient glow light */}
-            <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-48 h-20 bg-indigo-500/20 blur-2xl rounded-full pointer-events-none" />
+            <div className={`absolute -top-12 left-1/2 -translate-x-1/2 w-48 h-20 blur-2xl rounded-full pointer-events-none ${
+              processingAction === "draft"
+                ? "bg-amber-500/25"
+                : processingAction === "schedule"
+                ? "bg-blue-500/25"
+                : uploadingMedia || processingAction === "upload"
+                ? "bg-cyan-500/25"
+                : "bg-indigo-500/25"
+            }`} />
 
             {/* Dynamic Animated Ring Icon */}
             <div className="relative mx-auto w-20 h-20 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full border-4 border-indigo-100" />
-              <div className="absolute inset-0 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin" />
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-inner">
-                {uploadingMedia ? (
-                  <UploadCloud className="w-6 h-6 animate-bounce text-indigo-600" />
+              <div className={`absolute inset-0 rounded-full border-4 ${
+                processingAction === "draft"
+                  ? "border-amber-100"
+                  : processingAction === "schedule"
+                  ? "border-blue-100"
+                  : uploadingMedia || processingAction === "upload"
+                  ? "border-cyan-100"
+                  : "border-indigo-100"
+              }`} />
+              <div className={`absolute inset-0 rounded-full border-4 border-t-transparent animate-spin ${
+                processingAction === "draft"
+                  ? "border-amber-500"
+                  : processingAction === "schedule"
+                  ? "border-blue-500"
+                  : uploadingMedia || processingAction === "upload"
+                  ? "border-cyan-500"
+                  : "border-indigo-600"
+              }`} />
+              <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center shadow-inner ${
+                processingAction === "draft"
+                  ? "bg-amber-50 border-amber-100 text-amber-600"
+                  : processingAction === "schedule"
+                  ? "bg-blue-50 border-blue-100 text-blue-600"
+                  : uploadingMedia || processingAction === "upload"
+                  ? "bg-cyan-50 border-cyan-100 text-cyan-600"
+                  : "bg-indigo-50 border-indigo-100 text-indigo-600"
+              }`}>
+                {uploadingMedia || processingAction === "upload" ? (
+                  <UploadCloud className="w-6 h-6 animate-bounce text-cyan-600" />
+                ) : processingAction === "draft" ? (
+                  <Bookmark className="w-6 h-6 fill-amber-500 text-amber-500 animate-pulse" />
+                ) : processingAction === "schedule" ? (
+                  <Calendar className="w-6 h-6 text-blue-600 animate-pulse" />
                 ) : isVideo ? (
                   <FileVideo className="w-6 h-6 animate-pulse text-indigo-600" />
                 ) : (
@@ -1607,25 +1650,27 @@ export default function PublisherPage() {
             {/* Status Titles */}
             <div className="space-y-1.5">
               <h3 className="text-base font-black text-slate-900 tracking-tight">
-                {uploadingMedia
-                  ? "Uploading Media to CDN..."
-                  : publishMode === "draft"
-                  ? "Saving Post as Draft..."
-                  : publishMode === "schedule"
-                  ? "Scheduling Channels..."
-                  : `Publishing to ${selectedIds.length} Channel(s)...`}
+                {uploadingMedia || processingAction === "upload"
+                  ? "⚡ Uploading Media to CDN..."
+                  : processingAction === "draft"
+                  ? "📌 Saving Post as Draft..."
+                  : processingAction === "schedule"
+                  ? "📅 Scheduling Channels..."
+                  : `🚀 Publishing to ${selectedIds.length} Channel(s)...`}
               </h3>
               <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                {uploadingMedia
+                {uploadingMedia || processingAction === "upload"
                   ? "Direct high-speed transfer to ImageKit Cloud CDN in progress. Large videos may take a few moments."
-                  : publishMode === "draft"
-                  ? "Safely storing your creative content and assets into MongoDB draft storage."
-                  : "Dispatching media and payload to connected social platform APIs. Please do not close this window."}
+                  : processingAction === "draft"
+                  ? "Safely saving your creative content, caption, hashtags, and media into MongoDB draft storage."
+                  : processingAction === "schedule"
+                  ? `Queuing your post for automated multi-channel delivery on ${scheduleDate || "selected date"}.`
+                  : "Broadcasting your media and payload across connected social networks. Please keep this window open."}
               </p>
             </div>
 
-            {/* Target Channels Live Badge List (if publishing) */}
-            {!uploadingMedia && selectedIds.length > 0 && (
+            {/* Target Channels Live Badge List (if publishing or scheduling) */}
+            {!uploadingMedia && processingAction !== "draft" && selectedIds.length > 0 && (
               <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
                 {selectedIds.map(id => {
                   const acc = accounts.find(a => a._id === id);
@@ -1633,7 +1678,7 @@ export default function PublisherPage() {
                   return (
                     <span
                       key={id}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-[11px] font-bold text-slate-800"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-[11px] font-bold text-slate-800 shadow-2xs"
                     >
                       <PlatformIcon platform={acc.platform} className="w-3.5 h-3.5" />
                       <span className="max-w-[100px] truncate">{acc.name || acc.platform}</span>
@@ -1644,13 +1689,29 @@ export default function PublisherPage() {
             )}
 
             {/* High-tech pulsing progress bar */}
-            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden relative">
-              <div className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 rounded-full animate-pulse w-full" />
+            <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden relative shadow-inner">
+              <div className={`h-full rounded-full animate-pulse w-full ${
+                processingAction === "draft"
+                  ? "bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600"
+                  : processingAction === "schedule"
+                  ? "bg-gradient-to-r from-blue-400 via-indigo-500 to-blue-600"
+                  : uploadingMedia || processingAction === "upload"
+                  ? "bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600"
+                  : "bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600"
+              }`} />
             </div>
 
             <div className="flex items-center justify-center gap-1.5 text-[11px] font-bold text-slate-400">
               <RefreshCw className="w-3 h-3 animate-spin text-indigo-500" />
-              <span>Secure Cloud Dispatcher Active</span>
+              <span>
+                {processingAction === "draft"
+                  ? "MongoDB Draft Synchronizer Active"
+                  : processingAction === "schedule"
+                  ? "Automated Multi-Channel Scheduler Active"
+                  : uploadingMedia || processingAction === "upload"
+                  ? "Direct ImageKit Cloud Pipeline Active"
+                  : "Multi-Channel Social Broadcast Active"}
+              </span>
             </div>
           </div>
         </div>
