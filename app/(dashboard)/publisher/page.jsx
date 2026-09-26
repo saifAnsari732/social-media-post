@@ -1582,6 +1582,80 @@ export default function PublisherPage() {
         )}
       </div>
 
+      {/* PROCESSING / UPLOADING POPUP MODAL */}
+      {(posting || uploadingMedia) && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 text-center space-y-5 shadow-2xl border border-slate-100 relative overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Top ambient glow light */}
+            <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-48 h-20 bg-indigo-500/20 blur-2xl rounded-full pointer-events-none" />
+
+            {/* Dynamic Animated Ring Icon */}
+            <div className="relative mx-auto w-20 h-20 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full border-4 border-indigo-100" />
+              <div className="absolute inset-0 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin" />
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-inner">
+                {uploadingMedia ? (
+                  <UploadCloud className="w-6 h-6 animate-bounce text-indigo-600" />
+                ) : isVideo ? (
+                  <FileVideo className="w-6 h-6 animate-pulse text-indigo-600" />
+                ) : (
+                  <Send className="w-5 h-5 animate-pulse text-indigo-600" />
+                )}
+              </div>
+            </div>
+
+            {/* Status Titles */}
+            <div className="space-y-1.5">
+              <h3 className="text-base font-black text-slate-900 tracking-tight">
+                {uploadingMedia
+                  ? "Uploading Media to CDN..."
+                  : publishMode === "draft"
+                  ? "Saving Post as Draft..."
+                  : publishMode === "schedule"
+                  ? "Scheduling Channels..."
+                  : `Publishing to ${selectedIds.length} Channel(s)...`}
+              </h3>
+              <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                {uploadingMedia
+                  ? "Direct high-speed transfer to ImageKit Cloud CDN in progress. Large videos may take a few moments."
+                  : publishMode === "draft"
+                  ? "Safely storing your creative content and assets into MongoDB draft storage."
+                  : "Dispatching media and payload to connected social platform APIs. Please do not close this window."}
+              </p>
+            </div>
+
+            {/* Target Channels Live Badge List (if publishing) */}
+            {!uploadingMedia && selectedIds.length > 0 && (
+              <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
+                {selectedIds.map(id => {
+                  const acc = accounts.find(a => a._id === id);
+                  if (!acc) return null;
+                  return (
+                    <span
+                      key={id}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-[11px] font-bold text-slate-800"
+                    >
+                      <PlatformIcon platform={acc.platform} className="w-3.5 h-3.5" />
+                      <span className="max-w-[100px] truncate">{acc.name || acc.platform}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* High-tech pulsing progress bar */}
+            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden relative">
+              <div className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 rounded-full animate-pulse w-full" />
+            </div>
+
+            <div className="flex items-center justify-center gap-1.5 text-[11px] font-bold text-slate-400">
+              <RefreshCw className="w-3 h-3 animate-spin text-indigo-500" />
+              <span>Secure Cloud Dispatcher Active</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MEDIA PREVIEW MODAL */}
       <MediaPreviewModal
         isOpen={Boolean(previewMedia)}

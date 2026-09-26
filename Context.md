@@ -357,4 +357,24 @@ POST   /api/admin/system              # System health & reset actions
 
 ---
 
+## 21. Multi-Platform Publishing Resilience Engine & Token Auto-Refresh
+
+* **Facebook Video/Photo Success:**
+  - Confirmed live: Facebook (`Newcretae`) successfully published via direct `file_url` CDN pipeline and automatic fallback engine.
+
+* **Instagram Transient Code 2 Auto-Retry (`lib/platforms/instagram.js`):**
+  - Added a 3-second replication buffer after container processing finishes to allow Meta distribution nodes to replicate video assets.
+  - Implemented an automatic retry loop (up to 4 attempts with exponential backoff) for Meta's transient code 2 errors (`is_transient: true`), eliminating random container publishing rejections.
+
+* **Twitter (X) Multi-Tier Fallback (`lib/platforms/twitter.js`):**
+  - If chunked v1.1 upload returns an error, the system automatically falls back to an API v2 direct tweet with caption, hashtags, and media link preview so the tweet never fails.
+
+* **Google & YouTube Permanent Refresh Token (`/api/auth/connect/[provider]`):**
+  - Injected `prompt=consent` into Google OAuth URL, guaranteeing that Google always issues a persistent `refresh_token` upon connecting, enabling automatic background token renewal forever without expiration errors.
+
+* **Threads Diagnostic Guard (`lib/platforms/threads.js`):**
+  - Added explicit code 190 detection and guidance to guide users to connect Threads via official OAuth instead of mismatched Page tokens.
+
+---
+
 *This document serves as the single source of truth for Postfly's system architecture, business logic, and feature set.*

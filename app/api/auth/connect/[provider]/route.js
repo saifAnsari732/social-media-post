@@ -13,7 +13,7 @@ export async function GET(req, { params }) {
 
   const AUTH_URLS = {
     youtube: () =>
-      `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.YOUTUBE_CLIENT_ID}&redirect_uri=${process.env.YOUTUBE_REDIRECT_URI}&response_type=code&access_type=offline&state=${state}&scope=${encodeURIComponent(
+      `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.YOUTUBE_CLIENT_ID}&redirect_uri=${process.env.YOUTUBE_REDIRECT_URI}&response_type=code&access_type=offline&prompt=consent&state=${state}&scope=${encodeURIComponent(
         "https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly"
       )}`,
     facebook: () =>

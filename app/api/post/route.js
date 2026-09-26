@@ -348,6 +348,7 @@ export async function POST(req) {
           results[accountId] = await postToTwitter({
             accessToken: account.accessToken,
             videoBuffer: buffer,
+            mediaUrl: mediaUrl,
             text: `${title}\n\n${description}`,
             isVideo,
             mimeType: isVideo ? "video/mp4" : "image/jpeg",
