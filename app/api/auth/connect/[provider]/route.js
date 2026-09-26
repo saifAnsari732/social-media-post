@@ -38,7 +38,11 @@ export async function GET(req, { params }) {
       )}&state=${state}&code_challenge=yDiyogOBAhICYCLz2kezunB7Mo0MdVRIQMs7tRbJmLE&code_challenge_method=S256`;
     },
     linkedin: () => {
-      const defaultScopes = "openid profile email w_member_social w_organization_social rw_organization_admin";
+      // By default use approved personal scopes (openid, profile, email, w_member_social)
+      // If organization approval is active, set LINKEDIN_SCOPES or LINKEDIN_ENABLE_ORG_SCOPES=true in env
+      const defaultScopes = process.env.LINKEDIN_ENABLE_ORG_SCOPES === "true"
+        ? "openid profile email w_member_social w_organization_social rw_organization_admin"
+        : "openid profile email w_member_social";
       const customScopes = process.env.LINKEDIN_SCOPES || process.env.LINKEDIN_SCOPE;
       const linkedinScope = customScopes || defaultScopes;
       return `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${process.env.LINKEDIN_CLIENT_ID}&redirect_uri=${encodeURIComponent(
