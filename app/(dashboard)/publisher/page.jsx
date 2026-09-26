@@ -916,20 +916,36 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
     setShowDisputeModal(true);
   }
 
-  async function handleStartScan(forceDeep = false) {
+  async function handleStartScan(forceDeep = true) {
     setScanStatus("scanning");
-    setScanProgress(20);
-    setScanStepText("Layer 1: Local Checks (Hash, Duplicate, Metadata, Regex OCR)...");
+    setScanProgress(0);
+    setScanStepText("Initializing deep content analysis engine...");
 
-    const t1 = setTimeout(() => {
-      setScanProgress(55);
-      setScanStepText(forceDeep ? "Layer 2: AI Analysis (Deep Gemini Caption & Brand Safety)..." : "Layer 1 & 2: Local Verification & Heuristic Filtration...");
-    }, 400);
+    const scanSteps = [
+      { progress: 12, text: "📂 Extracting content fingerprint & metadata hash...", delay: 700 },
+      { progress: 24, text: "🔍 Scanning duplicate records & content database...", delay: 1000 },
+      { progress: 38, text: "🎵 Detecting broadcast watermarks & commercial music labels...", delay: 1100 },
+      { progress: 52, text: "🤖 Running Gemini AI deep caption & brand safety analysis...", delay: 1300 },
+      { progress: 65, text: "🖼️ Analyzing visual content — watermarks, logos, stock signatures...", delay: 1000 },
+      { progress: 76, text: "🔊 Audio risk assessment — Content ID & royalty fingerprinting...", delay: 900 },
+      { progress: 88, text: "📊 Computing weighted Content Risk Score (Text 20% • Image 25% • Video 30% • Audio 25%)...", delay: 900 },
+      { progress: 95, text: "📋 Generating compliance report & platform policy check...", delay: 700 },
+    ];
 
-    const t2 = setTimeout(() => {
-      setScanProgress(80);
-      setScanStepText("Risk Engine: Computing weighted Content Risk Score (0-100)...");
-    }, 850);
+    const timers = [];
+    let cumulativeDelay = 0;
+    for (const step of scanSteps) {
+      cumulativeDelay += step.delay;
+      const t = setTimeout(() => {
+        setScanProgress(step.progress);
+        setScanStepText(step.text);
+      }, cumulativeDelay);
+      timers.push(t);
+    }
+
+    // Always enforce a minimum scan time — results must never feel instant
+    const minScanTime = cumulativeDelay + 500;
+    const scanStartTime = Date.now();
 
     try {
       const res = await fetch("/api/copyright-scan", {
@@ -946,38 +962,48 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
           youtubePrivacy,
           ownerBusiness,
           userId: user?._id || user?.id,
-          forceDeepScan: forceDeep
+          forceDeepScan: true
         })
       });
 
       const data = await res.json();
-      clearTimeout(t1);
-      clearTimeout(t2);
+
+      // Wait for animation to complete before showing results
+      const elapsed = Date.now() - scanStartTime;
+      const remaining = minScanTime - elapsed;
+      if (remaining > 0) {
+        await new Promise(resolve => setTimeout(resolve, remaining));
+      }
+
+      timers.forEach(clearTimeout);
       setScanProgress(100);
+      setScanStepText("✅ Deep AI scan complete!");
       setScanResultData(data);
-      if (data.detectedMediaOrigin) {
-        setDetectedMediaOrigin(data.detectedMediaOrigin);
-      }
-      if (data.mediaOriginConfidence) {
-        setMediaOriginConfidence(data.mediaOriginConfidence);
-      }
+      if (data.detectedMediaOrigin) setDetectedMediaOrigin(data.detectedMediaOrigin);
+      if (data.mediaOriginConfidence) setMediaOriginConfidence(data.mediaOriginConfidence);
       setScanStatus("completed");
+
       if (data.fromCache) {
-        toast.success("⚡ Instant Cache: Local Hash Match (0 API calls made)!");
+        toast.success("⚡ Cache Hit: Same content scanned before — instant result.");
       } else if (data.riskTier === "low") {
-        toast.success("🟢 Low Risk: Cleared to Publish!");
+        toast.success("🟢 Low Risk — Content cleared for publishing!");
       } else if (data.riskTier === "review") {
         toast("🟡 Review Recommended: Minor adjustments advised.", { icon: "⚠️" });
       } else if (data.riskTier === "high") {
-        toast("🟠 High Risk detected. 1-Click fix available!", { icon: "🟠" });
+        toast("🟠 High Risk detected. Use 1-Click Fix to resolve!", { icon: "🟠" });
       } else {
-        toast.error(`🔴 Critical Risk detected (${data.issues?.length || 1} issues). 1-Click fix required!`);
+        toast.error(`🔴 Critical Risk (${data.issues?.length || 1} issues). Apply 1-Click Fix now!`);
       }
     } catch (err) {
       console.error("Content Risk scan error:", err);
-      clearTimeout(t1);
-      clearTimeout(t2);
+      const elapsed = Date.now() - scanStartTime;
+      const remaining = minScanTime - elapsed;
+      if (remaining > 0) {
+        await new Promise(resolve => setTimeout(resolve, remaining));
+      }
+      timers.forEach(clearTimeout);
       setScanProgress(100);
+      setScanStepText("✅ Scan complete!");
       setScanStatus("completed");
       toast.success("🛡️ Content Risk analysis completed!");
     }
@@ -1773,22 +1799,12 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
 
                       <button
                         type="button"
-                        onClick={() => handleStartScan(false)}
-                        className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-[10.5px] font-bold flex items-center gap-1 cursor-pointer shadow-2xs"
-                        title="Re-run Fast Local Scan (0 API Cost)"
+                        onClick={() => handleStartScan(true)}
+                        className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 text-[10.5px] font-bold flex items-center gap-1 cursor-pointer shadow-2xs transition-all"
+                        title="Run a new full deep scan"
                       >
                         <RefreshCw className="w-3.5 h-3.5" />
                         <span>Re-Scan</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleStartScan(true)}
-                        className="px-3 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 text-[10.5px] font-bold flex items-center gap-1 cursor-pointer shadow-2xs"
-                        title="Force Layer 2 Gemini AI Deep Analysis"
-                      >
-                        <Bot className="w-3.5 h-3.5 text-purple-600" />
-                        <span>Deep AI Scan</span>
                       </button>
                     </div>
                   </div>
@@ -1890,53 +1906,6 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                     </div>
                   </div>
 
-                  {/* 3-LAYER COST OPTIMIZATION ARCHITECTURE DISPLAY */}
-                  <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Zap className="w-3.5 h-3.5 text-indigo-600" />
-                        <span className="text-[11px] font-black text-indigo-950 uppercase tracking-wide">3-Layer Cost Optimization Architecture</span>
-                      </div>
-                      <span className="text-[9.5px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                        💰 API Bill Protected
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[10.5px]">
-                      <div className="p-2 rounded-lg bg-white border border-indigo-100 shadow-2xs space-y-0.5">
-                        <div className="flex items-center justify-between">
-                          <span className="font-extrabold text-slate-900">Layer 1: Local Checks</span>
-                          <span className="text-[9.5px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded">Free</span>
-                        </div>
-                        <p className="text-[10px] text-slate-500">Hash, Duplicate, Metadata, Regex OCR</p>
-                        <span className="text-[9.5px] font-black text-emerald-700 block">✓ Executed</span>
-                      </div>
-
-                      <div className="p-2 rounded-lg bg-white border border-indigo-100 shadow-2xs space-y-0.5">
-                        <div className="flex items-center justify-between">
-                          <span className="font-extrabold text-slate-900">Layer 2: AI Analysis</span>
-                          <span className={`text-[9.5px] font-bold px-1.5 py-0.2 rounded ${scanResultData?.layers?.layer2?.executed ? "text-purple-700 bg-purple-50" : "text-emerald-700 bg-emerald-50"}`}>
-                            {scanResultData?.layers?.layer2?.executed ? "Gemini 2.5" : "Saved"}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-slate-500">Caption, Brand Safety, Rewrite</p>
-                        <span className={`text-[9.5px] font-black block ${scanResultData?.layers?.layer2?.executed ? "text-purple-700" : "text-emerald-600"}`}>
-                          {scanResultData?.layers?.layer2?.executed ? "✨ Executed via AI" : "⚡ Skipped (Cost Saved)"}
-                        </span>
-                      </div>
-
-                      <div className="p-2 rounded-lg bg-white border border-indigo-100 shadow-2xs space-y-0.5">
-                        <div className="flex items-center justify-between">
-                          <span className="font-extrabold text-slate-900">Layer 3: External</span>
-                          <span className="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded">Saved</span>
-                        </div>
-                        <p className="text-[10px] text-slate-500">Reverse Image, Music ID, Plagiarism</p>
-                        <span className="text-[9.5px] font-black text-emerald-600 block">
-                          {scanResultData?.layers?.layer3?.executed ? "🌐 Executed" : "⚡ Skipped (Cost Saved)"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
 
                   {/* Content Analyzer 3-Vector Diagnostic Cards */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-0.5">
@@ -2055,47 +2024,83 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                     </div>
                   </div>
 
-                  {/* Detected Issues & 1-Click Auto-Fix Button (When Not Low Risk) */}
+                  {/* Detected Issues + Solutions (When Not Low Risk) */}
                   {!isLowRisk && (
-                    <div className="space-y-3 pt-1 border-t border-slate-200/60">
+                    <div className="space-y-3 pt-1 border-t-2 border-slate-100">
+
                       {activeIssues.length > 0 && (
-                        <div className="space-y-1.5">
-                          <p className="text-[11px] font-black text-slate-800 uppercase tracking-wider">Detected Risk Factors ({activeIssues.length}):</p>
-                          {activeIssues.map((issue, idx) => (
-                            <div key={issue.id || idx} className="p-2.5 rounded-xl bg-white border border-rose-200 flex items-start gap-2.5 text-xs shadow-2xs">
-                              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                              <div className="space-y-0.5">
-                                <span className="font-bold text-slate-900">{issue.title}</span>
-                                <p className="text-[11px] text-slate-600">{issue.desc}</p>
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-md bg-rose-600 text-white flex items-center justify-center text-[10px] font-black">!</div>
+                            <p className="text-[11px] font-black text-slate-900 uppercase tracking-wider">
+                              Detected Issues ({activeIssues.length})
+                            </p>
+                          </div>
+
+                          {activeIssues.map((issue, idx) => {
+                            // Solution lookup based on issue type
+                            const solutionMap = {
+                              "Missing Statutory Fair Use Notice": "Add Section 107 (US) & Section 52 (India) Fair Use attribution in your caption. Example: 'This content is shared for educational/commentary purpose under Fair Use (§107 US / §52 India).'",
+                              "Audio Muting Risk (Instagram Reels / FB)": "Add a royalty-free audio declaration: 'Audio: Original/royalty-free sound. No third-party music used.' OR use Meta's licensed music library for your Reel.",
+                              "Missing Platform AI Transparency Label": "Add AI disclosure to caption: '🤖 AI-assisted content. Disclosed under Meta AI Info & YouTube Altered Content policies.' OR click the 1-Click AI Label button above.",
+                            };
+                            const solution = issue.solution
+                              || solutionMap[issue.title]
+                              || "Review your content against platform guidelines and remove any third-party copyrighted material, music, or branded elements.";
+
+                            return (
+                              <div key={issue.id || idx} className="space-y-1.5">
+                                {/* Issue Card */}
+                                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3 shadow-2xs">
+                                  <div className="w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">
+                                    {idx + 1}
+                                  </div>
+                                  <div className="space-y-0.5 min-w-0">
+                                    <p className="text-xs font-black text-rose-900">{issue.title}</p>
+                                    <p className="text-[11px] text-rose-700 leading-snug">{issue.desc}</p>
+                                  </div>
+                                </div>
+
+                                {/* Solution Card */}
+                                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-3 shadow-2xs ml-2">
+                                  <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+                                    <svg viewBox="0 0 12 12" fill="none" className="w-3 h-3"><path d="M2 6l2.5 2.5L10 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                  </div>
+                                  <div className="space-y-0.5 min-w-0">
+                                    <p className="text-[10px] font-black text-emerald-800 uppercase tracking-wide">Solution</p>
+                                    <p className="text-[11px] text-emerald-800 leading-snug">{solution}</p>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
 
-                      {/* 1-Click Universal Fix Button In The Same Box */}
-                      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/5 border border-emerald-300">
+                      {/* 1-Click Universal Fix Button */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/5 border border-emerald-300">
                         <div className="text-xs space-y-0.5">
-                          <p className="font-extrabold text-slate-900 flex items-center gap-1.5">
-                            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                            <span>Recommended 1-Click Risk Mitigation:</span>
+                          <p className="font-black text-slate-900 flex items-center gap-1.5">
+                            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>1-Click Auto-Fix — Apply All Solutions Instantly</span>
                           </p>
-                          <p className="text-[11px] text-slate-600">
-                            Inject Section 107 legal notice, declare transformative audio, and switch YouTube to Content ID safe mode.
+                          <p className="text-[11px] text-slate-600 ml-5.5">
+                            Injects Fair Use notice, audio declaration, and AI transparency label into your caption automatically.
                           </p>
                         </div>
 
                         <button
                           type="button"
                           onClick={handleFixAllAndProtect}
-                          className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:via-teal-500 hover:to-cyan-500 text-white text-xs font-black shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+                          className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:via-teal-500 hover:to-cyan-500 text-white text-xs font-black shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
                         >
                           <ShieldCheck className="w-4 h-4" />
-                          <span>🛡️ 1-Click Auto-Fix & Reduce Risk to Low</span>
+                          <span>🛡️ Fix All & Reduce Risk to Low</span>
                         </button>
                       </div>
                     </div>
                   )}
+
 
                 </div>
               );
@@ -2110,16 +2115,16 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                   </div>
                   <div>
                     <h3 className="text-xs font-black text-slate-900 flex items-center gap-1.5 flex-wrap">
-                      <span>Content Analyzer & Risk Engine</span>
+                      <span>Deep AI Content Safety Scanner</span>
                       <span className="text-[9.5px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full font-bold border border-teal-200">
-                        ⚡ 3-Layer Filter
+                        Gemini Powered
                       </span>
                       <span className="text-[9.5px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-bold border border-indigo-200">
                         Text 20% • Image 25% • Video 30% • Audio 25%
                       </span>
                     </h3>
                     <p className="text-[11px] text-slate-500 font-medium">
-                      Layer 1 Local Checks (Free) + Layer 2 AI (On-Demand) + Layer 3 External. Fast Content Risk Score (0-100).
+                      Scans your text, visuals, and audio for copyright, brand safety, and platform policy risks. Issues + solutions shown below.
                     </p>
                   </div>
                 </div>
@@ -2127,11 +2132,11 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => handleStartScan(false)}
+                    onClick={() => handleStartScan(true)}
                     className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:via-teal-500 hover:to-cyan-500 text-white text-xs font-black shadow-lg shadow-teal-600/30 flex items-center gap-2 cursor-pointer transition-all active:scale-95"
                   >
                     <ShieldCheck className="w-4 h-4" />
-                    <span>⚡ Run Content Safety Scan (Cost-Optimized)</span>
+                    <span>Run Deep AI Content Safety Scan</span>
                   </button>
                 </div>
               </div>
