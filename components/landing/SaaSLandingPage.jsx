@@ -71,18 +71,114 @@ export default function SaaSLandingPage() {
   ];
 
   const featuresList = [
-    { icon: <Send className="w-5 h-5 text-indigo-600" />, title: "1. Multi-Platform Publishing", desc: "Publish content across multiple social networks from one composer." },
-    { icon: <Calendar className="w-5 h-5 text-indigo-600" />, title: "2. Social Media Calendar", desc: "Plan and organize your content using a visual calendar." },
-    { icon: <Sparkles className="w-5 h-5 text-indigo-600" />, title: "3. AI Caption Assistant", desc: "Generate captions, hashtags and content ideas effortlessly." },
-    { icon: <Zap className="w-5 h-5 text-indigo-600" />, title: "4. Post Scheduling", desc: "Schedule posts for specific dates, times, and timezones." },
-    { icon: <CheckCircle2 className="w-5 h-5 text-indigo-600" />, title: "5. Content Approval", desc: "Review and approve content with team members before publishing." },
-    { icon: <BarChart3 className="w-5 h-5 text-indigo-600" />, title: "6. Analytics & Reporting", desc: "Track reach, engagement, followers and content performance." },
-    { icon: <Users className="w-5 h-5 text-indigo-600" />, title: "7. Team Collaboration", desc: "Invite team members and manage roles and permissions." },
-    { icon: <Folder className="w-5 h-5 text-indigo-600" />, title: "8. Media Library", desc: "Store, organize and reuse images, videos and documents." },
-    { icon: <MessageSquare className="w-5 h-5 text-indigo-600" />, title: "9. Social Inbox", desc: "Manage comments and direct messages from supported platforms." },
-    { icon: <Bot className="w-5 h-5 text-indigo-600" />, title: "10. Auto Reply Automation", desc: "Create automated responses for comments and messages 24/7." },
-    { icon: <Layers className="w-5 h-5 text-indigo-600" />, title: "11. Campaign Management", desc: "Organize content into strategic marketing campaigns." },
-    { icon: <Globe className="w-5 h-5 text-indigo-600" />, title: "12. White Label", desc: "Allow agencies to manage clients under their own branding." }
+    { 
+      num: "01",
+      icon: <Send className="w-6 h-6 text-white" />, 
+      title: "Multi-Platform Publishing", 
+      desc: "Publish tailored content across Instagram, Facebook, X, LinkedIn, YouTube, TikTok, and Threads simultaneously from one unified composer.",
+      gradient: "bg-gradient-to-br from-indigo-500 to-blue-600 shadow-indigo-500/25",
+      tag: "1-Click Sync",
+      highlight: "Unified Composer & Preview"
+    },
+    { 
+      num: "02",
+      icon: <Calendar className="w-6 h-6 text-white" />, 
+      title: "Social Media Calendar", 
+      desc: "Plan, schedule, and visually organize weeks of content with an intuitive drag-and-drop interactive visual calendar.",
+      gradient: "bg-gradient-to-br from-blue-500 to-cyan-600 shadow-blue-500/25",
+      tag: "Visual Planner",
+      highlight: "Drag & Drop Reschedule"
+    },
+    { 
+      num: "03",
+      icon: <Sparkles className="w-6 h-6 text-white" />, 
+      title: "AI Caption Assistant", 
+      desc: "Generate viral captions, trending hashtags, content angles, and catchy hooks in seconds powered by Gemini AI.",
+      gradient: "bg-gradient-to-br from-purple-500 to-indigo-600 shadow-purple-500/25",
+      tag: "Gemini AI",
+      highlight: "Tone, Hashtags & Hooks"
+    },
+    { 
+      num: "04",
+      icon: <Clock className="w-6 h-6 text-white" />, 
+      title: "Smart Post Scheduling", 
+      desc: "Automate delivery for peak engagement hours across different timezones to maximize reach and organic interactions.",
+      gradient: "bg-gradient-to-br from-amber-500 to-orange-600 shadow-amber-500/25",
+      tag: "Auto-Queue",
+      highlight: "Timezone-Aware Queuing"
+    },
+    { 
+      num: "05",
+      icon: <CheckCircle2 className="w-6 h-6 text-white" />, 
+      title: "Content Approval Flow", 
+      desc: "Multi-tier approval workflows to collaborate, review, comment, and sign off on posts before they go live.",
+      gradient: "bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/25",
+      tag: "Team Review",
+      highlight: "Audit Logs & Client Sign-Off"
+    },
+    { 
+      num: "06",
+      icon: <BarChart3 className="w-6 h-6 text-white" />, 
+      title: "Analytics & Reporting", 
+      desc: "Gain deep insights into reach, engagement rates, follower growth, best-performing posts, and generate white-label PDF reports.",
+      gradient: "bg-gradient-to-br from-rose-500 to-pink-600 shadow-rose-500/25",
+      tag: "Live Stats",
+      highlight: "Exportable Brand Reports"
+    },
+    { 
+      num: "07",
+      icon: <Users className="w-6 h-6 text-white" />, 
+      title: "Team Collaboration", 
+      desc: "Invite colleagues, assign workspace permissions, and manage multiple client workspaces with granular role security.",
+      gradient: "bg-gradient-to-br from-violet-600 to-purple-600 shadow-violet-500/25",
+      tag: "Multi-Member",
+      highlight: "Granular Role Permissions"
+    },
+    { 
+      num: "08",
+      icon: <Folder className="w-6 h-6 text-white" />, 
+      title: "Cloud Media Library", 
+      desc: "Store, organize, categorize, and reuse high-resolution photos, reels, and video assets in a secure central asset hub.",
+      gradient: "bg-gradient-to-br from-sky-500 to-blue-600 shadow-sky-500/25",
+      tag: "Asset Hub",
+      highlight: "Fast Cloud Storage & Tags"
+    },
+    { 
+      num: "09",
+      icon: <MessageSquare className="w-6 h-6 text-white" />, 
+      title: "Unified Social Inbox", 
+      desc: "Centralize comments, mentions, and direct messages across all networks in one inbox to reply faster than ever.",
+      gradient: "bg-gradient-to-br from-cyan-600 to-teal-600 shadow-cyan-500/25",
+      tag: "Zero-Missed",
+      highlight: "DMs & Comments Centralized"
+    },
+    { 
+      num: "10",
+      icon: <Bot className="w-6 h-6 text-white" />, 
+      title: "Auto Reply Automation", 
+      desc: "Set intelligent trigger keywords to instantly respond to comments and DMs 24/7 to boost algorithmic reach.",
+      gradient: "bg-gradient-to-br from-indigo-600 to-violet-700 shadow-indigo-500/25",
+      tag: "24/7 Triggers",
+      highlight: "Comment-to-DM Sales Engine"
+    },
+    { 
+      num: "11",
+      icon: <Layers className="w-6 h-6 text-white" />, 
+      title: "Campaign Management", 
+      desc: "Bundle multi-platform posts into thematic marketing campaigns and evaluate aggregated ROI and performance.",
+      gradient: "bg-gradient-to-br from-fuchsia-500 to-pink-600 shadow-fuchsia-500/25",
+      tag: "Campaigns",
+      highlight: "Thematic ROI Tracking"
+    },
+    { 
+      num: "12",
+      icon: <Globe className="w-6 h-6 text-white" />, 
+      title: "White Label Agency", 
+      desc: "Give your clients a custom-branded portal with your own logo, custom domain, and company styling.",
+      gradient: "bg-gradient-to-br from-slate-700 to-slate-900 shadow-slate-900/25",
+      tag: "Agency White-Label",
+      highlight: "Custom Domain & Branding"
+    }
   ];
 
   const aiFeatures = [
@@ -432,27 +528,73 @@ export default function SaaSLandingPage() {
       </section>
 
       {/* ── 12 Feature Grid Section ── */}
-      <section id="features" className="scroll-reveal opacity-0 translate-y-8 transition-all duration-700 ease-out py-20 px-6 bg-white border-t border-slate-200/80">
-        <div className="max-w-6xl mx-auto space-y-12">
-          <div className="text-center max-w-2xl mx-auto">
-            <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider">Powerful Features</span>
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight mt-1 mb-3">
-              Everything Needed to Manage Social Media
+      <section id="features" className="scroll-reveal opacity-0 translate-y-8 transition-all duration-700 ease-out py-24 sm:py-32 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-50/80 via-white to-slate-50/60 border-t border-slate-200/80 relative overflow-hidden">
+        {/* Soft Ambient Background Glows */}
+        <div className="absolute top-1/4 -left-36 w-96 h-96 bg-indigo-200/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 -right-36 w-96 h-96 bg-purple-200/20 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto space-y-16 relative z-10">
+          
+          {/* Section Header */}
+          <div className="text-center max-w-3xl mx-auto space-y-4">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-50 border border-indigo-200/80 shadow-xs">
+              <Sparkles className="w-4 h-4 text-indigo-600 animate-pulse" />
+              <span className="text-xs sm:text-sm font-bold text-indigo-700 tracking-wide uppercase">Powerful All-In-One Engine</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+              Everything Needed to Manage <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">Social Media</span>
             </h2>
-            <p className="text-xs text-slate-500">Designed for creators, marketing teams, brands, and digital agencies.</p>
+            <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
+              Designed for creators, marketing teams, high-growth brands, and digital agencies to scale multi-channel presence effortlessly.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* 12 Features Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {featuresList.map((f, i) => (
-              <div key={i} className="saas-card p-6 space-y-3 hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
-                  {f.icon}
+              <div 
+                key={i} 
+                className="group relative bg-white rounded-2xl p-7 sm:p-8 border border-slate-200/90 shadow-sm hover:shadow-2xl hover:border-indigo-300 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between overflow-hidden"
+              >
+                {/* Top Subtle Gradient Accent Line on Hover */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                
+                <div>
+                  {/* Top Row: Icon + Tag & Number */}
+                  <div className="flex items-center justify-between gap-4 mb-6">
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${f.gradient} shadow-lg transition-transform duration-300 group-hover:scale-110`}>
+                      {f.icon}
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-slate-100/90 text-slate-600 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors border border-slate-200/60 group-hover:border-indigo-100">
+                        {f.tag}
+                      </span>
+                      <span className="text-xs font-black font-mono text-slate-300 group-hover:text-indigo-500 transition-colors">
+                        #{f.num}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Title */}
+                  <h3 className="text-lg sm:text-xl font-bold text-slate-900 group-hover:text-indigo-600 transition-colors mb-2.5">
+                    {f.title}
+                  </h3>
+
+                  {/* Description */}
+                  <p className="text-sm sm:text-[15px] text-slate-600 leading-relaxed font-normal">
+                    {f.desc}
+                  </p>
                 </div>
-                <h3 className="text-sm font-bold text-slate-900">{f.title}</h3>
-                <p className="text-xs text-slate-500 leading-relaxed font-normal">{f.desc}</p>
+
+                {/* Bottom Highlight */}
+                <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-400 group-hover:text-indigo-600 transition-colors">
+                  <span>{f.highlight}</span>
+                  <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
+                </div>
               </div>
             ))}
           </div>
+
         </div>
       </section>
 

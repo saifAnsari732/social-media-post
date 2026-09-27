@@ -196,17 +196,17 @@ export default function ClientReviewsSlider() {
   };
 
   return (
-    <section className="relative bg-slate-950 py-24 sm:py-32 overflow-hidden select-none border-y border-slate-800/80">
+    <section className="relative bg-gradient-to-b from-slate-50 via-indigo-50/20 to-slate-50 py-24 sm:py-32 overflow-hidden select-none border-y border-slate-200/80">
       
       {/* Dynamic Background Lighting Effects */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-b from-indigo-500/15 via-purple-500/5 to-transparent blur-3xl pointer-events-none" />
-      <div className="absolute top-1/3 -left-32 w-96 h-96 bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-10 -right-32 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-b from-indigo-100/40 via-purple-100/20 to-transparent blur-3xl pointer-events-none" />
+      <div className="absolute top-1/3 -left-32 w-96 h-96 bg-indigo-200/20 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-10 -right-32 w-96 h-96 bg-emerald-100/30 rounded-full blur-[120px] pointer-events-none" />
 
-      {/* Modern Grid Pattern Accent */}
+      {/* Modern Dot Pattern Accent */}
       <div 
-        className="absolute inset-0 opacity-[0.04] pointer-events-none" 
-        style={{ backgroundImage: "radial-gradient(#ffffff 1px, transparent 1px)", backgroundSize: "28px 28px" }}
+        className="absolute inset-0 opacity-[0.25] pointer-events-none" 
+        style={{ backgroundImage: "radial-gradient(#cbd5e1 1px, transparent 1px)", backgroundSize: "28px 28px" }}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -215,23 +215,23 @@ export default function ClientReviewsSlider() {
         <div className="text-center max-w-3xl mx-auto space-y-5 mb-12 sm:mb-16">
           
           {/* Rating Pill Badge */}
-          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-slate-900/90 border border-slate-700/80 shadow-lg text-xs font-semibold text-slate-200">
+          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white border border-slate-200/90 shadow-sm text-xs font-semibold text-slate-700">
             <div className="flex items-center text-amber-400">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className="w-3.5 h-3.5 fill-amber-400" />
               ))}
             </div>
-            <span className="font-bold text-white">4.9 / 5.0</span>
-            <span className="text-slate-500">•</span>
-            <span className="text-indigo-300 font-medium">2,400+ Verified Client Reviews</span>
+            <span className="font-bold text-slate-900">4.9 / 5.0</span>
+            <span className="text-slate-300">•</span>
+            <span className="text-indigo-600 font-semibold">2,400+ Verified Client Reviews</span>
           </div>
 
           {/* Main Title */}
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
-            Loved by Growing <span className="bg-gradient-to-r from-indigo-400 via-purple-300 to-emerald-400 bg-clip-text text-transparent">Brands & Creators</span>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+            Loved by Growing <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">Brands & Creators</span>
           </h2>
 
-          <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto font-normal leading-relaxed">
+          <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto font-normal leading-relaxed">
             See how founders, agencies, and social media managers automate publishing, engage audiences, and scale organic reach with Postfly.
           </p>
 
@@ -243,8 +243,8 @@ export default function ClientReviewsSlider() {
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   selectedCategory === cat.id
-                    ? "bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-600/30 border border-indigo-400 scale-105"
-                    : "bg-slate-900/80 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800"
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/25 border border-indigo-500 scale-105"
+                    : "bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200/80 shadow-xs"
                 }`}
               >
                 {cat.label}
@@ -256,18 +256,18 @@ export default function ClientReviewsSlider() {
           <div className="pt-2 flex items-center justify-center gap-3">
             <button
               onClick={() => handleManualScroll("left")}
-              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition-all cursor-pointer shadow-sm active:scale-95"
+              className="p-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 transition-all cursor-pointer shadow-xs active:scale-95"
               title="Previous Reviews"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="text-xs text-slate-400 font-medium px-2 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-xs text-slate-500 font-medium px-2 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               Hover over cards to pause floating slide
             </span>
             <button
               onClick={() => handleManualScroll("right")}
-              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition-all cursor-pointer shadow-sm active:scale-95"
+              className="p-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 transition-all cursor-pointer shadow-xs active:scale-95"
               title="Next Reviews"
             >
               <ChevronRight className="w-4 h-4" />
@@ -278,7 +278,7 @@ export default function ClientReviewsSlider() {
 
       </div>
 
-      {/* ── DIAGONAL SLANTED MARQUEE SLIDER CONTAINER ("TIRCHAA" Top-Right to Bottom-Left) ── */}
+      {/* ── DIAGONAL SLANTED MARQUEE SLIDER CONTAINER ── */}
       <div 
         className="relative w-full py-6 overflow-hidden"
         onMouseEnter={() => setIsPaused(true)}
@@ -286,13 +286,13 @@ export default function ClientReviewsSlider() {
       >
         
         {/* Left & Right Edge Vignette Fades */}
-        <div className="absolute top-0 bottom-0 left-0 w-20 sm:w-40 bg-gradient-to-r from-slate-950 via-slate-950/90 to-transparent z-30 pointer-events-none" />
-        <div className="absolute top-0 bottom-0 right-0 w-20 sm:w-40 bg-gradient-to-l from-slate-950 via-slate-950/90 to-transparent z-30 pointer-events-none" />
+        <div className="absolute top-0 bottom-0 left-0 w-20 sm:w-40 bg-gradient-to-r from-slate-50 via-slate-50/90 to-transparent z-30 pointer-events-none" />
+        <div className="absolute top-0 bottom-0 right-0 w-20 sm:w-40 bg-gradient-to-l from-slate-50 via-slate-50/90 to-transparent z-30 pointer-events-none" />
 
-        {/* Slanted Rotated Wrapper: Tilted at -4deg / -5deg for top-right to bottom-left motion */}
+        {/* Slanted Rotated Wrapper */}
         <div className="transform -rotate-2 sm:-rotate-3 lg:-rotate-4 scale-105 sm:scale-110 space-y-6 sm:space-y-8 my-6 transition-transform duration-500">
           
-          {/* ── ROW 1: Gliding Top-Right to Bottom-Left ── */}
+          {/* ── ROW 1: Gliding Stream ── */}
           <div 
             ref={row1Ref}
             className="flex overflow-x-hidden"
@@ -327,23 +327,23 @@ export default function ClientReviewsSlider() {
       </div>
 
       {/* Trust Stats Footer Strip */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-12 pt-10 border-t border-slate-800/80 relative z-10">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-12 pt-10 border-t border-slate-200/80 relative z-10">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
-          <div className="space-y-1 p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60 backdrop-blur-sm">
-            <h4 className="text-2xl sm:text-3xl font-black text-white">99.4%</h4>
-            <p className="text-xs text-slate-400 font-medium">Customer Satisfaction</p>
+          <div className="space-y-1 p-5 rounded-2xl bg-white/90 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow backdrop-blur-sm">
+            <h4 className="text-2xl sm:text-3xl font-black text-slate-900">99.4%</h4>
+            <p className="text-xs text-slate-500 font-semibold">Customer Satisfaction</p>
           </div>
-          <div className="space-y-1 p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60 backdrop-blur-sm">
-            <h4 className="text-2xl sm:text-3xl font-black text-indigo-400">10M+</h4>
-            <p className="text-xs text-slate-400 font-medium">Posts Auto-Published</p>
+          <div className="space-y-1 p-5 rounded-2xl bg-white/90 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow backdrop-blur-sm">
+            <h4 className="text-2xl sm:text-3xl font-black text-indigo-600">10M+</h4>
+            <p className="text-xs text-slate-500 font-semibold">Posts Auto-Published</p>
           </div>
-          <div className="space-y-1 p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60 backdrop-blur-sm">
-            <h4 className="text-2xl sm:text-3xl font-black text-emerald-400">25+ Hrs</h4>
-            <p className="text-xs text-slate-400 font-medium">Saved Per Team Weekly</p>
+          <div className="space-y-1 p-5 rounded-2xl bg-white/90 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow backdrop-blur-sm">
+            <h4 className="text-2xl sm:text-3xl font-black text-emerald-600">25+ Hrs</h4>
+            <p className="text-xs text-slate-500 font-semibold">Saved Per Team Weekly</p>
           </div>
-          <div className="space-y-1 p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60 backdrop-blur-sm">
-            <h4 className="text-2xl sm:text-3xl font-black text-amber-400">4.9 ★</h4>
-            <p className="text-xs text-slate-400 font-medium">Average Client Rating</p>
+          <div className="space-y-1 p-5 rounded-2xl bg-white/90 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow backdrop-blur-sm">
+            <h4 className="text-2xl sm:text-3xl font-black text-amber-500">4.9 ★</h4>
+            <p className="text-xs text-slate-500 font-semibold">Average Client Rating</p>
           </div>
         </div>
       </div>
@@ -355,8 +355,11 @@ export default function ClientReviewsSlider() {
 // ── Single Review Card Component ──
 function ReviewCard({ review }) {
   return (
-    <div className="w-[340px] sm:w-[390px] shrink-0 p-6 rounded-2xl bg-gradient-to-br from-slate-900/95 via-slate-900/90 to-slate-950/95 border border-slate-800/90 hover:border-indigo-500/70 shadow-xl hover:shadow-[0_0_25px_rgba(99,102,241,0.2)] transition-all duration-300 transform hover:-translate-y-1 flex flex-col justify-between space-y-4 group">
+    <div className="w-[340px] sm:w-[390px] shrink-0 p-6 rounded-2xl bg-white border border-slate-200/90 hover:border-indigo-400 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1.5 flex flex-col justify-between space-y-4 group relative overflow-hidden">
       
+      {/* Top Subtle Gradient Accent Line on Hover */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
       {/* Card Header: Rating Stars + Impact Pill */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1 text-amber-400">
@@ -366,48 +369,48 @@ function ReviewCard({ review }) {
         </div>
 
         {/* Impact / Growth Metric Pill */}
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-950/80 border border-emerald-800/80 text-[11px] font-bold text-emerald-300 shadow-sm">
-          <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 border border-emerald-200/80 text-[11px] font-bold text-emerald-700 shadow-xs">
+          <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
           {review.impact}
         </span>
       </div>
 
       {/* Quote Body */}
       <div className="relative py-1">
-        <Quote className="w-6 h-6 text-indigo-500/25 absolute -top-2 -left-1 pointer-events-none group-hover:text-indigo-400/40 transition-colors" />
-        <p className="text-xs sm:text-[13px] text-slate-200 font-normal leading-relaxed pl-3 group-hover:text-white transition-colors">
+        <Quote className="w-6 h-6 text-indigo-100 absolute -top-2 -left-1 pointer-events-none group-hover:text-indigo-200 transition-colors" />
+        <p className="text-xs sm:text-[13.5px] text-slate-600 font-normal leading-relaxed pl-3 group-hover:text-slate-900 transition-colors">
           "{review.quote}"
         </p>
       </div>
 
       {/* Card Footer: User Avatar, Name, Role & Social Channels Tag */}
-      <div className="pt-4 border-t border-slate-800/90 flex items-center justify-between gap-3">
+      <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <div className="relative shrink-0">
             <img 
               src={review.avatar} 
               alt={review.name}
-              className="w-10 h-10 rounded-full object-cover ring-2 ring-indigo-500/30 group-hover:ring-indigo-400 transition-all"
+              className="w-10 h-10 rounded-full object-cover ring-2 ring-indigo-100 group-hover:ring-indigo-300 transition-all"
               loading="lazy"
             />
             {review.verified && (
-              <span className="absolute -bottom-1 -right-1 w-4.5 h-4.5 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center ring-2 ring-slate-900" title="Verified Client">
-                <CheckCircle2 className="w-3.5 h-3.5 fill-emerald-500 text-slate-950" />
+              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center ring-2 ring-white" title="Verified Client">
+                <CheckCircle2 className="w-3.5 h-3.5 fill-emerald-500 text-white" />
               </span>
             )}
           </div>
           <div className="min-w-0">
-            <h4 className="text-xs font-bold text-white truncate group-hover:text-indigo-300 transition-colors">
+            <h4 className="text-xs font-bold text-slate-900 truncate group-hover:text-indigo-600 transition-colors">
               {review.name}
             </h4>
-            <p className="text-[11px] text-slate-400 truncate">
-              {review.role} • <span className="text-slate-300 font-medium">{review.company}</span>
+            <p className="text-[11px] text-slate-500 truncate">
+              {review.role} • <span className="text-slate-700 font-medium">{review.company}</span>
             </p>
           </div>
         </div>
 
         {/* Channels Tag */}
-        <span className="shrink-0 text-[10px] font-semibold text-indigo-300 bg-indigo-950/80 border border-indigo-800/60 px-2.5 py-1 rounded-md">
+        <span className="shrink-0 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-md">
           {review.channels}
         </span>
       </div>
