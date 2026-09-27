@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ClientReviewsSlider from "@/components/landing/ClientReviewsSlider";
 import { PlatformIcon } from "@/components/ui/SocialIcons";
+import CustomCursor from "@/components/ui/CustomCursor";
+import ScrollProgressBar from "@/components/ui/ScrollProgressBar";
 import { 
   Sparkles, 
   ArrowRight, 
@@ -220,8 +222,29 @@ export default function SaaSLandingPage() {
     }
   };
 
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("opacity-100", "translate-y-0");
+            entry.target.classList.remove("opacity-0", "translate-y-8");
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -40px 0px" }
+    );
+
+    const elements = document.querySelectorAll(".scroll-reveal");
+    elements.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans antialiased">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans antialiased selection:bg-indigo-500 selection:text-white">
+      <CustomCursor />
+      <ScrollProgressBar />
       
       {/* ── Top Header ── */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-6 py-2.5 sm:py-3 shadow-2xs">
@@ -274,7 +297,7 @@ export default function SaaSLandingPage() {
       </section>
 
       {/* ── HIGH-IMPACT LARGE TEXT STATEMENT SECTION ── */}
-      <section className="relative py-16 sm:py-24 px-6 max-w-6xl mx-auto text-center">
+      <section className="scroll-reveal opacity-0 translate-y-8 transition-all duration-700 ease-out relative py-16 sm:py-24 px-6 max-w-6xl mx-auto text-center">
         
         {/* Top Floating Pill */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-50 border border-indigo-200/80 text-indigo-700 text-xs font-bold shadow-2xs mb-6 hover:bg-indigo-100/70 transition-colors">
@@ -369,7 +392,7 @@ export default function SaaSLandingPage() {
       </section>
 
       {/* ── Realistic Product Preview ── */}
-      <section id="preview" className="px-6 py-16 max-w-5xl mx-auto">
+      <section id="preview" className="scroll-reveal opacity-0 translate-y-8 transition-all duration-700 ease-out px-6 py-16 max-w-5xl mx-auto">
         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xl shadow-indigo-600/10 p-5 sm:p-6 space-y-6">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div className="flex items-center gap-2">
@@ -409,7 +432,7 @@ export default function SaaSLandingPage() {
       </section>
 
       {/* ── 12 Feature Grid Section ── */}
-      <section id="features" className="py-20 px-6 bg-white border-t border-slate-200/80">
+      <section id="features" className="scroll-reveal opacity-0 translate-y-8 transition-all duration-700 ease-out py-20 px-6 bg-white border-t border-slate-200/80">
         <div className="max-w-6xl mx-auto space-y-12">
           <div className="text-center max-w-2xl mx-auto">
             <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider">Powerful Features</span>
@@ -421,7 +444,7 @@ export default function SaaSLandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {featuresList.map((f, i) => (
-              <div key={i} className="saas-card p-6 space-y-3">
+              <div key={i} className="saas-card p-6 space-y-3 hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300">
                 <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
                   {f.icon}
                 </div>
@@ -434,7 +457,7 @@ export default function SaaSLandingPage() {
       </section>
 
       {/* ── Social Channels Section ── */}
-      <section id="channels" className="py-20 px-6 max-w-6xl mx-auto">
+      <section id="channels" className="scroll-reveal opacity-0 translate-y-8 transition-all duration-700 ease-out py-20 px-6 max-w-6xl mx-auto">
         <div className="text-center max-w-2xl mx-auto mb-12">
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Connect All Your Social Channels</h2>
           <p className="text-xs text-slate-500 mt-1">Manage and publish content across 8 major social networks seamlessly.</p>
@@ -510,7 +533,7 @@ export default function SaaSLandingPage() {
       </div>
 
       {/* ── CUSTOMIZED PAID PRICING SECTION (3 PLANS) ── */}
-      <section id="pricing" className="py-24 px-6 bg-white border-t border-slate-200/80 relative">
+      <section id="pricing" className="scroll-reveal opacity-0 translate-y-8 transition-all duration-700 ease-out py-24 px-6 bg-white border-t border-slate-200/80 relative">
         <div className="max-w-6xl mx-auto space-y-16">
           
           {/* Section Header */}
