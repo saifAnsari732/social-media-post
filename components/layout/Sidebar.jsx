@@ -32,7 +32,8 @@ import {
   DollarSign,
   Key,
   Tag,
-  Megaphone
+  Megaphone,
+  MapPin
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -113,7 +114,8 @@ export default function Sidebar() {
       title: "Performance",
       items: [
         { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-        { name: 'Meta Ads', href: '/ads', icon: Megaphone, badge: 'PRO' }
+        { name: 'Meta Ads', href: '/ads', icon: Megaphone, badge: 'PRO' },
+        { name: 'Google My Business', href: '/gmb', icon: MapPin, badge: 'AI', isGmb: true }
       ]
     },
     {
@@ -150,6 +152,7 @@ export default function Sidebar() {
         { name: 'Connected Channels', href: '/accounts', icon: Link2 },
         { name: 'Platform Analytics', href: '/analytics', icon: BarChart3 },
         { name: 'Meta Ads', href: '/ads', icon: Megaphone, badge: 'PRO' },
+        { name: 'Google My Business', href: '/gmb', icon: MapPin, badge: 'AI', isGmb: true },
         { name: 'Automation Rules', href: '/rules', icon: Zap }
       ]
     }
@@ -275,13 +278,18 @@ export default function Sidebar() {
                 .map((item) => {
                   const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
                   const isMetaAds = item.href === "/ads";
+                  const isGmb = item.isGmb;
 
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
                       className={`flex items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-[14px] transition-all no-underline ${
-                        isMetaAds
+                        isGmb
+                          ? isActive
+                            ? "bg-emerald-600 text-white font-black border-2 border-emerald-400 shadow-md shadow-emerald-600/30 scale-[1.01]"
+                            : "bg-emerald-50 hover:bg-emerald-100/90 text-emerald-950 font-extrabold border-2 border-emerald-400/90 shadow-2xs"
+                          : isMetaAds
                           ? isActive
                             ? "bg-rose-600 text-white font-black border-2 border-rose-400 shadow-md shadow-rose-600/30 scale-[1.01]"
                             : "bg-rose-50 hover:bg-rose-100/90 text-rose-950 font-extrabold border-2 border-rose-400/90 shadow-2xs"
@@ -293,7 +301,11 @@ export default function Sidebar() {
                     >
                       <item.icon
                         className={`h-5 w-5 shrink-0 transition-colors ${
-                          isMetaAds
+                          isGmb
+                            ? isActive
+                              ? "text-white stroke-[2.5]"
+                              : "text-emerald-600 stroke-[2.5]"
+                            : isMetaAds
                             ? isActive
                               ? "text-white stroke-[2.5]"
                               : "text-rose-600 stroke-[2.5]"
@@ -308,7 +320,11 @@ export default function Sidebar() {
                           {item.badge && (
                             <span
                               className={`ml-1.5 px-2 py-0.5 rounded-md text-[9.5px] font-black uppercase tracking-wider shrink-0 ${
-                                isMetaAds
+                                isGmb
+                                  ? isActive
+                                    ? "bg-emerald-800 text-white border border-emerald-400"
+                                    : "bg-emerald-600 text-white border border-emerald-500 shadow-2xs animate-pulse"
+                                  : isMetaAds
                                   ? isActive
                                     ? "bg-rose-800 text-white border border-rose-400"
                                     : "bg-rose-600 text-white border border-rose-500 shadow-2xs animate-pulse"
