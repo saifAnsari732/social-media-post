@@ -62,6 +62,60 @@ export async function POST(req) {
       });
     }
 
+    // CREATE BUSINESS LOCATION / PROFILE
+    if (action === "create_business_location" || action === "create_location") {
+      const { title, category, address, city, phone, website, description, googleEmail } = params;
+      if (!title || !category) {
+        return NextResponse.json({ success: false, error: "Business name and category are required" }, { status: 400 });
+      }
+
+      const newLocId = `locations/${Math.floor(100000000000000 + Math.random() * 900000000000000)}`;
+      const newAccount = `accounts/${Math.floor(1000000000000000 + Math.random() * 9000000000000000)}`;
+      const location = {
+        locationId: newLocId,
+        accountId: newAccount,
+        googleEmail: googleEmail || "postfly.official@gmail.com",
+        storeCode: `PF-${(city || "LOC").toUpperCase().slice(0, 4)}-${Math.floor(10 + Math.random() * 90)}`,
+        title,
+        category,
+        secondaryCategories: [],
+        description: description || `Official Google Business Profile listing for ${title} in ${city || "India"}.`,
+        phone: phone || "+91 9511450914",
+        website: website || "https://postfly.in",
+        address: {
+          addressLines: [address || "Main Market Road"],
+          locality: city || "Pune",
+          administrativeArea: "Maharashtra",
+          postalCode: "411016",
+          countryCode: "IN"
+        },
+        regularHours: [
+          { day: "MONDAY", openTime: "09:00", closeTime: "19:00" },
+          { day: "TUESDAY", openTime: "09:00", closeTime: "19:00" },
+          { day: "WEDNESDAY", openTime: "09:00", closeTime: "19:00" },
+          { day: "THURSDAY", openTime: "09:00", closeTime: "19:00" },
+          { day: "FRIDAY", openTime: "09:00", closeTime: "19:00" },
+          { day: "SATURDAY", openTime: "09:00", closeTime: "19:00" },
+          { day: "SUNDAY", openTime: "CLOSED", closeTime: "CLOSED" }
+        ],
+        specialHours: [],
+        status: { verified: true, suspended: false, hasPendingEdits: false, duplicate: false },
+        rating: 5.0,
+        reviewCount: 1,
+        placeId: `ChIJ_${Math.random().toString(36).substring(2, 12)}`,
+        mapsUrl: `https://maps.google.com/?cid=${newLocId}`
+      };
+
+      gmbTools.addLocationToStore(location);
+      gmbTools.recordAuditLog(newLocId, "create_business_location", { title, category, googleEmail });
+
+      return NextResponse.json({
+        success: true,
+        action: "create_business_location",
+        data: { location }
+      });
+    }
+
     // 3. BACKWARD COMPATIBILITY / DIRECT ACTION EXECUTION
     if (action === "optimize_description") {
       const res = await gmbTools.generate_post({ locationId, topic: "Description Optimization", language: language || "English" });
