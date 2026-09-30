@@ -590,6 +590,48 @@ export async function GET(req, { params }) {
           if (userData.email) accountEmail = userData.email;
         } catch (e) {}
 
+        // Fetch ALL Google Business Accounts & Locations for this user
+        let fetchedLocationsCount = 0;
+        const gmbAccountsList = [];
+        try {
+          const accRes = await fetch("https://mybusinessaccountmanagement.googleapis.com/v1/accounts", {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` }
+          });
+          const accData = await accRes.json();
+          console.log("[GMB] Accounts response:", JSON.stringify(accData));
+
+          if (accData.accounts && accData.accounts.length > 0) {
+            for (const gmbAcc of accData.accounts) {
+              const accName = gmbAcc.accountName || gmbAcc.name || accountEmail;
+              const accId = gmbAcc.name || `accounts/${Date.now()}`;
+
+              let locCount = 0;
+              try {
+                const locRes = await fetch(`https://mybusinessbusinessinformation.googleapis.com/v1/${accId}/locations?readMask=name,title,storeCode,storefrontAddress,primaryCategory,websiteUri,phoneNumbers`, {
+                  headers: { Authorization: `Bearer ${tokenData.access_token}` }
+                });
+                const locData = await locRes.json();
+                console.log(`[GMB] Locations for ${accId}:`, JSON.stringify(locData));
+                if (locData.locations) {
+                  locCount = locData.locations.length;
+                  fetchedLocationsCount += locCount;
+                }
+              } catch (locErr) {
+                console.warn(`[GMB] Failed to fetch locations for ${accId}:`, locErr);
+              }
+
+              gmbAccountsList.push({
+                accountId: accId,
+                accountName: accName,
+                googleEmail: accountEmail,
+                locationCount: locCount
+              });
+            }
+          }
+        } catch (apiErr) {
+          console.warn("[GMB] Account Management API fetch error:", apiErr);
+        }
+
         await upsertAccount({
           platform: "gmb",
           providerAccountId: accountEmail,
@@ -598,10 +640,14 @@ export async function GET(req, { params }) {
           refreshToken: tokenData.refresh_token || null,
           name: accountEmail,
           connectedAt: new Date().toISOString(),
-          raw: tokenData
+          raw: {
+            tokenData,
+            gmbAccounts: gmbAccountsList,
+            locationsCount: fetchedLocationsCount
+          }
         });
 
-        return NextResponse.redirect(new URL("/gmb?connected=true&email=" + encodeURIComponent(accountEmail), req.url));
+        return NextResponse.redirect(new URL(`/gmb?connected=true&email=${encodeURIComponent(accountEmail)}&count=${fetchedLocationsCount}`, req.url));
       } catch (gmbErr) {
         return NextResponse.redirect(new URL("/gmb?error=" + encodeURIComponent(gmbErr.message || "Failed to link Google account"), req.url));
       }
