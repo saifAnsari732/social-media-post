@@ -79,8 +79,11 @@ export default function MetaAdsPage() {
   const [chatInput, setChatInput] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
 
-  // Active Tab: 'campaigns' | 'booster' | 'ai-copilot' | 'ai-audience' | 'ai-studio' | 'analytics' | 'settings'
+  // Active Tab: 'campaigns' | 'booster' | 'ai-copilot' | 'ai-audience' | 'ai-studio' | 'analytics' | 'settings' | 'agent-skills'
   const [activeTab, setActiveTab] = useState("campaigns");
+
+  // Agent Skills Expanded State
+  const [expandedMetaSkill, setExpandedMetaSkill] = useState(null);
 
   // Accounts List
   const [adAccounts, setAdAccounts] = useState([]);
@@ -1610,6 +1613,28 @@ export default function MetaAdsPage() {
           </div>
           <span>Meta Live Logs</span>
         </button>
+
+        {/* Tab 9: Agent Skills */}
+        <button
+          onClick={() => setActiveTab("agent-skills")}
+          className={`group px-4 py-2.5 rounded-2xl font-extrabold text-xs transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
+            activeTab === "agent-skills"
+              ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 ring-2 ring-violet-400/50 scale-[1.01]"
+              : "bg-white text-slate-700 border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50"
+          }`}
+        >
+          <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
+            activeTab === "agent-skills" ? "bg-white text-violet-600 font-bold" : "bg-violet-50 text-violet-600 group-hover:bg-violet-100"
+          }`}>
+            <Cpu className="w-4 h-4" />
+          </div>
+          <span>Agent Skills</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+            activeTab === "agent-skills" ? "bg-rose-800 text-white" : "bg-slate-100 text-slate-700"
+          }`}>
+            22
+          </span>
+        </button>
       </div>
 
       {/* 4. TAB 1: CAMPAIGNS MANAGER TABLE WITH READ/INSPECT, UPDATE & DELETE */}
@@ -2479,6 +2504,106 @@ export default function MetaAdsPage() {
           </div>
         </div>
       )}
+
+      {/* TAB 9: META ADS AGENT SKILLS (22 CATEGORIES) */}
+      {activeTab === "agent-skills" && (() => {
+        const META_AGENT_SKILLS = [
+          { id: 'connect', title: '1. Meta Business Connection', icon: Link2, color: '#3B82F6', skills: ['Connect Meta Business Manager', 'Connect Ad Account', 'Connect Facebook Page', 'Connect Instagram Account', 'Connect Pixel / Dataset', 'Verify permissions', 'Switch between Ad Accounts', 'Check connection status'] },
+          { id: 'campaign', title: '2. Campaign Skills', icon: Target, color: '#EF4444', skills: ['Create campaign', 'Duplicate campaign', 'Update campaign', 'Pause/resume campaign', 'Archive campaign', 'Set campaign objective', 'Set buying type', 'Set campaign budget', 'Set campaign status', 'Validate campaign configuration'] },
+          { id: 'adset', title: '3. Ad Set Skills', icon: Layers, color: '#8B5CF6', skills: ['Create Ad Set', 'Duplicate Ad Set', 'Update Ad Set', 'Pause/resume Ad Set', 'Set daily budget', 'Set lifetime budget', 'Set start/end date', 'Set optimization goal', 'Set billing event', 'Set conversion location'] },
+          { id: 'targeting', title: '4. Targeting Skills', icon: Target, color: '#EC4899', skills: ['Define location targeting', 'Define age targeting', 'Define gender targeting', 'Define language targeting', 'Select interests', 'Select behaviors', 'Select demographics', 'Exclude audiences', 'Create saved audiences', 'Validate audience size'] },
+          { id: 'custom-audience', title: '5. Custom Audience Skills', icon: Users, color: '#06B6D4', skills: ['Create Custom Audience', 'Read Custom Audiences', 'Update Custom Audience', 'Delete Custom Audience', 'Website audience', 'Customer-list audience', 'Engagement audience', 'App activity audience', 'Video engagement audience'] },
+          { id: 'lookalike', title: '6. Lookalike Skills', icon: Copy, color: '#14B8A6', skills: ['Create Lookalike Audience', 'Select source audience', 'Set audience location', 'Set similarity percentage/range', 'Validate source audience', 'Manage Lookalike Audiences'] },
+          { id: 'creative', title: '7. Creative Skills', icon: Sparkles, color: '#F59E0B', skills: ['Upload creative', 'Select existing creative', 'Create image ad', 'Create video ad', 'Generate creative brief', 'Generate ad variations', 'Generate primary text', 'Generate headline', 'Generate description', 'Generate CTA', 'Preview creative'] },
+          { id: 'ad', title: '8. Ad Skills', icon: Megaphone, color: '#EF4444', skills: ['Create Ad', 'Duplicate Ad', 'Update Ad', 'Pause Ad', 'Resume Ad', 'Delete/Archive Ad', 'Change creative', 'Change copy', 'Change CTA', 'Check ad status', 'Check delivery status'] },
+          { id: 'placement', title: '9. Placement Skills', icon: Globe, color: '#0EA5E9', skills: ['Automatic placements', 'Manual placements', 'Facebook placements', 'Instagram placements', 'Audience Network placements', 'Messenger placements', 'Validate placement compatibility'] },
+          { id: 'lead-gen', title: '10. Lead Generation Skills', icon: MessageSquare, color: '#10B981', skills: ['Create lead campaign', 'Manage lead forms', 'Create lead form', 'Update lead form', 'Fetch leads', 'Filter leads', 'Export leads', 'Lead quality analysis'] },
+          { id: 'conversion', title: '11. Conversion Skills', icon: ShoppingBag, color: '#7C3AED', skills: ['Select conversion event', 'Configure optimization event', 'Check Pixel/Dataset status', 'Analyze conversion events', 'Identify conversion issues', 'Compare conversion performance'] },
+          { id: 'analytics', title: '12. Performance Analytics', icon: BarChart3, color: '#3B82F6', skills: ['Campaign performance', 'Ad Set performance', 'Ad performance', 'Spend analysis', 'Reach analysis', 'Impression analysis', 'Click analysis', 'CTR analysis', 'CPC analysis', 'CPM analysis', 'Conversion analysis', 'CPA analysis', 'ROAS analysis', 'Frequency analysis'] },
+          { id: 'ai-analysis', title: '13. AI Performance Analysis', icon: BrainCircuit, color: '#D97706', skills: ['Find underperforming campaigns', 'Find expensive ads', 'Find high-performing ads', 'Detect audience fatigue', 'Detect creative fatigue', 'Detect high frequency', 'Detect unusual spend', 'Detect conversion drops', 'Compare date ranges', 'Identify performance patterns'] },
+          { id: 'ai-optimize', title: '14. AI Optimization', icon: Lightbulb, color: '#F59E0B', skills: ['Recommend budget changes', 'Recommend audience changes', 'Recommend placement changes', 'Recommend creative changes', 'Recommend copy variations', 'Recommend campaign structure', 'Recommend scaling opportunities', 'Recommend testing opportunities'] },
+          { id: 'ab-testing', title: '15. A/B Testing Skills', icon: SlidersHorizontal, color: '#8B5CF6', skills: ['Create experiment', 'Create test variants', 'Test creatives', 'Test audiences', 'Test copy', 'Test placements', 'Compare variants', 'Analyze test results'] },
+          { id: 'budget', title: '16. Budget & Spend Control', icon: DollarSign, color: '#10B981', skills: ['Monitor spending', 'Set spending limits', 'Update budget', 'Detect budget anomalies', 'Calculate projected spend', 'Recommend budget allocation', 'Require confirmation for budget increases'] },
+          { id: 'policy', title: '17. Ad Policy / Delivery Skills', icon: ShieldCheck, color: '#EF4444', skills: ['Check ad review status', 'Identify rejected ads', 'Read rejection information', 'Detect policy-risk content', 'Suggest compliant copy revisions', 'Check delivery status', 'Identify learning/delivery issues'] },
+          { id: 'reporting', title: '18. Reporting Skills', icon: FileText, color: '#0EA5E9', skills: ['Generate campaign summary', 'Generate daily report', 'Generate weekly report', 'Generate monthly report', 'Compare campaigns', 'Compare Ad Sets', 'Compare Ads', 'Generate AI performance summary', 'Generate actionable recommendations'] },
+          { id: 'automation', title: '19. Automation Skills', icon: Zap, color: '#F59E0B', skills: ['Schedule campaign actions', 'Schedule budget changes', 'Schedule pause/resume', 'Monitor campaigns', 'Trigger alerts', 'Execute approved optimization actions'] },
+          { id: 'multi-account', title: '20. Multi-Account Skills', icon: Building2, color: '#7C3AED', skills: ['Manage multiple Business Managers', 'Manage multiple Ad Accounts', 'Switch Ad Account', 'Compare accounts', 'Run account-level analysis', 'Maintain account-specific context'] },
+          { id: 'agent-control', title: '21. Agent Control Skills', icon: Cpu, color: '#3B82F6', skills: ['Understand natural-language ad requests', 'Convert request to campaign structure', 'Select appropriate tools', 'Validate dependencies', 'Execute multi-step workflows', 'Verify API result', 'Explain failures', 'Maintain action history'] },
+          { id: 'safety', title: '22. Safety Skills', icon: ShieldCheck, color: '#DC2626', skills: ['Verify Ad Account before spending', 'Verify campaign before modification', 'Confirm budget increases', 'Confirm campaign publishing', 'Confirm deletion/archive actions', 'Prevent unauthorized access', 'Never fabricate metrics', 'Never claim ad active without API confirmation', 'Never expose Meta access tokens'] },
+        ];
+        const totalSkills = META_AGENT_SKILLS.reduce((s, c) => s + c.skills.length, 0);
+
+        return (
+          <div className="space-y-5">
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Cpu className="w-5 h-5 text-violet-600" />
+                Meta Ads Agent Skills
+              </h3>
+              <p className="text-xs text-slate-500">
+                {META_AGENT_SKILLS.length} skill categories with {totalSkills} total capabilities
+              </p>
+            </div>
+
+            {/* Agent Lifecycle Flow */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Core Agent Lifecycle</p>
+              <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+                {['Connect', 'Account', 'Campaign', 'Ad Set', 'Audience', 'Creative', 'Ad', 'Publish', 'Monitor', 'Analyze', 'Optimize'].map((step, idx, arr) => (
+                  <span key={step} className="flex items-center gap-1.5">
+                    <span className="px-2.5 py-1 rounded-lg bg-violet-50 text-violet-700 border border-violet-200">{step}</span>
+                    {idx < arr.length - 1 && <ChevronRight className="w-3 h-3 text-slate-300" />}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Skills Accordion Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {META_AGENT_SKILLS.map((cat) => {
+                const isExpanded = expandedMetaSkill === cat.id;
+                const CatIcon = cat.icon;
+                return (
+                  <div key={cat.id}
+                    className={`bg-white rounded-2xl border transition-all duration-200 overflow-hidden ${
+                      isExpanded ? 'border-violet-200 shadow-sm' : 'border-slate-200/90 hover:border-slate-300'
+                    }`}>
+                    <button
+                      onClick={() => setExpandedMetaSkill(isExpanded ? null : cat.id)}
+                      className="w-full px-4 py-3.5 flex items-center justify-between cursor-pointer text-left">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${cat.color}12` }}>
+                          <CatIcon className="w-4 h-4" style={{ color: cat.color }} />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-900">{cat.title}</h4>
+                          <p className="text-[10px] text-slate-500 mt-0.5">{cat.skills.length} skills</p>
+                        </div>
+                      </div>
+                      <svg className={`w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {isExpanded && (
+                      <div className="px-4 pb-4 pt-0 border-t border-slate-100">
+                        <div className="space-y-1 mt-2.5">
+                          {cat.skills.map((skill, sIdx) => (
+                            <div key={sIdx} className="flex items-center gap-2 py-1">
+                              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" style={{ color: cat.color }} />
+                              <span className="text-xs text-slate-700">{skill}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
         </div> {/* END RIGHT MAIN PANEL */}
       </div> {/* END 2-COLUMN SPLIT LAYOUT */}
