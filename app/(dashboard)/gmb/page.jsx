@@ -53,81 +53,10 @@ const GoogleIcon = ({ className = "w-5 h-5" }) => (
 );
 
 // ─────────────────────────────────────────────────────────────────
-// DEFAULT DATA (Connected accounts & locations)
+// DEFAULT DATA (Empty until user connects account or creates profile)
 // ─────────────────────────────────────────────────────────────────
-const DEFAULT_ACCOUNTS = [
-  {
-    accountId: "accounts/1092847102938471",
-    googleEmail: "postfly.official@gmail.com",
-    role: "Primary Owner",
-    tokenStatus: "active",
-    scope: "business.manage",
-    connectedDate: "29 Sep 2026",
-    locationCount: 2,
-    verified: true
-  },
-  {
-    accountId: "accounts/2048172930491823",
-    googleEmail: "saif.ansari.tech@gmail.com",
-    role: "Owner",
-    tokenStatus: "active",
-    scope: "business.manage",
-    connectedDate: "15 Aug 2026",
-    locationCount: 1,
-    verified: true
-  }
-];
-
-const DEFAULT_LOCATIONS = [
-  {
-    locationId: "locations/492018374928174",
-    accountId: "accounts/1092847102938471",
-    googleEmail: "postfly.official@gmail.com",
-    storeCode: "PF-PUNE-01",
-    title: "Postfly Digital Agency",
-    category: "Digital Marketing Agency",
-    city: "Pune",
-    address: "102 Landmark Tower, Senapati Bapat Road, Pune, MH 411016",
-    phone: "+91 9511450914",
-    website: "https://postfly.in",
-    rating: 4.8,
-    reviewCount: 142,
-    completeness: 92,
-    verified: true
-  },
-  {
-    locationId: "locations/582910482019482",
-    accountId: "accounts/2048172930491823",
-    googleEmail: "saif.ansari.tech@gmail.com",
-    storeCode: "PF-MUMBAI-02",
-    title: "Postfly Media Hub & Tech",
-    category: "Software Company",
-    city: "Mumbai",
-    address: "B-404 Horizon Tech Park, BKC Bandra East, Mumbai, MH 400051",
-    phone: "+91 9823019284",
-    website: "https://postfly.in/hub",
-    rating: 4.9,
-    reviewCount: 98,
-    completeness: 88,
-    verified: true
-  },
-  {
-    locationId: "locations/791820491820491",
-    accountId: "accounts/1092847102938471",
-    googleEmail: "postfly.official@gmail.com",
-    storeCode: "PF-BLR-03",
-    title: "Postfly AI Innovation Lab",
-    category: "AI & Tech Services",
-    city: "Bangalore",
-    address: "88 Indiranagar 100ft Road, Bangalore, KA 560038",
-    phone: "+91 9901827491",
-    website: "https://postfly.in/ai",
-    rating: 4.7,
-    reviewCount: 64,
-    completeness: 85,
-    verified: true
-  }
-];
+const DEFAULT_ACCOUNTS = [];
+const DEFAULT_LOCATIONS = [];
 
 // ─────────────────────────────────────────────────────────────────
 // 38 TOOL REGISTRY (8 Categories)
@@ -614,94 +543,130 @@ export default function GMBPage() {
         {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
         {activeTab === "overview" && (
           <div className="space-y-6">
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard icon={Users} label="Connected Accounts" value={accountsList.length} sub="Google OAuth" color="#3B82F6" />
-              <StatCard icon={MapPin} label="Business Locations" value={locationsList.length} sub="Active profiles" color="#10B981" />
-              <StatCard icon={Gauge} label="Avg Completeness" value={`${avgCompleteness}%`} sub="Profile score" color="#8B5CF6" />
-              <StatCard icon={Star} label="Avg Rating" value={avgRating} sub={`${totalReviews} total reviews`} color="#F59E0B" />
-            </div>
+            {accountsList.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-slate-200/90 p-8 sm:p-12 text-center space-y-5 shadow-2xs">
+                <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center mx-auto">
+                  <Building2 className="w-8 h-8 text-blue-600" />
+                </div>
+                <div className="space-y-1.5 max-w-md mx-auto">
+                  <h3 className="text-lg font-bold text-slate-900">No Google Business Profile Connected</h3>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Aapka koi Google Business Profile connect ya create nahi hai. Authorize with Google OAuth to sync existing locations, or create a new business profile location directly.
+                  </p>
+                </div>
 
-            {/* Active Location Card */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                  <CircleDot className="w-4 h-4 text-blue-600" />
-                  Active Location
-                </h3>
-                <Pill variant="success">
-                  <BadgeCheck className="w-3 h-3" />
-                  Google Verified
-                </Pill>
-              </div>
-              <div className="p-6">
-                <div className="flex flex-col lg:flex-row gap-6">
-                  <div className="flex-1 space-y-4">
-                    <div>
-                      <h2 className="text-xl font-bold text-slate-900">{activeLocation.title}</h2>
-                      <p className="text-sm text-slate-500 mt-1">{activeLocation.category}</p>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                      <div className="flex items-start gap-2.5 text-slate-600">
-                        <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                        <span>{activeLocation.address}</span>
-                      </div>
-                      <div className="flex items-center gap-2.5 text-slate-600">
-                        <Phone className="w-4 h-4 text-slate-400 shrink-0" />
-                        <span>{activeLocation.phone}</span>
-                      </div>
-                      <div className="flex items-center gap-2.5 text-slate-600">
-                        <Globe className="w-4 h-4 text-slate-400 shrink-0" />
-                        <a href={activeLocation.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{activeLocation.website}</a>
-                      </div>
-                      <div className="flex items-center gap-2.5 text-slate-600">
-                        <Clock className="w-4 h-4 text-slate-400 shrink-0" />
-                        <span>Mon-Sat: 9:00 AM - 7:00 PM</span>
-                      </div>
-                    </div>
-                  </div>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                  <button
+                    onClick={handleConnectAccount}
+                    className="inline-flex items-center gap-2.5 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl text-xs font-semibold shadow-sm transition-all duration-200 cursor-pointer"
+                  >
+                    <GoogleIcon className="w-4.5 h-4.5" />
+                    <span>Connect Google Account</span>
+                  </button>
 
-                  {/* Right side: rating & completeness */}
-                  <div className="flex flex-row lg:flex-col items-center gap-6 lg:gap-4 lg:w-48 shrink-0">
-                    <div className="text-center">
-                      <div className="flex items-center gap-1.5 justify-center">
-                        <span className="text-3xl font-bold text-slate-900">{activeLocation.rating}</span>
-                        <Star className="w-6 h-6 text-amber-400 fill-amber-400" />
-                      </div>
-                      <p className="text-xs text-slate-500 mt-1">{activeLocation.reviewCount} reviews</p>
-                    </div>
-                    <div className="text-center w-full max-w-[160px]">
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="font-medium text-slate-600">Completeness</span>
-                        <span className="font-bold text-slate-900">{activeLocation.completeness}%</span>
-                      </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2">
-                        <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500" style={{ width: `${activeLocation.completeness}%` }} />
-                      </div>
-                    </div>
-                  </div>
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-3 rounded-xl text-xs font-semibold shadow-sm transition-all duration-200 cursor-pointer"
+                  >
+                    <PlusCircle className="w-4 h-4 text-blue-400" />
+                    <span>Create Business Profile</span>
+                  </button>
                 </div>
               </div>
-            </div>
+            ) : (
+              <>
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <StatCard icon={Users} label="Connected Accounts" value={accountsList.length} sub="Google OAuth" color="#3B82F6" />
+                  <StatCard icon={MapPin} label="Business Locations" value={locationsList.length} sub="Active profiles" color="#10B981" />
+                  <StatCard icon={Gauge} label="Avg Completeness" value={`${avgCompleteness}%`} sub="Profile score" color="#8B5CF6" />
+                  <StatCard icon={Star} label="Avg Rating" value={avgRating} sub={`${totalReviews} total reviews`} color="#F59E0B" />
+                </div>
 
-            {/* Quick Actions */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[
-                { label: 'AI Agent Chat', icon: Bot, tab: 'agent', color: '#7C3AED' },
-                { label: 'View Locations', icon: Building2, tab: 'locations', color: '#10B981' },
-                { label: 'Tool Registry', icon: Wrench, tab: 'tools', color: '#3B82F6' },
-                { label: 'Agent Skills', icon: Cpu, tab: 'skills', color: '#D97706' },
-              ].map(a => (
-                <button key={a.tab} onClick={() => setActiveTab(a.tab)}
-                  className="flex items-center gap-3 px-4 py-3.5 bg-white rounded-2xl border border-slate-200/80 hover:border-slate-300 hover:shadow-sm transition-all duration-200 cursor-pointer group text-left">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-110" style={{ backgroundColor: `${a.color}10` }}>
-                    <a.icon className="w-4.5 h-4.5" style={{ color: a.color }} />
+                {/* Active Location Card */}
+                {activeLocation && (
+                  <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                        <CircleDot className="w-4 h-4 text-blue-600" />
+                        Active Location
+                      </h3>
+                      <Pill variant="success">
+                        <BadgeCheck className="w-3 h-3" />
+                        Google Verified
+                      </Pill>
+                    </div>
+                    <div className="p-6">
+                      <div className="flex flex-col lg:flex-row gap-6">
+                        <div className="flex-1 space-y-4">
+                          <div>
+                            <h2 className="text-xl font-bold text-slate-900">{activeLocation.title}</h2>
+                            <p className="text-sm text-slate-500 mt-1">{activeLocation.category}</p>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                            <div className="flex items-start gap-2.5 text-slate-600">
+                              <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                              <span>{activeLocation.address}</span>
+                            </div>
+                            <div className="flex items-center gap-2.5 text-slate-600">
+                              <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                              <span>{activeLocation.phone}</span>
+                            </div>
+                            <div className="flex items-center gap-2.5 text-slate-600">
+                              <Globe className="w-4 h-4 text-slate-400 shrink-0" />
+                              <a href={activeLocation.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{activeLocation.website}</a>
+                            </div>
+                            <div className="flex items-center gap-2.5 text-slate-600">
+                              <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+                              <span>Mon-Sat: 9:00 AM - 7:00 PM</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right side: rating & completeness */}
+                        <div className="flex flex-row lg:flex-col items-center gap-6 lg:gap-4 lg:w-48 shrink-0">
+                          <div className="text-center">
+                            <div className="flex items-center gap-1.5 justify-center">
+                              <span className="text-3xl font-bold text-slate-900">{activeLocation.rating}</span>
+                              <Star className="w-6 h-6 text-amber-400 fill-amber-400" />
+                            </div>
+                            <p className="text-xs text-slate-500 mt-1">{activeLocation.reviewCount} reviews</p>
+                          </div>
+                          <div className="text-center w-full max-w-[160px]">
+                            <div className="flex items-center justify-between text-xs mb-1">
+                              <span className="font-medium text-slate-600">Completeness</span>
+                              <span className="font-bold text-slate-900">{activeLocation.completeness}%</span>
+                            </div>
+                            <div className="w-full bg-slate-100 rounded-full h-2">
+                              <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500" style={{ width: `${activeLocation.completeness}%` }} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900">{a.label}</span>
-                  <ArrowRight className="w-4 h-4 text-slate-300 ml-auto group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all duration-200" />
-                </button>
-              ))}
-            </div>
+                )}
+
+                {/* Quick Actions */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { label: 'AI Agent Chat', icon: Bot, tab: 'agent', color: '#7C3AED' },
+                    { label: 'View Locations', icon: Building2, tab: 'locations', color: '#10B981' },
+                    { label: 'Tool Registry', icon: Wrench, tab: 'tools', color: '#3B82F6' },
+                    { label: 'Agent Skills', icon: Cpu, tab: 'skills', color: '#D97706' },
+                  ].map(a => (
+                    <button key={a.tab} onClick={() => setActiveTab(a.tab)}
+                      className="flex items-center gap-3 px-4 py-3.5 bg-white rounded-2xl border border-slate-200/80 hover:border-slate-300 hover:shadow-sm transition-all duration-200 cursor-pointer group text-left">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-110" style={{ backgroundColor: `${a.color}10` }}>
+                        <a.icon className="w-4.5 h-4.5" style={{ color: a.color }} />
+                      </div>
+                      <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900">{a.label}</span>
+                      <ArrowRight className="w-4 h-4 text-slate-300 ml-auto group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all duration-200" />
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -716,82 +681,94 @@ export default function GMBPage() {
                 <h2 className="text-lg font-bold text-slate-900">Connected Google Accounts</h2>
                 <p className="text-sm text-slate-500 mt-0.5">Manage all authorized Google accounts via OAuth 2.0</p>
               </div>
-              <button onClick={() => { setShowConnectModal(true); setOauthStep(0); }}
+              <button onClick={handleConnectAccount}
                 className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-[13px] font-semibold shadow-sm transition-all duration-200 cursor-pointer">
                 <Plus className="h-4 w-4" />
                 Connect Account
               </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {accountsList.map(acc => {
-                const accLocations = locationsList.filter(l => l.googleEmail === acc.googleEmail);
-                return (
-                  <div key={acc.accountId} className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden hover:border-slate-300 transition-all duration-200">
-                    <div className="p-5 space-y-4">
-                      {/* Header */}
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                            <GoogleIcon className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-semibold text-slate-900">{acc.googleEmail}</p>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <Pill variant="primary">{acc.role}</Pill>
-                              <Pill variant="success">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                Active
-                              </Pill>
+            {accountsList.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-4">
+                <Users className="w-10 h-10 text-slate-300 mx-auto" />
+                <p className="text-sm font-semibold text-slate-700">No Google Accounts Connected</p>
+                <p className="text-xs text-slate-500">Authorize your Google Account using OAuth to import your Business Profiles.</p>
+                <button onClick={handleConnectAccount} className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-semibold">
+                  <GoogleIcon className="w-4 h-4" />
+                  Connect Google Account
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {accountsList.map(acc => {
+                  const accLocations = locationsList.filter(l => l.googleEmail === acc.googleEmail);
+                  return (
+                    <div key={acc.accountId} className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden hover:border-slate-300 transition-all duration-200">
+                      <div className="p-5 space-y-4">
+                        {/* Header */}
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                              <GoogleIcon className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-slate-900">{acc.googleEmail}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <Pill variant="primary">{acc.role}</Pill>
+                                <Pill variant="success">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                  Active
+                                </Pill>
+                              </div>
                             </div>
                           </div>
+                          <button onClick={() => handleDisconnectAccount(acc.accountId)}
+                            title="Disconnect Account"
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 cursor-pointer">
+                            <Unlink className="h-4 w-4" />
+                          </button>
                         </div>
-                        <button onClick={() => handleDisconnectAccount(acc.accountId)}
-                          title="Disconnect Account"
-                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 cursor-pointer">
-                          <Unlink className="h-4 w-4" />
-                        </button>
-                      </div>
 
-                      {/* Metrics */}
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="bg-slate-50 p-2.5 rounded-xl">
-                          <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Locations</p>
-                          <p className="text-sm font-bold text-slate-900 mt-0.5">{accLocations.length}</p>
+                        {/* Metrics */}
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="bg-slate-50 p-2.5 rounded-xl">
+                            <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Locations</p>
+                            <p className="text-sm font-bold text-slate-900 mt-0.5">{accLocations.length}</p>
+                          </div>
+                          <div className="bg-slate-50 p-2.5 rounded-xl">
+                            <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Scope</p>
+                            <p className="text-[11px] font-semibold text-slate-700 mt-0.5">{acc.scope}</p>
+                          </div>
+                          <div className="bg-slate-50 p-2.5 rounded-xl">
+                            <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Connected</p>
+                            <p className="text-[11px] font-semibold text-slate-700 mt-0.5">{acc.connectedDate}</p>
+                          </div>
                         </div>
-                        <div className="bg-slate-50 p-2.5 rounded-xl">
-                          <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Scope</p>
-                          <p className="text-[11px] font-semibold text-slate-700 mt-0.5">{acc.scope}</p>
-                        </div>
-                        <div className="bg-slate-50 p-2.5 rounded-xl">
-                          <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Connected</p>
-                          <p className="text-[11px] font-semibold text-slate-700 mt-0.5">{acc.connectedDate}</p>
-                        </div>
-                      </div>
 
-                      {/* Locations */}
-                      {accLocations.length > 0 && (
-                        <div className="space-y-1.5 pt-3 border-t border-slate-100">
-                          <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-2">Managed Locations</p>
-                          {accLocations.map(l => (
-                            <button key={l.locationId}
-                              onClick={() => { setActiveLocation(l); setActiveTab("locations"); }}
-                              className="w-full p-2.5 rounded-xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 flex items-center justify-between transition-all duration-200 cursor-pointer group text-left">
-                              <div className="flex items-center gap-2">
-                                <MapPin className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500 transition-colors" />
-                                <span className="text-xs font-medium text-slate-700 group-hover:text-blue-700">{l.title}</span>
-                                <span className="text-[10px] text-slate-400">{l.city}</span>
-                              </div>
-                              <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all duration-200" />
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                        {/* Locations */}
+                        {accLocations.length > 0 && (
+                          <div className="space-y-1.5 pt-3 border-t border-slate-100">
+                            <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-2">Managed Locations</p>
+                            {accLocations.map(l => (
+                              <button key={l.locationId}
+                                onClick={() => { setActiveLocation(l); setActiveTab("locations"); }}
+                                className="w-full p-2.5 rounded-xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 flex items-center justify-between transition-all duration-200 cursor-pointer group text-left">
+                                <div className="flex items-center gap-2">
+                                  <MapPin className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                                  <span className="text-xs font-medium text-slate-700 group-hover:text-blue-700">{l.title}</span>
+                                  <span className="text-[10px] text-slate-400">{l.city}</span>
+                                </div>
+                                <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all duration-200" />
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -844,7 +821,26 @@ export default function GMBPage() {
             )}
 
             {/* Locations Table */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden">
+            {filteredLocations.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-4">
+                <Building2 className="w-10 h-10 text-slate-300 mx-auto" />
+                <p className="text-sm font-semibold text-slate-700">No Business Locations Found</p>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  Aapka koi business location profile nahi mila. Connect your Google Account or create a new business location.
+                </p>
+                <div className="flex items-center justify-center gap-3 pt-2">
+                  <button onClick={handleConnectAccount} className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-semibold">
+                    <GoogleIcon className="w-4 h-4" />
+                    Connect Account
+                  </button>
+                  <button onClick={() => setShowCreateModal(true)} className="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-semibold">
+                    <PlusCircle className="w-4 h-4 text-blue-400" />
+                    Create Business Profile
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden">
               <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
                 <button onClick={selectAllFiltered} className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1.5 cursor-pointer transition-colors">
                   {selectedLocationIds.length === filteredLocations.length && filteredLocations.length > 0
@@ -900,8 +896,9 @@ export default function GMBPage() {
                 })}
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      )}
 
 
         {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
@@ -918,7 +915,7 @@ export default function GMBPage() {
                 </h3>
                 <Pill variant="success">
                   <MapPin className="w-3 h-3" />
-                  {activeLocation.title}
+                  {activeLocation?.title || "Select Location"}
                 </Pill>
               </div>
 
@@ -1284,7 +1281,7 @@ export default function GMBPage() {
             <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-semibold font-mono">{activeTool}</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Target: {activeLocation.title}</p>
+                <p className="text-xs text-slate-400 mt-0.5">Target: {activeLocation?.title || "Active Location"}</p>
               </div>
               <button onClick={() => setActiveTool(null)} className="p-2 hover:bg-white/10 rounded-lg transition-colors cursor-pointer">
                 <X className="h-4 w-4 text-slate-400" />
