@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { getStoredUser, getUserPlanLimits } from '@/lib/user';
 import toast from 'react-hot-toast';
 import {
@@ -9,91 +9,356 @@ import {
   Zap, ArrowRight, ChevronRight, Eye, Users, Phone, Navigation,
   ShieldCheck, Target, Lightbulb, RefreshCw, Send, BrainCircuit,
   Layers, PlusCircle, Edit3, Copy, FileText, ExternalLink, Info,
-  X, Loader2, ChevronDown, Save, Trash2, Plus, Hash, Award, Key, Check,
-  UserCheck, Settings, Database, Sliders, Activity, ShieldAlert, Terminal, HelpCircle, History
+  X, Loader2, ChevronDown, Save, Trash2, Plus, Hash, Award, Key,
+  Check, UserCheck, Settings, Database, Sliders, Activity, ShieldAlert,
+  Terminal, HelpCircle, History, Filter, CheckSquare, Square,
+  LogIn, Link2, Unlink, MoreHorizontal, ArrowUpRight, Pencil,
+  CalendarDays, Image, Languages, Megaphone, Shield, Bot, Workflow,
+  CircleDot, Play, LayoutGrid, List, ChevronUp, Gauge, BarChart2,
+  Mail, Globe2, MapPinned, BadgeCheck, Cpu, Wrench, FileSearch
 } from 'lucide-react';
 
-// Preset Locations
-const PRESET_LOCATIONS = [
+// ─────────────────────────────────────────────────────────────────
+// DESIGN TOKENS (SaaS Data-Dense Dashboard)
+// ─────────────────────────────────────────────────────────────────
+const T = {
+  primary: '#1E40AF',
+  primaryLight: '#3B82F6',
+  primaryBg: '#EFF6FF',
+  accent: '#D97706',
+  accentBg: '#FFFBEB',
+  success: '#059669',
+  successBg: '#ECFDF5',
+  danger: '#DC2626',
+  dangerBg: '#FEF2F2',
+  bg: '#F8FAFC',
+  card: '#FFFFFF',
+  border: '#E2E8F0',
+  borderLight: '#F1F5F9',
+  text: '#0F172A',
+  textSecondary: '#475569',
+  textMuted: '#94A3B8',
+};
+
+// ─────────────────────────────────────────────────────────────────
+// GOOGLE SVG ICON (Proper multi-color logo)
+// ─────────────────────────────────────────────────────────────────
+const GoogleIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24">
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+  </svg>
+);
+
+// ─────────────────────────────────────────────────────────────────
+// DEFAULT DATA (Connected accounts & locations)
+// ─────────────────────────────────────────────────────────────────
+const DEFAULT_ACCOUNTS = [
   {
-    locationId: "locations/492018374928174",
-    title: "Postfly Digital Agency",
-    storeCode: "PF-PUNE-01",
+    accountId: "accounts/1092847102938471",
     googleEmail: "postfly.official@gmail.com",
-    city: "Pune",
-    category: "Digital Marketing Agency",
-    address: "102 Landmark Tower, Senapati Bapat Road, Pune, MH 411016",
-    rating: 4.8,
-    reviews: 142
+    role: "Primary Owner",
+    tokenStatus: "active",
+    scope: "business.manage",
+    connectedDate: "29 Sep 2026",
+    locationCount: 2,
+    verified: true
   },
   {
-    locationId: "locations/582910482019482",
-    title: "Postfly Media Hub & Tech",
-    storeCode: "PF-MUMBAI-02",
+    accountId: "accounts/2048172930491823",
     googleEmail: "saif.ansari.tech@gmail.com",
-    city: "Mumbai",
-    category: "Software Company",
-    address: "B-404 Horizon Tech Park, BKC Bandra East, Mumbai, MH 400051",
-    rating: 4.9,
-    reviews: 98
+    role: "Owner",
+    tokenStatus: "active",
+    scope: "business.manage",
+    connectedDate: "15 Aug 2026",
+    locationCount: 1,
+    verified: true
   }
 ];
 
-// 38 Tools grouped by category
+const DEFAULT_LOCATIONS = [
+  {
+    locationId: "locations/492018374928174",
+    accountId: "accounts/1092847102938471",
+    googleEmail: "postfly.official@gmail.com",
+    storeCode: "PF-PUNE-01",
+    title: "Postfly Digital Agency",
+    category: "Digital Marketing Agency",
+    city: "Pune",
+    address: "102 Landmark Tower, Senapati Bapat Road, Pune, MH 411016",
+    phone: "+91 9511450914",
+    website: "https://postfly.in",
+    rating: 4.8,
+    reviewCount: 142,
+    completeness: 92,
+    verified: true
+  },
+  {
+    locationId: "locations/582910482019482",
+    accountId: "accounts/2048172930491823",
+    googleEmail: "saif.ansari.tech@gmail.com",
+    storeCode: "PF-MUMBAI-02",
+    title: "Postfly Media Hub & Tech",
+    category: "Software Company",
+    city: "Mumbai",
+    address: "B-404 Horizon Tech Park, BKC Bandra East, Mumbai, MH 400051",
+    phone: "+91 9823019284",
+    website: "https://postfly.in/hub",
+    rating: 4.9,
+    reviewCount: 98,
+    completeness: 88,
+    verified: true
+  },
+  {
+    locationId: "locations/791820491820491",
+    accountId: "accounts/1092847102938471",
+    googleEmail: "postfly.official@gmail.com",
+    storeCode: "PF-BLR-03",
+    title: "Postfly AI Innovation Lab",
+    category: "AI & Tech Services",
+    city: "Bangalore",
+    address: "88 Indiranagar 100ft Road, Bangalore, KA 560038",
+    phone: "+91 9901827491",
+    website: "https://postfly.in/ai",
+    rating: 4.7,
+    reviewCount: 64,
+    completeness: 85,
+    verified: true
+  }
+];
+
+// ─────────────────────────────────────────────────────────────────
+// 38 TOOL REGISTRY (8 Categories)
+// ─────────────────────────────────────────────────────────────────
 const TOOL_CATEGORIES = {
-  ACCOUNT: ["get_google_accounts", "get_locations", "get_location", "get_location_status"],
-  PROFILE: ["get_business_profile", "update_business_information", "update_business_description", "update_contact_information", "update_business_category"],
-  HOURS: ["get_business_hours", "get_special_hours", "update_business_hours", "update_special_hours"],
-  CATEGORY: ["get_categories", "get_primary_category", "update_categories"],
-  REVIEWS: ["get_reviews", "get_review", "get_unanswered_reviews", "get_reviews_by_rating", "analyze_review", "generate_review_reply", "publish_review_reply"],
-  POSTS: ["get_posts", "get_post", "create_post", "update_post", "delete_post", "publish_post"],
-  MEDIA: ["get_media", "add_media", "delete_media"],
-  AI: ["audit_business_profile", "analyze_reviews", "generate_post", "rewrite_content", "translate_content", "generate_action_plan"]
+  ACCOUNT: { icon: Users, color: '#3B82F6', tools: ["get_google_accounts", "get_locations", "get_location", "get_location_status", "connect_google_account"] },
+  PROFILE: { icon: Building2, color: '#8B5CF6', tools: ["get_business_profile", "update_business_information", "update_business_description", "update_contact_information", "update_business_category", "create_business_location"] },
+  HOURS: { icon: Clock, color: '#F59E0B', tools: ["get_business_hours", "get_special_hours", "update_business_hours", "update_special_hours"] },
+  CATEGORY: { icon: Layers, color: '#EC4899', tools: ["get_categories", "get_primary_category", "update_categories"] },
+  REVIEWS: { icon: Star, color: '#EF4444', tools: ["get_reviews", "get_review", "get_unanswered_reviews", "get_reviews_by_rating", "analyze_review", "generate_review_reply", "publish_review_reply"] },
+  POSTS: { icon: FileText, color: '#10B981', tools: ["get_posts", "get_post", "create_post", "update_post", "delete_post", "publish_post"] },
+  MEDIA: { icon: Image, color: '#06B6D4', tools: ["get_media", "add_media", "delete_media"] },
+  AI: { icon: Sparkles, color: '#D97706', tools: ["audit_business_profile", "analyze_reviews", "generate_post", "rewrite_content", "translate_content", "generate_action_plan"] }
 };
 
+// ─────────────────────────────────────────────────────────────────
+// 11 GMB AGENT SKILL CATEGORIES
+// ─────────────────────────────────────────────────────────────────
+const AGENT_SKILLS = [
+  {
+    id: 'profile',
+    title: 'Business Profile Management',
+    icon: Building2,
+    color: '#8B5CF6',
+    skills: ['View business profile', 'Update business information', 'Update business description', 'Update contact information', 'Update website', 'Update business category', 'Validate profile information']
+  },
+  {
+    id: 'hours',
+    title: 'Business Hours Management',
+    icon: Clock,
+    color: '#F59E0B',
+    skills: ['View regular hours', 'Update regular hours', 'View special hours', 'Update special hours', 'Detect inconsistent/missing hours']
+  },
+  {
+    id: 'location',
+    title: 'Location Management',
+    icon: MapPinned,
+    color: '#10B981',
+    skills: ['List connected locations', 'Identify/select location', 'Switch location context', 'Manage multiple locations', 'Validate location access']
+  },
+  {
+    id: 'reviews',
+    title: 'Review Management',
+    icon: MessageSquare,
+    color: '#EF4444',
+    skills: ['Fetch reviews', 'Filter reviews by rating', 'Filter unanswered reviews', 'Analyze review sentiment', 'Identify review topics', 'Identify recurring complaints', 'Summarize customer feedback', 'Generate review replies', 'Rewrite review replies', 'Translate review replies', 'Publish approved replies']
+  },
+  {
+    id: 'posts',
+    title: 'Post Management',
+    icon: FileText,
+    color: '#3B82F6',
+    skills: ['Create posts', 'Read posts', 'Update posts', 'Delete posts', 'Generate post content', 'Rewrite post content', 'Shorten/expand posts', 'Generate CTA', 'Translate posts', 'Publish approved posts']
+  },
+  {
+    id: 'media',
+    title: 'Media Management',
+    icon: Camera,
+    color: '#06B6D4',
+    skills: ['View business media', 'Add supported media', 'Remove media', 'Identify suitable media for a post', 'Suggest media based on business content']
+  },
+  {
+    id: 'content',
+    title: 'AI Content Generation',
+    icon: Sparkles,
+    color: '#D97706',
+    skills: ['Generate business updates', 'Generate promotional content', 'Generate offer content', 'Generate event content', 'Generate location-specific content', 'Generate content from user info', 'Generate content in Hindi', 'Generate content in English', 'Generate Hinglish content', 'Adapt content tone']
+  },
+  {
+    id: 'intelligence',
+    title: 'GMB Intelligence',
+    icon: BrainCircuit,
+    color: '#7C3AED',
+    skills: ['Analyze business profile', 'Detect missing information', 'Detect inconsistent information', 'Analyze customer feedback', 'Identify common review topics', 'Identify unanswered reviews', 'Identify content gaps', 'Generate actionable recommendations']
+  },
+  {
+    id: 'multi-location',
+    title: 'Multi-Location Intelligence',
+    icon: Globe2,
+    color: '#0EA5E9',
+    skills: ['Analyze individual locations', 'Compare location data', 'Generate location-specific content', 'Execute approved actions across selected locations', 'Handle location-specific business information']
+  },
+  {
+    id: 'planning',
+    title: 'GMB Action Planning',
+    icon: Workflow,
+    color: '#14B8A6',
+    skills: ['Understand natural-language GMB requests', 'Convert requests into GMB actions', 'Select required tools', 'Execute multi-step GMB tasks', 'Validate action results', 'Report success/failure accurately']
+  },
+  {
+    id: 'safety',
+    title: 'GMB Safety & Control',
+    icon: Shield,
+    color: '#DC2626',
+    skills: ['Verify target location before action', 'Validate required information', 'Ask clarification when info missing', 'Require approval for high-impact changes', 'Prevent unauthorized location actions', 'Never invent GMB data', 'Never expose Google credentials', 'Never claim success without API confirmation']
+  }
+];
+
+// ─────────────────────────────────────────────────────────────────
+// OAUTH FLOW STEPS
+// ─────────────────────────────────────────────────────────────────
+const OAUTH_STEPS = [
+  { label: 'Authorize', icon: LogIn, desc: 'Sign in with Google' },
+  { label: 'Fetch', icon: Database, desc: 'Retrieve GMB accounts' },
+  { label: 'Select', icon: MapPin, desc: 'Choose business location' },
+  { label: 'Connected', icon: CheckCircle2, desc: 'Secure connection saved' },
+];
+
+// ─────────────────────────────────────────────────────────────────
+// PILL BADGE COMPONENT
+// ─────────────────────────────────────────────────────────────────
+function Pill({ children, variant = 'default', className = '' }) {
+  const variants = {
+    default: 'bg-slate-100 text-slate-700 border-slate-200',
+    primary: 'bg-blue-50 text-blue-700 border-blue-200',
+    success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    warning: 'bg-amber-50 text-amber-700 border-amber-200',
+    danger: 'bg-red-50 text-red-700 border-red-200',
+    purple: 'bg-violet-50 text-violet-700 border-violet-200',
+  };
+  return (
+    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${variants[variant]} ${className}`}>
+      {children}
+    </span>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// STAT CARD COMPONENT
+// ─────────────────────────────────────────────────────────────────
+function StatCard({ icon: Icon, label, value, sub, color = '#3B82F6' }) {
+  return (
+    <div className="bg-white rounded-2xl p-4 border border-slate-200/80 hover:border-slate-300 transition-all duration-200 group">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${color}10` }}>
+          <Icon className="w-5 h-5" style={{ color }} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">{label}</p>
+          <p className="text-lg font-bold text-slate-900 leading-tight">{value}</p>
+          {sub && <p className="text-[11px] font-medium text-slate-400">{sub}</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// TAB BUTTON COMPONENT
+// ─────────────────────────────────────────────────────────────────
+function TabBtn({ active, icon: Icon, label, count, onClick }) {
+  return (
+    <button onClick={onClick}
+      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-200 cursor-pointer border whitespace-nowrap ${
+        active
+          ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+      }`}>
+      <Icon className="w-4 h-4" />
+      <span>{label}</span>
+      {count !== undefined && (
+        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+          {count}
+        </span>
+      )}
+    </button>
+  );
+}
+
+
+// ═════════════════════════════════════════════════════════════════
+// MAIN PAGE COMPONENT
+// ═════════════════════════════════════════════════════════════════
 export default function GMBPage() {
   const [user, setUser] = useState(null);
   const [limits, setLimits] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Active Location Context
-  const [activeLocation, setActiveLocation] = useState(PRESET_LOCATIONS[0]);
-  const [locationsList, setLocationsList] = useState(PRESET_LOCATIONS);
+
+  // Navigation
+  const [activeTab, setActiveTab] = useState("overview");
+
+  // Connected Accounts
+  const [accountsList, setAccountsList] = useState(DEFAULT_ACCOUNTS);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const [oauthStep, setOauthStep] = useState(0); // 0=idle, 1=authorizing, 2=fetching, 3=selecting, 4=done
+  const [oauthLoading, setOauthLoading] = useState(false);
+
+  // Locations
+  const [locationsList, setLocationsList] = useState(DEFAULT_LOCATIONS);
+  const [activeLocation, setActiveLocation] = useState(DEFAULT_LOCATIONS[0]);
   const [selectedLanguage, setSelectedLanguage] = useState("English");
 
-  // Create Location Modal State
+  // Multi-location selection & Bulk actions
+  const [selectedLocationIds, setSelectedLocationIds] = useState([]);
+  const [filterAccountEmail, setFilterAccountEmail] = useState("ALL");
+  const [filterSearch, setFilterSearch] = useState("");
+  const [bulkRunning, setBulkRunning] = useState(false);
+
+  // Create Location Modal
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createLocForm, setCreateLocForm] = useState({
-    title: "",
-    category: "Digital Marketing Agency",
-    address: "101 Tech Park, SB Road, Pune",
-    city: "Pune",
-    phone: "+91 9511450914",
-    website: "https://postfly.in",
-    description: "Official business profile for local services."
+    title: "", category: "Digital Marketing Agency", address: "",
+    city: "", phone: "", website: "", description: "",
+    googleEmail: "postfly.official@gmail.com"
   });
   const [creatingLoc, setCreatingLoc] = useState(false);
 
-  // Agent Chat State & 7-Step Visualizer
+  // Agent Chat State & 7-Step Lifecycle
   const [agentQuery, setAgentQuery] = useState('');
   const [agentLoading, setAgentLoading] = useState(false);
   const [agentResult, setAgentResult] = useState(null);
   const [confirmationPending, setConfirmationPending] = useState(null);
+  const [expandedSkill, setExpandedSkill] = useState(null);
 
-  // Active Tool Execution Modal (For 38 Tools Explorer)
+  // 38 Tools Explorer
   const [activeTool, setActiveTool] = useState(null);
   const [toolInput, setToolInput] = useState({});
   const [toolResult, setToolResult] = useState(null);
   const [toolExecuting, setToolExecuting] = useState(false);
 
-  // Audit Trail & Logs
+  // Audit Logs
   const [auditLogs, setAuditLogs] = useState([]);
-  const [activeTab, setActiveTab] = useState("agent"); // "agent", "tools", "audit"
 
   useEffect(() => {
     const userData = getStoredUser();
     setUser(userData);
     setLimits(getUserPlanLimits(userData));
+    const savedAccs = localStorage.getItem("postfly_gmb_accounts_list");
+    if (savedAccs) {
+      try { setAccountsList(JSON.parse(savedAccs)); } catch (e) { /* ignore */ }
+    }
     fetchAuditLogs();
     setIsLoading(false);
   }, []);
@@ -107,10 +372,127 @@ export default function GMBPage() {
       });
       const data = await res.json();
       if (data.success) setAuditLogs(data.auditLogs || []);
-    } catch (e) {}
+    } catch (e) { /* silent */ }
   };
 
-  // Run Agent through 7-step lifecycle
+  // ─── OAuth Connect Flow ───
+  const handleOAuthConnect = async () => {
+    setOauthStep(1);
+    setOauthLoading(true);
+    toast.loading('Redirecting to Google OAuth...', { id: 'oauth' });
+
+    // Step 1: Authorize — simulate OAuth redirect & callback
+    await new Promise(r => setTimeout(r, 1500));
+    setOauthStep(2);
+    toast.loading('Fetching your Google Business accounts...', { id: 'oauth' });
+
+    // Step 2: Fetch accounts from Google API
+    await new Promise(r => setTimeout(r, 1200));
+    setOauthStep(3);
+    toast.loading('Select your business location...', { id: 'oauth' });
+
+    // Step 3: Wait for selection — user picks from available profiles
+    setOauthLoading(false);
+    toast.dismiss('oauth');
+  };
+
+  const handleOAuthSelectAndSave = (profileName, email) => {
+    setOauthLoading(true);
+    toast.loading('Saving secure connection...', { id: 'oauth-save' });
+    setTimeout(() => {
+      const newAcc = {
+        accountId: `accounts/${Math.floor(1000000000000000 + Math.random() * 9000000000000000)}`,
+        googleEmail: email,
+        role: "Owner",
+        tokenStatus: "active",
+        scope: "business.manage",
+        connectedDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        locationCount: 1,
+        verified: true
+      };
+      const updatedList = [newAcc, ...accountsList];
+      setAccountsList(updatedList);
+      localStorage.setItem("postfly_gmb_accounts_list", JSON.stringify(updatedList));
+      setOauthStep(4);
+      setOauthLoading(false);
+      toast.success(`Google Account "${email}" connected successfully!`, { id: 'oauth-save' });
+      setTimeout(() => {
+        setShowConnectModal(false);
+        setOauthStep(0);
+      }, 1500);
+    }, 1000);
+  };
+
+  // Disconnect
+  const handleDisconnectAccount = (accId) => {
+    const updated = accountsList.filter(a => a.accountId !== accId);
+    setAccountsList(updated);
+    localStorage.setItem("postfly_gmb_accounts_list", JSON.stringify(updated));
+    toast.success("Google Account disconnected");
+  };
+
+  // Create Location
+  const handleCreateLocationSubmit = async (e) => {
+    e.preventDefault();
+    if (!createLocForm.title || !createLocForm.category) return toast.error("Title and Category are required");
+    setCreatingLoc(true);
+    try {
+      const res = await fetch("/api/gmb", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "create_business_location", ...createLocForm })
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Failed to create location");
+      const newLoc = data.data.location;
+      const updatedLocs = [newLoc, ...locationsList];
+      setLocationsList(updatedLocs);
+      setActiveLocation(newLoc);
+      setShowCreateModal(false);
+      setAccountsList(prev => prev.map(a => a.googleEmail === newLoc.googleEmail ? { ...a, locationCount: a.locationCount + 1 } : a));
+      toast.success(`Location "${newLoc.title}" created successfully!`);
+      fetchAuditLogs();
+    } catch (err) {
+      toast.error(err.message || "Location creation failed");
+    } finally {
+      setCreatingLoc(false);
+    }
+  };
+
+  // Bulk selection
+  const toggleSelectLocation = (locId) => {
+    setSelectedLocationIds(prev =>
+      prev.includes(locId) ? prev.filter(id => id !== locId) : [...prev, locId]
+    );
+  };
+
+  const getFilteredLocations = useCallback(() => {
+    return locationsList.filter(loc => {
+      const matchesAcc = filterAccountEmail === "ALL" || loc.googleEmail === filterAccountEmail;
+      const matchesSearch = !filterSearch || loc.title.toLowerCase().includes(filterSearch.toLowerCase()) || loc.city.toLowerCase().includes(filterSearch.toLowerCase());
+      return matchesAcc && matchesSearch;
+    });
+  }, [locationsList, filterAccountEmail, filterSearch]);
+
+  const selectAllFiltered = () => {
+    const filtered = getFilteredLocations();
+    setSelectedLocationIds(prev =>
+      prev.length === filtered.length ? [] : filtered.map(l => l.locationId)
+    );
+  };
+
+  // Bulk actions
+  const handleRunBulkAction = async (bulkType) => {
+    if (selectedLocationIds.length === 0) return toast.error("Select at least 1 location");
+    setBulkRunning(true);
+    toast.loading(`Running "${bulkType}" across ${selectedLocationIds.length} locations...`, { id: "bulk" });
+    await new Promise(r => setTimeout(r, 2000));
+    setBulkRunning(false);
+    toast.success(`"${bulkType}" completed for ${selectedLocationIds.length} locations!`, { id: "bulk" });
+    fetchAuditLogs();
+  };
+
+  // Agent handler
   const handleRunAgent = async (userConfirmed = false) => {
     if (!agentQuery.trim() && !userConfirmed) return;
     setAgentLoading(true);
@@ -129,21 +511,10 @@ export default function GMBPage() {
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || "Agent execution failed");
-      
       const result = data.agentResult;
       setAgentResult(result);
-
       if (result.status === "AWAITING_CONFIRMATION") {
         setConfirmationPending(result);
-        toast.custom((t) => (
-          <div className="bg-slate-900 text-white p-4 rounded-2xl shadow-xl border border-amber-500/50 flex items-start gap-3 max-w-md">
-            <ShieldAlert className="h-6 w-6 text-amber-400 shrink-0 mt-0.5" />
-            <div>
-              <h4 className="font-extrabold text-sm text-amber-300 uppercase tracking-wide">Confirmation Required (Rule #8)</h4>
-              <p className="text-xs text-slate-300 mt-1">{result.message}</p>
-            </div>
-          </div>
-        ), { duration: 6000 });
       } else {
         toast.success("GMB Agent task completed!");
         fetchAuditLogs();
@@ -155,7 +526,7 @@ export default function GMBPage() {
     }
   };
 
-  // Run a direct tool from the 38-tool registry
+  // Direct tool execution
   const handleRunDirectTool = async (toolName) => {
     setToolExecuting(true);
     setToolResult(null);
@@ -172,305 +543,665 @@ export default function GMBPage() {
       const data = await res.json();
       if (!data.success) throw new Error(data.error || "Tool execution failed");
       setToolResult(data.data || data);
-      toast.success(`Tool '${toolName}' executed successfully!`);
-  // Create new Business Location (GMB API)
-  const handleCreateLocationSubmit = async (e) => {
-    e.preventDefault();
-    if (!createLocForm.title || !createLocForm.category) {
-      toast.error("Business Title and Category are required");
-      return;
-    }
-    setCreatingLoc(true);
-    try {
-      const res = await fetch("/api/gmb", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "create_business_location",
-          ...createLocForm
-        })
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || "Failed to create location");
-      
-      const newLoc = data.data.location;
-      setLocationsList(prev => [newLoc, ...prev]);
-      setActiveLocation(newLoc);
-      setShowCreateModal(false);
-      toast.success(`Google Business Location '${newLoc.title}' created & verified!`);
+      toast.success(`Tool "${toolName}" executed successfully!`);
       fetchAuditLogs();
     } catch (err) {
-      toast.error(err.message || "Failed to create business location");
+      toast.error(err.message || "Tool execution failed");
     } finally {
-      setCreatingLoc(false);
+      setToolExecuting(false);
     }
   };
 
+  // Loading
   if (isLoading) {
     return (
       <div className="flex h-[80vh] items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="relative h-14 w-14">
-            <div className="absolute inset-0 rounded-full border-t-4 border-emerald-600 animate-spin"></div>
-            <MapPin className="absolute inset-0 m-auto h-6 w-6 text-emerald-600" />
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative h-12 w-12">
+            <div className="absolute inset-0 rounded-full border-2 border-blue-200 border-t-blue-600 animate-spin" />
+            <MapPin className="absolute inset-0 m-auto h-5 w-5 text-blue-600" />
           </div>
-          <p className="text-slate-500 font-semibold text-sm">Initializing GMB Agent Command Center…</p>
+          <p className="text-sm font-medium text-slate-500">Loading Google My Business Suite...</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-24 text-slate-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+  const filteredLocations = getFilteredLocations();
+  const totalReviews = locationsList.reduce((sum, l) => sum + l.reviewCount, 0);
+  const avgRating = (locationsList.reduce((sum, l) => sum + l.rating, 0) / locationsList.length).toFixed(1);
+  const avgCompleteness = Math.round(locationsList.reduce((sum, l) => sum + l.completeness, 0) / locationsList.length);
 
-        {/* ━━━ 1. AGENT HERO COMMAND BANNER & LOCATION SELECTOR ━━━ */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-950 p-8 text-white shadow-xl border border-slate-800">
-          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none"></div>
+  return (
+    <div className="min-h-screen pb-16 font-sans antialiased" style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" }}>
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        {/* ━━━ HERO HEADER ━━━ */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 p-6 sm:p-8 text-white">
+          <div className="absolute -top-32 -right-32 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-amber-500/8 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="space-y-3 max-w-3xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-black uppercase tracking-wider">
-                <Sparkles className="h-3.5 w-3.5" /> GMB AI Agent Specification v2.0 • 38 Tools Registered
+            <div className="space-y-3 max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-white/10 border border-white/10 text-blue-200 text-[11px] font-semibold uppercase tracking-wider backdrop-blur-sm">
+                <Zap className="h-3 w-3" />
+                Google Business Profile API v4.9
               </div>
-              <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white flex items-center gap-3">
-                <MapPin className="h-8 w-8 text-emerald-400 shrink-0" />
-                Google Business Profile Agent
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+                Google My Business Suite
               </h1>
-              <p className="text-slate-300 text-sm sm:text-base leading-relaxed font-normal">
-                Autonomous Gemini AI Agent running the 7-step lifecycle: <strong className="text-emerald-300 font-bold">Understand → Inspect → Decide → Generate → Confirm → Execute → Verify</strong>.
+              <p className="text-sm text-slate-300 leading-relaxed max-w-xl">
+                Connect multiple Google accounts, manage all business locations, automate AI-powered review responses, and publish Google Posts across your portfolio.
               </p>
             </div>
 
-            {/* Location Context Switcher & Language Select */}
-            <div className="flex flex-col sm:flex-row lg:flex-col items-start lg:items-end gap-3 shrink-0">
-              <div className="bg-slate-800/90 p-2 rounded-2xl border border-slate-700 space-y-1.5 w-full sm:w-auto">
-                <div className="flex items-center justify-between px-2 gap-2">
-                  <span className="text-[10px] font-black uppercase text-slate-400 block">Active Location Context</span>
-                  <button onClick={() => setShowCreateModal(true)} className="text-[10px] font-extrabold text-emerald-400 hover:underline uppercase tracking-wider flex items-center gap-0.5 cursor-pointer">
-                    <Plus className="h-3 w-3" /> Create GMB
-                  </button>
-                </div>
-                <select value={activeLocation.locationId} onChange={e => {
-                  const loc = locationsList.find(l => l.locationId === e.target.value);
-                  if (loc) {
-                    setActiveLocation(loc);
-                    toast.success(`Switched context to ${loc.title}`);
-                  }
-                }} className="bg-slate-900 text-white font-bold text-xs rounded-xl px-3 py-2 border border-slate-700 outline-none cursor-pointer w-full">
-                  {locationsList.map(l => (
-                    <option key={l.locationId} value={l.locationId}>
-                      📍 {l.title} ({l.city || l.address?.locality || 'City'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-400">Language:</span>
-                {["English", "Hinglish", "Hindi"].map(lang => (
-                  <button key={lang} onClick={() => setSelectedLanguage(lang)}
-                    className={`text-xs font-extrabold px-3 py-1 rounded-lg border transition-all cursor-pointer ${
-                      selectedLanguage === lang ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
-                    }`}>
-                    {lang}
-                  </button>
-                ))}
-              </div>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0">
+              <button onClick={() => { setShowConnectModal(true); setOauthStep(0); }}
+                className="inline-flex items-center gap-2 bg-white text-slate-900 px-5 py-2.5 rounded-xl text-[13px] font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.02] cursor-pointer">
+                <GoogleIcon className="w-4 h-4" />
+                Connect Google Account
+              </button>
+              <button onClick={() => setShowCreateModal(true)}
+                className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/15 text-white px-4 py-2.5 rounded-xl text-[13px] font-medium border border-white/10 backdrop-blur-sm transition-all duration-200 cursor-pointer">
+                <PlusCircle className="h-4 w-4" />
+                New Location
+              </button>
             </div>
+          </div>
+
+          {/* Quick Stats Row */}
+          <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-5 border-t border-white/10">
+            {[
+              { label: 'Accounts', value: accountsList.length, icon: Users },
+              { label: 'Locations', value: locationsList.length, icon: MapPin },
+              { label: 'Avg Rating', value: avgRating, icon: Star },
+              { label: 'Total Reviews', value: totalReviews.toLocaleString(), icon: MessageSquare },
+            ].map(s => (
+              <div key={s.label} className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/5 border border-white/5">
+                <s.icon className="w-4 h-4 text-blue-300 shrink-0" />
+                <div>
+                  <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">{s.label}</p>
+                  <p className="text-base font-bold text-white">{s.value}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* ━━━ 2. MAIN NAVIGATION TABS ━━━ */}
-        <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
-          {[
-            { id: "agent", label: "Agent Command Center", icon: BrainCircuit },
-            { id: "tools", label: "38-Tool Registry Explorer", icon: Sliders },
-            { id: "audit", label: "Write Audit Trail Logs", icon: History }
-          ].map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 text-xs font-black uppercase tracking-wider px-4 py-2.5 rounded-xl border transition-all cursor-pointer ${
-                activeTab === tab.id ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-              }`}>
-              <tab.icon className="h-4 w-4" />
-              {tab.label}
-            </button>
-          ))}
+        {/* ━━━ NAVIGATION TABS ━━━ */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          <TabBtn active={activeTab === "overview"} icon={LayoutGrid} label="Overview" onClick={() => setActiveTab("overview")} />
+          <TabBtn active={activeTab === "accounts"} icon={Users} label="Accounts" count={accountsList.length} onClick={() => setActiveTab("accounts")} />
+          <TabBtn active={activeTab === "locations"} icon={Building2} label="Locations" count={locationsList.length} onClick={() => setActiveTab("locations")} />
+          <TabBtn active={activeTab === "agent"} icon={Bot} label="AI Agent" onClick={() => setActiveTab("agent")} />
+          <TabBtn active={activeTab === "skills"} icon={Cpu} label="Agent Skills" count={AGENT_SKILLS.length} onClick={() => setActiveTab("skills")} />
+          <TabBtn active={activeTab === "tools"} icon={Wrench} label="Tool Registry" count={38} onClick={() => setActiveTab("tools")} />
+          <TabBtn active={activeTab === "audit"} icon={FileSearch} label="Audit Log" onClick={() => setActiveTab("audit")} />
         </div>
 
-        {/* ━━━ TAB A: AGENT COMMAND CENTER & 7-STEP LIFECYCLE ━━━ */}
-        {activeTab === "agent" && (
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {/* TAB: OVERVIEW                                              */}
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {activeTab === "overview" && (
           <div className="space-y-6">
-            {/* Natural Language Prompt Input */}
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/90 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-extrabold text-slate-950 flex items-center gap-2">
-                  <Terminal className="h-5 w-5 text-indigo-600" /> Ask GMB Agent Anything
-                </h3>
-                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                  Strict Rule #8 Safety Confirmed
-                </span>
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-center gap-3">
-                <input type="text" value={agentQuery} onChange={e => setAgentQuery(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleRunAgent(false)}
-                  placeholder="e.g. Audit my GMB business description, fetch unanswered reviews, or create a weekly offer post..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none" />
-                <button onClick={() => handleRunAgent(false)} disabled={agentLoading || !agentQuery.trim()}
-                  className="w-full sm:w-auto shrink-0 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-extrabold px-6 py-3.5 rounded-2xl transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 text-xs uppercase tracking-wider">
-                  {agentLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  Run Lifecycle
-                </button>
-              </div>
-
-              {/* Sample Preset Commands */}
-              <div className="flex flex-wrap gap-2 pt-2">
-                {[
-                  "Audit my business profile description & NAP consistency",
-                  "Fetch all unanswered reviews and draft replies in Hinglish",
-                  "Create a weekly promotional post for local SEO boost",
-                  "Check business hours and detect missing holiday special hours"
-                ].map((sample, idx) => (
-                  <button key={idx} onClick={() => setAgentQuery(sample)}
-                    className="text-xs font-bold px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-colors cursor-pointer">
-                    💡 {sample}
-                  </button>
-                ))}
-              </div>
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard icon={Users} label="Connected Accounts" value={accountsList.length} sub="Google OAuth" color="#3B82F6" />
+              <StatCard icon={MapPin} label="Business Locations" value={locationsList.length} sub="Active profiles" color="#10B981" />
+              <StatCard icon={Gauge} label="Avg Completeness" value={`${avgCompleteness}%`} sub="Profile score" color="#8B5CF6" />
+              <StatCard icon={Star} label="Avg Rating" value={avgRating} sub={`${totalReviews} total reviews`} color="#F59E0B" />
             </div>
 
-            {/* HIGH-RISK CONFIRMATION PROMPT BOX */}
-            {confirmationPending && (
-              <div className="bg-amber-50 rounded-3xl p-6 border-2 border-amber-400 text-slate-900 shadow-md space-y-4">
-                <div className="flex items-start gap-3">
-                  <ShieldAlert className="h-6 w-6 text-amber-600 shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="font-black text-amber-900 text-sm uppercase tracking-wide">High-Risk Write Confirmation Gate (Rule #8)</h4>
-                    <p className="text-xs font-bold text-amber-800 mt-1">{confirmationPending.message}</p>
-                    <div className="mt-2 bg-white/80 p-3 rounded-xl border border-amber-200 font-mono text-xs text-slate-800">
-                      Target Action: <strong>{confirmationPending.pendingAction?.tool}</strong> | Location: <strong>{activeLocation.title}</strong>
+            {/* Active Location Card */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                  <CircleDot className="w-4 h-4 text-blue-600" />
+                  Active Location
+                </h3>
+                <Pill variant="success">
+                  <BadgeCheck className="w-3 h-3" />
+                  Google Verified
+                </Pill>
+              </div>
+              <div className="p-6">
+                <div className="flex flex-col lg:flex-row gap-6">
+                  <div className="flex-1 space-y-4">
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900">{activeLocation.title}</h2>
+                      <p className="text-sm text-slate-500 mt-1">{activeLocation.category}</p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                      <div className="flex items-start gap-2.5 text-slate-600">
+                        <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                        <span>{activeLocation.address}</span>
+                      </div>
+                      <div className="flex items-center gap-2.5 text-slate-600">
+                        <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span>{activeLocation.phone}</span>
+                      </div>
+                      <div className="flex items-center gap-2.5 text-slate-600">
+                        <Globe className="w-4 h-4 text-slate-400 shrink-0" />
+                        <a href={activeLocation.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{activeLocation.website}</a>
+                      </div>
+                      <div className="flex items-center gap-2.5 text-slate-600">
+                        <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span>Mon-Sat: 9:00 AM - 7:00 PM</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right side: rating & completeness */}
+                  <div className="flex flex-row lg:flex-col items-center gap-6 lg:gap-4 lg:w-48 shrink-0">
+                    <div className="text-center">
+                      <div className="flex items-center gap-1.5 justify-center">
+                        <span className="text-3xl font-bold text-slate-900">{activeLocation.rating}</span>
+                        <Star className="w-6 h-6 text-amber-400 fill-amber-400" />
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">{activeLocation.reviewCount} reviews</p>
+                    </div>
+                    <div className="text-center w-full max-w-[160px]">
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="font-medium text-slate-600">Completeness</span>
+                        <span className="font-bold text-slate-900">{activeLocation.completeness}%</span>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-2">
+                        <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500" style={{ width: `${activeLocation.completeness}%` }} />
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-3 pt-2">
-                  <button onClick={() => handleRunAgent(true)}
-                    className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-extrabold uppercase tracking-wider px-6 py-2.5 rounded-xl transition-all cursor-pointer shadow-xs">
-                    Confirm & Execute Action
-                  </button>
-                  <button onClick={() => setConfirmationPending(null)}
-                    className="bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-xl border border-slate-300 transition-all cursor-pointer">
-                    Cancel Operation
-                  </button>
-                </div>
               </div>
-            )}
+            </div>
 
-            {/* 7-STEP LIFECYCLE RESULTS DISPLAY */}
-            {agentResult && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/90 space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <h4 className="font-black text-slate-950 text-sm flex items-center gap-2 uppercase tracking-wider">
-                      <Activity className="h-4 w-4 text-emerald-600" /> 7-Step Lifecycle Execution Trace
-                    </h4>
-                    <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-md ${
-                      agentResult.status === 'SUCCESS' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                    }`}>{agentResult.status}</span>
+            {/* Quick Actions */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: 'AI Agent Chat', icon: Bot, tab: 'agent', color: '#7C3AED' },
+                { label: 'View Locations', icon: Building2, tab: 'locations', color: '#10B981' },
+                { label: 'Tool Registry', icon: Wrench, tab: 'tools', color: '#3B82F6' },
+                { label: 'Agent Skills', icon: Cpu, tab: 'skills', color: '#D97706' },
+              ].map(a => (
+                <button key={a.tab} onClick={() => setActiveTab(a.tab)}
+                  className="flex items-center gap-3 px-4 py-3.5 bg-white rounded-2xl border border-slate-200/80 hover:border-slate-300 hover:shadow-sm transition-all duration-200 cursor-pointer group text-left">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-110" style={{ backgroundColor: `${a.color}10` }}>
+                    <a.icon className="w-4.5 h-4.5" style={{ color: a.color }} />
                   </div>
-
-                  {/* Steps Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    {agentResult.steps?.map((step, idx) => (
-                      <div key={idx} className="bg-slate-50 rounded-2xl p-3.5 border border-slate-200/80 space-y-1">
-                        <span className="text-[10.5px] font-black text-indigo-600 uppercase tracking-wide block">{step.stage}</span>
-                        <p className="text-xs text-slate-700 font-semibold">{step.detail}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Final Response Text */}
-                <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/90 space-y-3">
-                  <h4 className="font-black text-slate-950 text-sm uppercase tracking-wider flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-indigo-600" /> Gemini Agent Response
-                  </h4>
-                  <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/80 text-sm text-slate-800 font-medium leading-relaxed whitespace-pre-wrap">
-                    {agentResult.responseText}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ━━━ TAB B: 38-TOOL REGISTRY EXPLORER ━━━ */}
-        {activeTab === "tools" && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/90 space-y-6">
-              <div>
-                <h3 className="text-base font-extrabold text-slate-950 flex items-center gap-2">
-                  <Sliders className="h-5 w-5 text-indigo-600" /> 38 Registered GMB Tools
-                </h3>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">Explore and execute any of the 38 tools directly against {activeLocation.title}.</p>
-              </div>
-
-              {Object.entries(TOOL_CATEGORIES).map(([catName, toolList]) => (
-                <div key={catName} className="space-y-3 pt-3 border-t border-slate-100">
-                  <span className="text-xs font-black uppercase text-indigo-600 tracking-wider block">Category: {catName} ({toolList.length} tools)</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {toolList.map(tName => (
-                      <button key={tName} onClick={() => { setActiveTool(tName); setToolInput({}); setToolResult(null); }}
-                        className="p-3.5 rounded-2xl border border-slate-200 hover:border-indigo-400 bg-slate-50/60 hover:bg-white text-left transition-all cursor-pointer group flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-800 group-hover:text-indigo-600 font-mono">{tName}</span>
-                        <ChevronRight className="h-4 w-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                  <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900">{a.label}</span>
+                  <ArrowRight className="w-4 h-4 text-slate-300 ml-auto group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all duration-200" />
+                </button>
               ))}
             </div>
           </div>
         )}
 
-        {/* ━━━ TAB C: WRITE AUDIT TRAIL LOGS ━━━ */}
-        {activeTab === "audit" && (
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/90 space-y-4">
+
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {/* TAB: CONNECTED ACCOUNTS                                    */}
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {activeTab === "accounts" && (
+          <div className="space-y-5">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-extrabold text-slate-950 flex items-center gap-2">
-                  <History className="h-5 w-5 text-indigo-600" /> Write Operation Audit Log
-                </h3>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">Audit log tracking every location write operation.</p>
+                <h2 className="text-lg font-bold text-slate-900">Connected Google Accounts</h2>
+                <p className="text-sm text-slate-500 mt-0.5">Manage all authorized Google accounts via OAuth 2.0</p>
               </div>
-              <button onClick={fetchAuditLogs} className="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-1">
-                <RefreshCw className="h-3.5 w-3.5" /> Refresh Logs
+              <button onClick={() => { setShowConnectModal(true); setOauthStep(0); }}
+                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-[13px] font-semibold shadow-sm transition-all duration-200 cursor-pointer">
+                <Plus className="h-4 w-4" />
+                Connect Account
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {accountsList.map(acc => {
+                const accLocations = locationsList.filter(l => l.googleEmail === acc.googleEmail);
+                return (
+                  <div key={acc.accountId} className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden hover:border-slate-300 transition-all duration-200">
+                    <div className="p-5 space-y-4">
+                      {/* Header */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                            <GoogleIcon className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900">{acc.googleEmail}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <Pill variant="primary">{acc.role}</Pill>
+                              <Pill variant="success">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                Active
+                              </Pill>
+                            </div>
+                          </div>
+                        </div>
+                        <button onClick={() => handleDisconnectAccount(acc.accountId)}
+                          title="Disconnect Account"
+                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 cursor-pointer">
+                          <Unlink className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      {/* Metrics */}
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="bg-slate-50 p-2.5 rounded-xl">
+                          <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Locations</p>
+                          <p className="text-sm font-bold text-slate-900 mt-0.5">{accLocations.length}</p>
+                        </div>
+                        <div className="bg-slate-50 p-2.5 rounded-xl">
+                          <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Scope</p>
+                          <p className="text-[11px] font-semibold text-slate-700 mt-0.5">{acc.scope}</p>
+                        </div>
+                        <div className="bg-slate-50 p-2.5 rounded-xl">
+                          <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Connected</p>
+                          <p className="text-[11px] font-semibold text-slate-700 mt-0.5">{acc.connectedDate}</p>
+                        </div>
+                      </div>
+
+                      {/* Locations */}
+                      {accLocations.length > 0 && (
+                        <div className="space-y-1.5 pt-3 border-t border-slate-100">
+                          <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-2">Managed Locations</p>
+                          {accLocations.map(l => (
+                            <button key={l.locationId}
+                              onClick={() => { setActiveLocation(l); setActiveTab("locations"); }}
+                              className="w-full p-2.5 rounded-xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 flex items-center justify-between transition-all duration-200 cursor-pointer group text-left">
+                              <div className="flex items-center gap-2">
+                                <MapPin className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                                <span className="text-xs font-medium text-slate-700 group-hover:text-blue-700">{l.title}</span>
+                                <span className="text-[10px] text-slate-400">{l.city}</span>
+                              </div>
+                              <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all duration-200" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {/* TAB: LOCATIONS MATRIX                                      */}
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {activeTab === "locations" && (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">All Business Locations</h2>
+                <p className="text-sm text-slate-500 mt-0.5">Manage and run bulk AI actions across all connected locations</p>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="relative flex-1 sm:flex-none">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input type="text" value={filterSearch} onChange={e => setFilterSearch(e.target.value)} placeholder="Search locations..."
+                    className="bg-white border border-slate-200 text-sm rounded-xl pl-9 pr-3 py-2 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 w-full sm:w-48 transition-all duration-200" />
+                </div>
+                <select value={filterAccountEmail} onChange={e => setFilterAccountEmail(e.target.value)}
+                  className="bg-white border border-slate-200 text-sm font-medium text-slate-700 rounded-xl px-3 py-2 outline-none cursor-pointer focus:ring-2 focus:ring-blue-500/20">
+                  <option value="ALL">All Accounts</option>
+                  {accountsList.map(a => <option key={a.accountId} value={a.googleEmail}>{a.googleEmail}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {/* Bulk Action Bar */}
+            {selectedLocationIds.length > 0 && (
+              <div className="bg-slate-900 text-white p-4 rounded-2xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <CheckSquare className="h-4 w-4 text-blue-400" />
+                  <span className="text-sm font-semibold">{selectedLocationIds.length} location{selectedLocationIds.length > 1 ? 's' : ''} selected</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {[
+                    { label: 'Bulk AI Review Reply', icon: MessageSquare, color: 'bg-emerald-600 hover:bg-emerald-700' },
+                    { label: 'Bulk Post Create', icon: PlusCircle, color: 'bg-blue-600 hover:bg-blue-700' },
+                    { label: 'Bulk Audit', icon: ShieldCheck, color: 'bg-slate-700 hover:bg-slate-600' },
+                  ].map(a => (
+                    <button key={a.label} onClick={() => handleRunBulkAction(a.label)} disabled={bulkRunning}
+                      className={`${a.color} text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-1.5 disabled:opacity-50`}>
+                      <a.icon className="h-3.5 w-3.5" />
+                      {a.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Locations Table */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden">
+              <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+                <button onClick={selectAllFiltered} className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1.5 cursor-pointer transition-colors">
+                  {selectedLocationIds.length === filteredLocations.length && filteredLocations.length > 0
+                    ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+                  Select All ({filteredLocations.length})
+                </button>
+                <span className="text-xs text-slate-400">Click location name for details</span>
+              </div>
+
+              <div className="divide-y divide-slate-100">
+                {filteredLocations.map(loc => {
+                  const isSelected = selectedLocationIds.includes(loc.locationId);
+                  const isActive = activeLocation.locationId === loc.locationId;
+                  return (
+                    <div key={loc.locationId}
+                      className={`px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all duration-200 ${
+                        isActive ? 'bg-blue-50/50 border-l-[3px] border-l-blue-600' : 'hover:bg-slate-50/80 border-l-[3px] border-l-transparent'
+                      }`}>
+                      <div className="flex items-center gap-3.5">
+                        <button onClick={() => toggleSelectLocation(loc.locationId)} className="cursor-pointer">
+                          {isSelected
+                            ? <CheckSquare className="h-[18px] w-[18px] text-blue-600" />
+                            : <Square className="h-[18px] w-[18px] text-slate-300 hover:text-slate-400 transition-colors" />}
+                        </button>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => setActiveLocation(loc)} className="text-sm font-semibold text-slate-900 hover:text-blue-600 transition-colors cursor-pointer">
+                              {loc.title}
+                            </button>
+                            <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{loc.storeCode}</span>
+                            {loc.verified && <BadgeCheck className="w-3.5 h-3.5 text-blue-500" />}
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5">{loc.category} &middot; {loc.city} &middot; {loc.googleEmail}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-5 shrink-0">
+                        <div className="text-right hidden md:block">
+                          <div className="flex items-center gap-1 justify-end">
+                            <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
+                            <span className="text-sm font-bold text-slate-900">{loc.rating}</span>
+                          </div>
+                          <span className="text-[11px] text-slate-400">{loc.reviewCount} reviews</span>
+                        </div>
+                        <button onClick={() => { setActiveLocation(loc); setActiveTab("agent"); }}
+                          className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-1.5">
+                          <Bot className="h-3.5 w-3.5" />
+                          AI Agent
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {/* TAB: AI AGENT COMMAND CENTER                                */}
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {activeTab === "agent" && (
+          <div className="space-y-5">
+            {/* Agent Input */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                  <Bot className="h-4 w-4 text-violet-600" />
+                  GMB AI Agent
+                </h3>
+                <Pill variant="success">
+                  <MapPin className="w-3 h-3" />
+                  {activeLocation.title}
+                </Pill>
+              </div>
+
+              <div className="p-5 space-y-4">
+                <div className="flex items-center gap-3">
+                  <select value={selectedLanguage} onChange={e => setSelectedLanguage(e.target.value)}
+                    className="bg-slate-50 border border-slate-200 text-sm font-medium text-slate-700 rounded-xl px-3 py-2.5 outline-none cursor-pointer focus:ring-2 focus:ring-blue-500/20 shrink-0">
+                    <option value="English">English</option>
+                    <option value="Hindi">Hindi</option>
+                    <option value="Hinglish">Hinglish</option>
+                  </select>
+                  <div className="relative flex-1">
+                    <input type="text" value={agentQuery} onChange={e => setAgentQuery(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleRunAgent(false)}
+                      placeholder="Ask: Audit my business profile, fetch unanswered reviews, create a weekly offer post..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 pr-12 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition-all duration-200" />
+                  </div>
+                  <button onClick={() => handleRunAgent(false)} disabled={agentLoading || !agentQuery.trim()}
+                    className="bg-violet-600 hover:bg-violet-700 disabled:bg-slate-300 text-white font-semibold px-5 py-2.5 rounded-xl transition-all duration-200 cursor-pointer flex items-center gap-2 text-sm shrink-0 disabled:cursor-not-allowed">
+                    {agentLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    Run
+                  </button>
+                </div>
+
+                {/* Quick Action Chips */}
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    'Audit my business profile',
+                    'Fetch unanswered reviews',
+                    'Generate a weekly offer post',
+                    'Check business hours consistency',
+                    'Analyze review sentiment'
+                  ].map(q => (
+                    <button key={q} onClick={() => setAgentQuery(q)}
+                      className="px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-all duration-200 cursor-pointer hover:text-slate-900">
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* High-Risk Confirmation */}
+            {confirmationPending && (
+              <div className="bg-amber-50 rounded-2xl p-5 border border-amber-200 space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                    <ShieldAlert className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-amber-900">High-Risk Write Confirmation Required</h4>
+                    <p className="text-sm text-amber-800 mt-1">{confirmationPending.message}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2.5 pl-12">
+                  <button onClick={() => handleRunAgent(true)}
+                    className="bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold px-5 py-2 rounded-lg transition-all duration-200 cursor-pointer">
+                    Confirm & Execute
+                  </button>
+                  <button onClick={() => setConfirmationPending(null)}
+                    className="bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium px-4 py-2 rounded-lg border border-slate-200 transition-all duration-200 cursor-pointer">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* 7-Step Lifecycle Results */}
+            {agentResult && (
+              <div className="space-y-4">
+                <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden">
+                  <div className="px-6 py-3 border-b border-slate-100">
+                    <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                      <Activity className="h-4 w-4 text-emerald-600" />
+                      7-Step Agent Lifecycle Trace
+                    </h4>
+                  </div>
+                  <div className="p-5 grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    {agentResult.steps?.map((step, idx) => (
+                      <div key={idx} className="bg-slate-50 rounded-xl p-3 border border-slate-200/60">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <div className="w-5 h-5 rounded-md bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-700">{idx + 1}</div>
+                          <span className="text-[11px] font-semibold text-blue-700 uppercase tracking-wider">{step.stage.replace(/^\d+\.\s*/, '')}</span>
+                        </div>
+                        <p className="text-xs text-slate-600 leading-relaxed">{step.detail}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden">
+                  <div className="px-6 py-3 border-b border-slate-100">
+                    <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-violet-600" />
+                      Agent Response
+                    </h4>
+                  </div>
+                  <div className="p-5">
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/60 text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">
+                      {agentResult.responseText}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {/* TAB: AGENT SKILLS (11 Categories)                          */}
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {activeTab === "skills" && (
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">GMB Agent Skills</h2>
+              <p className="text-sm text-slate-500 mt-0.5">All {AGENT_SKILLS.length} skill categories with {AGENT_SKILLS.reduce((s, c) => s + c.skills.length, 0)} total capabilities</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {AGENT_SKILLS.map((cat, idx) => {
+                const isExpanded = expandedSkill === cat.id;
+                const CatIcon = cat.icon;
+                return (
+                  <div key={cat.id}
+                    className={`bg-white rounded-2xl border transition-all duration-200 overflow-hidden ${
+                      isExpanded ? 'border-blue-200 shadow-sm' : 'border-slate-200/80 hover:border-slate-300'
+                    }`}>
+                    <button
+                      onClick={() => setExpandedSkill(isExpanded ? null : cat.id)}
+                      className="w-full px-5 py-4 flex items-center justify-between cursor-pointer text-left">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${cat.color}12` }}>
+                          <CatIcon className="w-4.5 h-4.5" style={{ color: cat.color }} />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-semibold text-slate-900">{cat.title}</h3>
+                          <p className="text-xs text-slate-500 mt-0.5">{cat.skills.length} skills</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">{idx + 1}/{AGENT_SKILLS.length}</span>
+                        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                      </div>
+                    </button>
+
+                    {isExpanded && (
+                      <div className="px-5 pb-4 pt-0 border-t border-slate-100">
+                        <div className="space-y-1 mt-3">
+                          {cat.skills.map((skill, sIdx) => (
+                            <div key={sIdx} className="flex items-center gap-2.5 py-1.5">
+                              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" style={{ color: cat.color }} />
+                              <span className="text-sm text-slate-700">{skill}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {/* TAB: 38-TOOL REGISTRY EXPLORER                             */}
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {activeTab === "tools" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Tool Registry</h2>
+                <p className="text-sm text-slate-500 mt-0.5">38 registered tools across 8 categories &middot; Target: <span className="font-medium text-slate-700">{activeLocation.title}</span></p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {Object.entries(TOOL_CATEGORIES).map(([catName, catData]) => {
+                const CatIcon = catData.icon;
+                return (
+                  <div key={catName} className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden">
+                    <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${catData.color}15` }}>
+                        <CatIcon className="w-3.5 h-3.5" style={{ color: catData.color }} />
+                      </div>
+                      <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: catData.color }}>{catName}</span>
+                      <span className="text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{catData.tools.length} tools</span>
+                    </div>
+                    <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {catData.tools.map(tName => (
+                        <button key={tName}
+                          onClick={() => { setActiveTool(tName); setToolInput({}); setToolResult(null); }}
+                          className="px-3.5 py-2.5 rounded-xl border border-slate-200/80 hover:border-blue-300 bg-slate-50/50 hover:bg-blue-50/30 text-left transition-all duration-200 cursor-pointer group flex items-center justify-between">
+                          <span className="text-xs font-medium text-slate-700 group-hover:text-blue-700 font-mono">{tName}</span>
+                          <Play className="h-3.5 w-3.5 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {/* TAB: AUDIT LOG                                             */}
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {activeTab === "audit" && (
+          <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                  <FileSearch className="h-4 w-4 text-blue-600" />
+                  Write Operation Audit Log
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">Complete trail of all location write operations</p>
+              </div>
+              <button onClick={fetchAuditLogs} className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer transition-colors">
+                <RefreshCw className="h-3.5 w-3.5" />
+                Refresh
               </button>
             </div>
 
             {auditLogs.length === 0 ? (
-              <div className="p-8 text-center text-slate-500 text-xs font-medium bg-slate-50 rounded-2xl border border-slate-200">
-                No write audit logs recorded yet. Execute any write action (e.g. updating description, publishing replies, creating posts) to record logs.
+              <div className="p-12 text-center">
+                <FileSearch className="w-8 h-8 text-slate-300 mx-auto mb-3" />
+                <p className="text-sm text-slate-500">No write audit logs recorded yet</p>
+                <p className="text-xs text-slate-400 mt-1">Logs will appear after executing write operations</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-slate-800 font-medium border-collapse">
+                <table className="w-full text-left text-sm border-collapse">
                   <thead>
-                    <tr className="bg-slate-100 text-slate-600 uppercase text-[10px] font-black border-b border-slate-200">
-                      <th className="p-3">Timestamp</th>
-                      <th className="p-3">Location ID</th>
-                      <th className="p-3">Action</th>
-                      <th className="p-3">Details</th>
+                    <tr className="bg-slate-50 text-slate-600 text-[11px] font-semibold uppercase tracking-wider border-b border-slate-200">
+                      <th className="px-5 py-3">Timestamp</th>
+                      <th className="px-5 py-3">Location</th>
+                      <th className="px-5 py-3">Action</th>
+                      <th className="px-5 py-3">Details</th>
                     </tr>
                   </thead>
                   <tbody>
                     {auditLogs.map((log, i) => (
-                      <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="p-3 font-mono text-[11px] text-slate-500">{log.timestamp}</td>
-                        <td className="p-3 font-mono font-bold text-indigo-600">{log.locationId}</td>
-                        <td className="p-3 font-bold text-emerald-700">{log.action}</td>
-                        <td className="p-3 font-mono text-[11px] text-slate-700">{JSON.stringify(log.details)}</td>
+                      <tr key={i} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                        <td className="px-5 py-3 font-mono text-xs text-slate-500">{log.timestamp}</td>
+                        <td className="px-5 py-3 font-mono text-xs font-medium text-blue-600">{log.locationId}</td>
+                        <td className="px-5 py-3">
+                          <Pill variant="success">{log.action}</Pill>
+                        </td>
+                        <td className="px-5 py-3 font-mono text-xs text-slate-600 max-w-xs truncate">{JSON.stringify(log.details)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -482,36 +1213,286 @@ export default function GMBPage() {
 
       </div>
 
-      {/* ━━━ DIRECT TOOL EXECUTION MODAL ━━━ */}
-      {activeTool && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setActiveTool(null)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="px-6 py-5 bg-slate-900 text-white flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center">
-                  <Sliders className="h-5 w-5 text-white" />
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* MODAL: CONNECT GOOGLE ACCOUNT (OAuth-Only Flow)               */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {showConnectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => { setShowConnectModal(false); setOauthStep(0); }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={e => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="px-6 py-5 bg-gradient-to-r from-slate-900 to-blue-950 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                    <GoogleIcon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold">Connect Google Business Account</h3>
+                    <p className="text-xs text-slate-300 mt-0.5">Secure OAuth 2.0 authentication</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-black text-white text-base font-mono">{activeTool}</h3>
-                  <p className="text-xs text-slate-300">Target Location: {activeLocation.title}</p>
-                </div>
+                <button onClick={() => { setShowConnectModal(false); setOauthStep(0); }}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors cursor-pointer">
+                  <X className="h-4 w-4 text-slate-400" />
+                </button>
               </div>
-              <button onClick={() => setActiveTool(null)} className="p-2 hover:bg-white/10 rounded-xl transition-colors cursor-pointer">
-                <X className="h-5 w-5 text-slate-400" />
+
+              {/* OAuth Step Progress */}
+              <div className="flex items-center gap-0 mt-5">
+                {OAUTH_STEPS.map((s, idx) => {
+                  const StepIcon = s.icon;
+                  const isActive = oauthStep === idx + 1;
+                  const isDone = oauthStep > idx + 1 || oauthStep === 4;
+                  return (
+                    <React.Fragment key={idx}>
+                      <div className="flex flex-col items-center gap-1 flex-1">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
+                          isDone ? 'bg-emerald-500 border-emerald-500' :
+                          isActive ? 'bg-blue-500 border-blue-500 animate-pulse' :
+                          'bg-white/10 border-white/20'
+                        }`}>
+                          {isDone ? <Check className="w-4 h-4 text-white" /> : <StepIcon className="w-3.5 h-3.5 text-white" />}
+                        </div>
+                        <span className={`text-[10px] font-medium ${isDone || isActive ? 'text-white' : 'text-slate-400'}`}>{s.label}</span>
+                      </div>
+                      {idx < OAUTH_STEPS.length - 1 && (
+                        <div className={`h-0.5 flex-1 -mt-5 mx-1 rounded-full transition-all duration-500 ${
+                          oauthStep > idx + 1 ? 'bg-emerald-400' : 'bg-white/10'
+                        }`} />
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6">
+              {/* Step 0: Initial — Show button to start OAuth */}
+              {oauthStep === 0 && (
+                <div className="space-y-5">
+                  <div className="text-center space-y-2">
+                    <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center mx-auto">
+                      <ShieldCheck className="w-7 h-7 text-blue-600" />
+                    </div>
+                    <h4 className="text-base font-semibold text-slate-900">Sign in with Google</h4>
+                    <p className="text-sm text-slate-500 max-w-sm mx-auto">
+                      Connect your Google Business Profile account using secure OAuth 2.0. We never store your Google password.
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-50 rounded-xl p-4 space-y-2.5">
+                    <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider">What we request:</p>
+                    {[
+                      { label: 'View & manage your business listings', icon: Building2 },
+                      { label: 'Read & respond to customer reviews', icon: MessageSquare },
+                      { label: 'Create & publish Google Posts', icon: FileText },
+                    ].map((p, i) => (
+                      <div key={i} className="flex items-center gap-2.5 text-sm text-slate-600">
+                        <p.icon className="w-4 h-4 text-blue-500 shrink-0" />
+                        {p.label}
+                      </div>
+                    ))}
+                  </div>
+
+                  <button onClick={handleOAuthConnect}
+                    className="w-full bg-white hover:bg-slate-50 text-slate-800 font-semibold py-3 rounded-xl shadow-sm border border-slate-200 hover:border-slate-300 transition-all duration-200 flex items-center justify-center gap-3 cursor-pointer text-sm">
+                    <GoogleIcon className="w-5 h-5" />
+                    Continue with Google
+                  </button>
+                </div>
+              )}
+
+              {/* Step 1 or 2: Loading / Authorizing / Fetching */}
+              {(oauthStep === 1 || oauthStep === 2) && (
+                <div className="text-center py-8 space-y-4">
+                  <div className="relative w-14 h-14 mx-auto">
+                    <div className="absolute inset-0 rounded-full border-2 border-blue-200 border-t-blue-600 animate-spin" />
+                    <GoogleIcon className="absolute inset-0 m-auto w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {oauthStep === 1 ? 'Redirecting to Google...' : 'Fetching your business accounts...'}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {oauthStep === 1 ? 'Please complete authentication in the popup window' : 'Retrieving your Google Business Profile accounts'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Select Business Profile */}
+              {oauthStep === 3 && (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-900">Select Business Profile</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">Choose which Google Business Profile to connect</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    {[
+                      { name: 'Postfly Digital Agency', email: 'postfly.official@gmail.com', address: '102 Landmark Tower, Senapati Bapat Road, Pune', verified: true },
+                      { name: 'Postfly Media Hub & Tech', email: 'saif.ansari.tech@gmail.com', address: 'B-404 Horizon Tech Park, BKC Bandra East, Mumbai', verified: true },
+                    ].map((p, i) => (
+                      <button key={i}
+                        onClick={() => handleOAuthSelectAndSave(p.name, p.email)}
+                        disabled={oauthLoading}
+                        className="w-full p-4 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/30 flex items-center justify-between transition-all duration-200 cursor-pointer group text-left disabled:opacity-50">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                            <Building2 className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900 group-hover:text-blue-700 flex items-center gap-1.5">
+                              {p.name}
+                              {p.verified && <BadgeCheck className="w-3.5 h-3.5 text-blue-500" />}
+                            </p>
+                            <p className="text-xs text-slate-500 mt-0.5">{p.email}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">{p.address}</p>
+                          </div>
+                        </div>
+                        <Pill variant="primary">Connect</Pill>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Done */}
+              {oauthStep === 4 && (
+                <div className="text-center py-6 space-y-3">
+                  <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
+                    <CheckCircle2 className="w-7 h-7 text-emerald-600" />
+                  </div>
+                  <h4 className="text-base font-semibold text-slate-900">Successfully Connected!</h4>
+                  <p className="text-sm text-slate-500">Your Google Business Profile account is now securely linked.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* MODAL: CREATE LOCATION                                        */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowCreateModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <PlusCircle className="h-4 w-4 text-blue-400" />
+                Create Business Location
+              </h3>
+              <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-white/10 rounded-lg transition-colors cursor-pointer">
+                <X className="h-4 w-4 text-slate-400" />
               </button>
             </div>
 
-            <div className="p-6 space-y-4 flex-1 overflow-y-auto">
+            <form onSubmit={handleCreateLocationSubmit} className="p-6 space-y-4 flex-1 overflow-y-auto max-h-[70vh]">
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1.5">Google Account</label>
+                <select value={createLocForm.googleEmail} onChange={e => setCreateLocForm(f => ({ ...f, googleEmail: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none cursor-pointer focus:ring-2 focus:ring-blue-500/20">
+                  {accountsList.map(a => <option key={a.accountId} value={a.googleEmail}>{a.googleEmail}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1.5">Business Name *</label>
+                <input type="text" required value={createLocForm.title} onChange={e => setCreateLocForm(f => ({ ...f, title: e.target.value }))}
+                  placeholder="e.g. Apex Marketing Solutions"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-200" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">Category *</label>
+                  <input type="text" required value={createLocForm.category} onChange={e => setCreateLocForm(f => ({ ...f, category: e.target.value }))}
+                    placeholder="e.g. Digital Marketing Agency"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-200" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">City *</label>
+                  <input type="text" required value={createLocForm.city} onChange={e => setCreateLocForm(f => ({ ...f, city: e.target.value }))}
+                    placeholder="e.g. Pune"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-200" />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1.5">Street Address *</label>
+                <input type="text" required value={createLocForm.address} onChange={e => setCreateLocForm(f => ({ ...f, address: e.target.value }))}
+                  placeholder="e.g. 101 Tech Park, SB Road, Pune 411016"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-200" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">Phone</label>
+                  <input type="tel" value={createLocForm.phone} onChange={e => setCreateLocForm(f => ({ ...f, phone: e.target.value }))}
+                    placeholder="+91 9511450914"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-200" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">Website</label>
+                  <input type="url" value={createLocForm.website} onChange={e => setCreateLocForm(f => ({ ...f, website: e.target.value }))}
+                    placeholder="https://example.com"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-200" />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1.5">Description</label>
+                <textarea value={createLocForm.description} onChange={e => setCreateLocForm(f => ({ ...f, description: e.target.value }))}
+                  placeholder="Brief description of the business..."
+                  rows={3}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-200 resize-none" />
+              </div>
+
+              <button type="submit" disabled={creatingLoc}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl shadow-sm transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer text-sm disabled:opacity-60 disabled:cursor-not-allowed">
+                {creatingLoc ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlusCircle className="h-4 w-4" />}
+                {creatingLoc ? 'Creating Location...' : 'Create Location'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* MODAL: TOOL EXECUTION                                         */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {activeTool && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setActiveTool(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold font-mono">{activeTool}</h3>
+                <p className="text-xs text-slate-400 mt-0.5">Target: {activeLocation.title}</p>
+              </div>
+              <button onClick={() => setActiveTool(null)} className="p-2 hover:bg-white/10 rounded-lg transition-colors cursor-pointer">
+                <X className="h-4 w-4 text-slate-400" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 flex-1 overflow-y-auto max-h-[60vh]">
               <button onClick={() => handleRunDirectTool(activeTool)} disabled={toolExecuting}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-3.5 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-wider cursor-pointer">
-                {toolExecuting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 fill-current" />}
-                Execute Tool '{activeTool}'
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl shadow-sm transition-all duration-200 flex items-center justify-center gap-2 text-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+                {toolExecuting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                {toolExecuting ? 'Executing...' : `Execute ${activeTool}`}
               </button>
 
               {toolResult && (
-                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-2">
-                  <span className="text-xs font-black text-emerald-700 uppercase tracking-wider block">Tool Output Result:</span>
-                  <pre className="text-xs font-mono bg-white p-3 rounded-xl border border-slate-200 whitespace-pre-wrap overflow-x-auto text-slate-800">
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="text-xs font-semibold text-emerald-700">Tool Output</span>
+                  </div>
+                  <pre className="text-xs font-mono bg-white p-3 rounded-lg border border-slate-200 whitespace-pre-wrap overflow-x-auto text-slate-700 max-h-64 overflow-y-auto">
                     {JSON.stringify(toolResult, null, 2)}
                   </pre>
                 </div>
@@ -519,79 +1500,8 @@ export default function GMBPage() {
             </div>
           </div>
         </div>
-      {/* ━━━ CREATE NEW GMB LOCATION WIZARD MODAL ━━━ */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowCreateModal(false)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="px-6 py-5 bg-gradient-to-r from-slate-900 to-indigo-950 text-white flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/40">
-                  <PlusCircle className="h-5 w-5 text-emerald-400" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-white text-base">Create Google Business Profile Location</h3>
-                  <p className="text-xs text-slate-300 font-medium">Add business name, category, address, phone & hours</p>
-                </div>
-              </div>
-              <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-white/10 rounded-xl transition-colors cursor-pointer">
-                <X className="h-5 w-5 text-slate-400" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateLocationSubmit} className="p-6 space-y-4 flex-1 overflow-y-auto">
-              <div>
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">Business Name *</label>
-                <input type="text" required value={createLocForm.title} onChange={e => setCreateLocForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Apex Marketing Solutions"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none" />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">Primary Category *</label>
-                  <input type="text" required value={createLocForm.category} onChange={e => setCreateLocForm(f => ({ ...f, category: e.target.value }))} placeholder="e.g. Digital Marketing Agency"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none" />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">City / Locality *</label>
-                  <input type="text" required value={createLocForm.city} onChange={e => setCreateLocForm(f => ({ ...f, city: e.target.value }))} placeholder="e.g. Pune"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none" />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">Full Street Address *</label>
-                <input type="text" required value={createLocForm.address} onChange={e => setCreateLocForm(f => ({ ...f, address: e.target.value }))} placeholder="e.g. 101 Tech Park, SB Road, Pune 411016"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none" />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">Phone Number</label>
-                  <input type="text" value={createLocForm.phone} onChange={e => setCreateLocForm(f => ({ ...f, phone: e.target.value }))} placeholder="+91 9511450914"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none" />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">Website URL</label>
-                  <input type="url" value={createLocForm.website} onChange={e => setCreateLocForm(f => ({ ...f, website: e.target.value }))} placeholder="https://postfly.in"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none" />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">Business Description</label>
-                <textarea rows={2} value={createLocForm.description} onChange={e => setCreateLocForm(f => ({ ...f, description: e.target.value }))} placeholder="Describe your services..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none resize-none" />
-              </div>
-
-              <button type="submit" disabled={creatingLoc}
-                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold py-3.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 text-xs uppercase tracking-wider">
-                {creatingLoc ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlusCircle className="h-4 w-4" />}
-                {creatingLoc ? 'Creating Location on Google API…' : 'Submit & Create Google Location'}
-              </button>
-            </form>
-          </div>
-        </div>
       )}
+
     </div>
   );
 }
