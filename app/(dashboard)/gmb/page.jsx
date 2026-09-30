@@ -361,6 +361,18 @@ export default function GMBPage() {
     }
     fetchAuditLogs();
     setIsLoading(false);
+
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("connected") === "true") {
+        const email = urlParams.get("email");
+        toast.success(`Google Business Profile (${email || "account"}) connected successfully via OAuth 2.0!`);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (urlParams.get("error")) {
+        toast.error(decodeURIComponent(urlParams.get("error")));
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
   }, []);
 
   const fetchAuditLogs = async () => {
@@ -375,52 +387,10 @@ export default function GMBPage() {
     } catch (e) { /* silent */ }
   };
 
-  // ─── OAuth Connect Flow ───
-  const handleOAuthConnect = async () => {
-    setOauthStep(1);
-    setOauthLoading(true);
-    toast.loading('Redirecting to Google OAuth...', { id: 'oauth' });
-
-    // Step 1: Authorize — simulate OAuth redirect & callback
-    await new Promise(r => setTimeout(r, 1500));
-    setOauthStep(2);
-    toast.loading('Fetching your Google Business accounts...', { id: 'oauth' });
-
-    // Step 2: Fetch accounts from Google API
-    await new Promise(r => setTimeout(r, 1200));
-    setOauthStep(3);
-    toast.loading('Select your business location...', { id: 'oauth' });
-
-    // Step 3: Wait for selection — user picks from available profiles
-    setOauthLoading(false);
-    toast.dismiss('oauth');
-  };
-
-  const handleOAuthSelectAndSave = (profileName, email) => {
-    setOauthLoading(true);
-    toast.loading('Saving secure connection...', { id: 'oauth-save' });
-    setTimeout(() => {
-      const newAcc = {
-        accountId: `accounts/${Math.floor(1000000000000000 + Math.random() * 9000000000000000)}`,
-        googleEmail: email,
-        role: "Owner",
-        tokenStatus: "active",
-        scope: "business.manage",
-        connectedDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-        locationCount: 1,
-        verified: true
-      };
-      const updatedList = [newAcc, ...accountsList];
-      setAccountsList(updatedList);
-      localStorage.setItem("postfly_gmb_accounts_list", JSON.stringify(updatedList));
-      setOauthStep(4);
-      setOauthLoading(false);
-      toast.success(`Google Account "${email}" connected successfully!`, { id: 'oauth-save' });
-      setTimeout(() => {
-        setShowConnectModal(false);
-        setOauthStep(0);
-      }, 1500);
-    }, 1000);
+  // Direct Google OAuth Authentication Trigger
+  const handleConnectAccount = () => {
+    const userId = user?.userId || "anonymous";
+    window.location.href = `/api/auth/connect/gmb?userId=${encodeURIComponent(userId)}&returnTo=/gmb`;
   };
 
   // Disconnect
@@ -596,7 +566,7 @@ export default function GMBPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0">
-              <button onClick={() => { setShowConnectModal(true); setOauthStep(0); }}
+              <button onClick={handleConnectAccount}
                 className="inline-flex items-center gap-2 bg-white text-slate-900 px-5 py-2.5 rounded-xl text-[13px] font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.02] cursor-pointer">
                 <GoogleIcon className="w-4 h-4" />
                 Connect Google Account
@@ -1214,165 +1184,7 @@ export default function GMBPage() {
       </div>
 
 
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* MODAL: CONNECT GOOGLE ACCOUNT (OAuth-Only Flow)               */}
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {showConnectModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => { setShowConnectModal(false); setOauthStep(0); }}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={e => e.stopPropagation()}>
-            {/* Modal Header */}
-            <div className="px-6 py-5 bg-gradient-to-r from-slate-900 to-blue-950 text-white">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                    <GoogleIcon className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-semibold">Connect Google Business Account</h3>
-                    <p className="text-xs text-slate-300 mt-0.5">Secure OAuth 2.0 authentication</p>
-                  </div>
-                </div>
-                <button onClick={() => { setShowConnectModal(false); setOauthStep(0); }}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-colors cursor-pointer">
-                  <X className="h-4 w-4 text-slate-400" />
-                </button>
-              </div>
 
-              {/* OAuth Step Progress */}
-              <div className="flex items-center gap-0 mt-5">
-                {OAUTH_STEPS.map((s, idx) => {
-                  const StepIcon = s.icon;
-                  const isActive = oauthStep === idx + 1;
-                  const isDone = oauthStep > idx + 1 || oauthStep === 4;
-                  return (
-                    <React.Fragment key={idx}>
-                      <div className="flex flex-col items-center gap-1 flex-1">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
-                          isDone ? 'bg-emerald-500 border-emerald-500' :
-                          isActive ? 'bg-blue-500 border-blue-500 animate-pulse' :
-                          'bg-white/10 border-white/20'
-                        }`}>
-                          {isDone ? <Check className="w-4 h-4 text-white" /> : <StepIcon className="w-3.5 h-3.5 text-white" />}
-                        </div>
-                        <span className={`text-[10px] font-medium ${isDone || isActive ? 'text-white' : 'text-slate-400'}`}>{s.label}</span>
-                      </div>
-                      {idx < OAUTH_STEPS.length - 1 && (
-                        <div className={`h-0.5 flex-1 -mt-5 mx-1 rounded-full transition-all duration-500 ${
-                          oauthStep > idx + 1 ? 'bg-emerald-400' : 'bg-white/10'
-                        }`} />
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6">
-              {/* Step 0: Initial — Show button to start OAuth */}
-              {oauthStep === 0 && (
-                <div className="space-y-5">
-                  <div className="text-center space-y-2">
-                    <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center mx-auto">
-                      <ShieldCheck className="w-7 h-7 text-blue-600" />
-                    </div>
-                    <h4 className="text-base font-semibold text-slate-900">Sign in with Google</h4>
-                    <p className="text-sm text-slate-500 max-w-sm mx-auto">
-                      Connect your Google Business Profile account using secure OAuth 2.0. We never store your Google password.
-                    </p>
-                  </div>
-
-                  <div className="bg-slate-50 rounded-xl p-4 space-y-2.5">
-                    <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider">What we request:</p>
-                    {[
-                      { label: 'View & manage your business listings', icon: Building2 },
-                      { label: 'Read & respond to customer reviews', icon: MessageSquare },
-                      { label: 'Create & publish Google Posts', icon: FileText },
-                    ].map((p, i) => (
-                      <div key={i} className="flex items-center gap-2.5 text-sm text-slate-600">
-                        <p.icon className="w-4 h-4 text-blue-500 shrink-0" />
-                        {p.label}
-                      </div>
-                    ))}
-                  </div>
-
-                  <button onClick={handleOAuthConnect}
-                    className="w-full bg-white hover:bg-slate-50 text-slate-800 font-semibold py-3 rounded-xl shadow-sm border border-slate-200 hover:border-slate-300 transition-all duration-200 flex items-center justify-center gap-3 cursor-pointer text-sm">
-                    <GoogleIcon className="w-5 h-5" />
-                    Continue with Google
-                  </button>
-                </div>
-              )}
-
-              {/* Step 1 or 2: Loading / Authorizing / Fetching */}
-              {(oauthStep === 1 || oauthStep === 2) && (
-                <div className="text-center py-8 space-y-4">
-                  <div className="relative w-14 h-14 mx-auto">
-                    <div className="absolute inset-0 rounded-full border-2 border-blue-200 border-t-blue-600 animate-spin" />
-                    <GoogleIcon className="absolute inset-0 m-auto w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">
-                      {oauthStep === 1 ? 'Redirecting to Google...' : 'Fetching your business accounts...'}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {oauthStep === 1 ? 'Please complete authentication in the popup window' : 'Retrieving your Google Business Profile accounts'}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 3: Select Business Profile */}
-              {oauthStep === 3 && (
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-semibold text-slate-900">Select Business Profile</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">Choose which Google Business Profile to connect</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    {[
-                      { name: 'Postfly Digital Agency', email: 'postfly.official@gmail.com', address: '102 Landmark Tower, Senapati Bapat Road, Pune', verified: true },
-                      { name: 'Postfly Media Hub & Tech', email: 'saif.ansari.tech@gmail.com', address: 'B-404 Horizon Tech Park, BKC Bandra East, Mumbai', verified: true },
-                    ].map((p, i) => (
-                      <button key={i}
-                        onClick={() => handleOAuthSelectAndSave(p.name, p.email)}
-                        disabled={oauthLoading}
-                        className="w-full p-4 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/30 flex items-center justify-between transition-all duration-200 cursor-pointer group text-left disabled:opacity-50">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                            <Building2 className="w-5 h-5 text-blue-600" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-semibold text-slate-900 group-hover:text-blue-700 flex items-center gap-1.5">
-                              {p.name}
-                              {p.verified && <BadgeCheck className="w-3.5 h-3.5 text-blue-500" />}
-                            </p>
-                            <p className="text-xs text-slate-500 mt-0.5">{p.email}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">{p.address}</p>
-                          </div>
-                        </div>
-                        <Pill variant="primary">Connect</Pill>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Step 4: Done */}
-              {oauthStep === 4 && (
-                <div className="text-center py-6 space-y-3">
-                  <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
-                    <CheckCircle2 className="w-7 h-7 text-emerald-600" />
-                  </div>
-                  <h4 className="text-base font-semibold text-slate-900">Successfully Connected!</h4>
-                  <p className="text-sm text-slate-500">Your Google Business Profile account is now securely linked.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
 
       {/* ═══════════════════════════════════════════════════════════════ */}

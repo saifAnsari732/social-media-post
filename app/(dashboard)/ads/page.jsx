@@ -1160,212 +1160,182 @@ export default function MetaAdsPage() {
         </div>
       )}
 
-      {/* 1. Header Section & Top Connect Ad Account Button (FULL WIDTH) */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/90 shadow-2xs">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 text-[11px] font-bold border border-rose-200 flex items-center gap-1">
-              <Globe className="w-3.5 h-3.5" /> Meta Graph API v20.0
-            </span>
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Megaphone className="w-7 h-7 text-rose-600 shrink-0" /> Meta Ads Command Hub
-          </h1>
-          <p className="text-slate-500 text-xs md:text-sm font-normal">
-            Manage Facebook & Instagram ad campaigns, inspect ROAS, boost organic posts, and generate ad copy.
-          </p>
-        </div>
+      {/* 1. HERO HEADER BANNER (UI/UX Pro Max Enterprise SaaS Theme) */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-6 sm:p-8 text-white">
+        <div className="absolute -top-32 -right-32 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-emerald-500/8 rounded-full blur-3xl pointer-events-none" />
 
-        {/* TOP HEADER ACTION BUTTONS */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
-          <div className="flex items-center gap-2 p-2 rounded-xl border border-slate-200 bg-white text-slate-900 text-xs font-medium shadow-2xs">
-            <Building2 className="w-4 h-4 text-slate-500 ml-1 shrink-0" />
-            <select
-              value={selectedAccount}
-              onChange={(e) => {
-                if (checkPlanActive("Switch Meta Ad Account")) {
-                  setSelectedAccount(e.target.value);
-                  if (typeof window !== "undefined") {
-                    localStorage.setItem("active_meta_ad_account", e.target.value);
+        <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-2.5 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-white/10 border border-white/10 text-blue-200 text-[11px] font-semibold uppercase tracking-wider backdrop-blur-sm">
+              <Globe className="w-3.5 h-3.5 text-blue-300" /> Meta Graph API v20.0 Connected
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+              <Megaphone className="w-7 h-7 text-blue-400 shrink-0" />
+              Meta Ads Command Hub
+            </h1>
+            <p className="text-sm text-slate-300 leading-relaxed max-w-xl">
+              Manage Facebook & Instagram ad campaigns, inspect ROAS insights, boost organic posts, and generate AI-powered ad copy.
+            </p>
+          </div>
+
+          {/* Top Actions & Account Switcher */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 border border-white/15 text-white text-xs font-medium backdrop-blur-sm">
+              <Building2 className="w-4 h-4 text-blue-300 shrink-0" />
+              <select
+                value={selectedAccount}
+                onChange={(e) => {
+                  if (checkPlanActive("Switch Meta Ad Account")) {
+                    setSelectedAccount(e.target.value);
+                    if (typeof window !== "undefined") {
+                      localStorage.setItem("active_meta_ad_account", e.target.value);
+                    }
                   }
+                }}
+                className="bg-transparent text-white font-semibold text-xs focus:outline-none cursor-pointer pr-1"
+              >
+                {adAccounts.map((acc) => (
+                  <option key={acc.id} value={acc.id} className="text-slate-900 bg-white">
+                    {acc.name} ({acc.id})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              onClick={() => {
+                if (checkPlanActive("Connect Meta Ad Account")) {
+                  setConnectAdAccountModalOpen(true);
                 }
               }}
-              className="bg-transparent text-slate-900 font-semibold text-xs focus:outline-none cursor-pointer pr-2"
+              className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/15 text-white px-4 py-2.5 rounded-xl text-xs font-semibold border border-white/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
             >
-              {adAccounts.map((acc) => (
-                <option key={acc.id} value={acc.id}>
-                  {acc.name} ({acc.id})
-                </option>
-              ))}
-            </select>
-          </div>
+              <Link2 className="w-4 h-4 text-blue-300" />
+              <span>Connect Account</span>
+            </button>
 
-          {/* PROMINENT TODAY'S LOGS & SPEND BUTTON */}
-          <Link
-            href={`/ads/logs?accountId=${encodeURIComponent(selectedAccount)}`}
-            className="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 no-underline cursor-pointer active:scale-95"
-          >
-            <Activity className="w-4 h-4 text-rose-400" />
-            <span>Today's Spend & Logs</span>
-          </Link>
-
-          {/* TOP CONNECT AD ACCOUNT BUTTON */}
-          <button
-            onClick={() => {
-              if (checkPlanActive("Connect Meta Ad Account")) {
-                setConnectAdAccountModalOpen(true);
-              }
-            }}
-            className="px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold text-xs border border-rose-200 shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-          >
-            <Link2 className="w-4 h-4 text-rose-600" />
-            <span>Connect Ad Account</span>
-          </button>
-
-          <button
-            onClick={() => {
-              if (checkPlanActive("Create Meta Campaign")) {
-                setCreateModalOpen(true);
-              }
-            }}
-            className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create Campaign</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 📊 REAL META SPENDING LIMIT & TODAY'S LOG BANNER (MATCHING FACEBOOK ADS MANAGER) */}
-      <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-2.5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-slate-600 font-medium border-b border-slate-100 pb-2.5">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-extrabold text-slate-950 text-xs">Meta Account Telemetry & Spending Limits:</span>
-            <span className="font-mono text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-md text-[11px] font-bold border border-slate-200">
-              {selectedAccount}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3 text-slate-700 text-xs flex-wrap">
-            <span className="flex items-center gap-1">
-              Account status: <strong className="text-emerald-700 font-bold">Active</strong> <Info className="w-3.5 h-3.5 text-slate-400" />
-              <span className="text-slate-400 font-normal">|</span>
-              <strong className="text-slate-900 font-bold">₹{totalSpend.toFixed(2)} spent</strong>
-            </span>
             <button
-              onClick={() => toast.success("Live Meta logs & spending limits refreshed!")}
-              title="Refresh Meta Telemetry"
-              className="p-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 transition-all cursor-pointer"
+              onClick={() => {
+                if (checkPlanActive("Create Meta Campaign")) {
+                  setCreateModalOpen(true);
+                }
+              }}
+              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-xs font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.02] cursor-pointer"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <Plus className="w-4 h-4" />
+              <span>Create Campaign</span>
             </button>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-medium text-slate-600">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span>Amount spent in last 7 days: <strong className="text-emerald-700 font-bold">₹{totalSpend.toFixed(2)}</strong> <Info className="w-3.5 h-3.5 inline text-slate-400" /></span>
-            <span className="text-slate-300">•</span>
-            <span className="text-slate-600 font-semibold">{totalSpend > 0 ? "Optimized delivery" : "0 active campaigns"} <Info className="w-3.5 h-3.5 inline text-slate-400" /></span>
+        {/* Telemetry Bar */}
+        <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-4 border-t border-white/10 text-xs">
+          <div className="flex items-center gap-2.5 text-slate-300">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Account: <strong className="text-white font-mono">{selectedAccount}</strong></span>
           </div>
-
-          <div className="flex items-center gap-3 text-xs">
-            <span>Today's Real-Time Spend: <strong className="text-rose-600 font-bold">₹{totalSpend.toFixed(2)}</strong></span>
+          <div className="text-slate-300">
+            Spend (7D): <strong className="text-emerald-400 font-semibold">₹{totalSpend.toFixed(2)}</strong>
+          </div>
+          <div className="text-slate-300">
+            Delivery: <strong className="text-white font-semibold">{totalSpend > 0 ? "Optimized" : "Active"}</strong>
+          </div>
+          <div className="text-right">
             <Link
               href={`/ads/logs?accountId=${encodeURIComponent(selectedAccount)}`}
-              className="px-3 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 shadow-2xs transition-all flex items-center gap-1.5 no-underline cursor-pointer active:scale-95"
+              className="inline-flex items-center gap-1.5 text-blue-300 hover:text-white font-medium text-xs transition-colors no-underline"
             >
-              <Activity className="w-3.5 h-3.5 text-rose-600" />
-              <span>Open Today's Logs →</span>
+              <Activity className="w-3.5 h-3.5" />
+              <span>Live Telemetry Logs &rarr;</span>
             </Link>
           </div>
         </div>
       </div>
 
-      {/* 2. Key Performance Indicators (KPI Summary Cards - FULL WIDTH) */}
+      {/* 2. KPI METRICS GRID (SaaS White Card Theme) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Ad Spend */}
-        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-2">
+        <div className="p-5 rounded-2xl border border-slate-200/80 bg-white hover:border-slate-300 transition-all duration-200 space-y-2">
           <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
             <span>Total Ad Spend</span>
-            <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
-              <DollarSign className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+              <DollarSign className="w-4.5 h-4.5" />
             </div>
           </div>
-          <div className="text-2xl font-extrabold text-slate-900">₹{totalSpend.toLocaleString("en-IN")}</div>
+          <div className="text-2xl font-bold text-slate-900">₹{totalSpend.toLocaleString("en-IN")}</div>
           <div className="text-[11px] font-medium text-emerald-600 flex items-center gap-1">
             <TrendingUp className="w-3.5 h-3.5" /> {totalSpend === 0 ? "No active spend" : "+14.2% vs last period"}
           </div>
         </div>
 
         {/* Card 2: Total Impressions */}
-        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-2">
+        <div className="p-5 rounded-2xl border border-slate-200/80 bg-white hover:border-slate-300 transition-all duration-200 space-y-2">
           <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
             <span>Total Impressions</span>
-            <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold">
-              <Eye className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold">
+              <Eye className="w-4.5 h-4.5" />
             </div>
           </div>
-          <div className="text-2xl font-extrabold text-slate-900">{totalImpressions.toLocaleString("en-IN")}</div>
-          <div className="text-[11px] font-normal text-slate-500">
-            Avg CPM: <span className="font-semibold text-slate-800">{totalImpressions > 0 ? "₹196.20" : "₹0.00"}</span>
+          <div className="text-2xl font-bold text-slate-900">{totalImpressions.toLocaleString("en-IN")}</div>
+          <div className="text-[11px] text-slate-500">
+            Avg CPM: <span className="font-semibold text-slate-700">{totalImpressions > 0 ? "₹196.20" : "₹0.00"}</span>
           </div>
         </div>
 
         {/* Card 3: Link Clicks & CTR */}
-        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-2">
+        <div className="p-5 rounded-2xl border border-slate-200/80 bg-white hover:border-slate-300 transition-all duration-200 space-y-2">
           <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
             <span>Link Clicks & CTR</span>
-            <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold">
-              <MousePointerClick className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold">
+              <MousePointerClick className="w-4.5 h-4.5" />
             </div>
           </div>
-          <div className="text-2xl font-extrabold text-slate-900">
-            {totalClicks.toLocaleString("en-IN")}{" "}
-            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+          <div className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            {totalClicks.toLocaleString("en-IN")}
+            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
               {totalClicks > 0 ? "5.04% CTR" : "0.00% CTR"}
             </span>
           </div>
-          <div className="text-[11px] font-normal text-slate-500">
-            Avg CPC: <span className="font-semibold text-slate-800">{totalClicks > 0 ? "₹3.89" : "₹0.00"}</span>
+          <div className="text-[11px] text-slate-500">
+            Avg CPC: <span className="font-semibold text-slate-700">{totalClicks > 0 ? "₹3.89" : "₹0.00"}</span>
           </div>
         </div>
 
         {/* Card 4: Conversions & ROAS */}
-        <div className="p-5 rounded-2xl border border-rose-200 bg-rose-50/40 shadow-2xs space-y-2">
-          <div className="flex items-center justify-between text-rose-900 text-xs font-semibold">
+        <div className="p-5 rounded-2xl border border-slate-200/80 bg-white hover:border-slate-300 transition-all duration-200 space-y-2">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
             <span>Conversions & ROAS</span>
-            <div className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold shadow-xs">
-              <ShoppingBag className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+              <ShoppingBag className="w-4.5 h-4.5" />
             </div>
           </div>
-          <div className="text-2xl font-extrabold text-slate-900">
-            {totalPurchases} Sales{" "}
-            <span className="text-xs font-bold text-rose-700 bg-rose-100 px-2.5 py-0.5 rounded-md border border-rose-200">
+          <div className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            {totalPurchases} Sales
+            <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
               {totalPurchases > 0 ? "4.2x ROAS" : "0.0x ROAS"}
             </span>
           </div>
-          <div className="text-[11px] font-semibold text-rose-900">
-            Revenue Generated: <span className="font-extrabold text-emerald-700">₹{totalPurchases > 0 ? "2,02,650" : "0"}</span>
+          <div className="text-[11px] text-slate-500">
+            Revenue: <span className="font-bold text-emerald-600">₹{totalPurchases > 0 ? "2,02,650" : "0"}</span>
           </div>
         </div>
       </div>
 
-      {/* 3. 2-COLUMN WORKSPACE: LEFT AI CHATBOT + RIGHT TABS & TOOLS */}
+      {/* 3. 2-COLUMN WORKSPACE */}
       <div className="flex flex-col xl:flex-row items-start gap-6 w-full">
 
-        {/* LEFT SIDEBAR: META ADS AI CHAT BOT (WHITE BG & CLEAN ENTERPRISE DESIGN) */}
+        {/* LEFT SIDEBAR: META ADS COPILOT */}
         <div className="w-full xl:w-80 shrink-0 space-y-4">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 space-y-4 sticky top-6">
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-4 space-y-4 sticky top-6">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
-                <span className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold shadow-xs">
+                <span className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-sm">
                   <Megaphone className="w-4 h-4" />
                 </span>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 tracking-tight">Meta Ads Copilot</h3>
-                  <span className="text-[10px] text-rose-600 font-semibold flex items-center gap-1">
+                  <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     Live Meta Context
                   </span>
@@ -1377,47 +1347,27 @@ export default function MetaAdsPage() {
             <div className="space-y-1.5">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Copilot Commands</p>
               <div className="flex flex-wrap gap-1.5">
-                <button
-                  onClick={() => handleSendChatMessage("Audit all active campaigns & ROAS performance")}
-                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
-                >
-                  ⚡ Audit ROAS
-                </button>
-                <button
-                  onClick={() => handleSendChatMessage("Suggest optimal daily budget allocation across campaigns")}
-                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
-                >
-                  💰 Budget Split
-                </button>
-                <button
-                  onClick={() => handleSendChatMessage("Generate high-converting Meta audience targeting keywords")}
-                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
-                >
-                  🎯 Audience
-                </button>
-                <button
-                  onClick={() => handleSendChatMessage("Write high-converting PAS & AIDA ad copies")}
-                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
-                >
-                  ✍️ Write Copy
-                </button>
-                <button
-                  onClick={() => handleSendChatMessage("Which campaign is winning and how should I scale it?")}
-                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
-                >
-                  🚀 Scale Winner
-                </button>
-                <button
-                  onClick={() => handleSendChatMessage("How to fix low CTR and creative ad fatigue?")}
-                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
-                >
-                  🔄 Fix Low CTR
-                </button>
+                {[
+                  { label: "⚡ Audit ROAS", query: "Audit all active campaigns & ROAS performance" },
+                  { label: "💰 Budget Split", query: "Suggest optimal daily budget allocation across campaigns" },
+                  { label: "🎯 Audience", query: "Generate high-converting Meta audience targeting keywords" },
+                  { label: "✍️ Write Copy", query: "Write high-converting PAS & AIDA ad copies" },
+                  { label: "🚀 Scale Winner", query: "Which campaign is winning and how should I scale it?" },
+                  { label: "🔄 Fix Low CTR", query: "How to fix low CTR and creative ad fatigue?" },
+                ].map((chip) => (
+                  <button
+                    key={chip.label}
+                    onClick={() => handleSendChatMessage(chip.query)}
+                    className="px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80 text-[11px] font-medium transition-all duration-200 cursor-pointer"
+                  >
+                    {chip.label}
+                  </button>
+                ))}
               </div>
             </div>
 
             {/* Chat History Container */}
-            <div className="h-96 overflow-y-auto space-y-3 p-3 bg-slate-50/80 rounded-xl border border-slate-200/70 text-xs font-normal scrollbar-thin">
+            <div className="h-96 overflow-y-auto space-y-3 p-3 bg-slate-50/60 rounded-xl border border-slate-200/60 text-xs font-normal">
               {chatMessages.map((msg, i) => (
                 <div
                   key={i}
@@ -1426,8 +1376,8 @@ export default function MetaAdsPage() {
                   <div
                     className={`max-w-[90%] p-3 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap ${
                       msg.sender === "user"
-                        ? "bg-rose-600 text-white rounded-br-none shadow-xs font-medium"
-                        : "bg-white text-slate-800 border border-slate-200/80 shadow-2xs rounded-bl-none font-normal"
+                        ? "bg-blue-600 text-white rounded-br-none shadow-xs font-medium"
+                        : "bg-white text-slate-800 border border-slate-200/80 rounded-bl-none font-normal"
                     }`}
                   >
                     {msg.text}
@@ -1435,7 +1385,7 @@ export default function MetaAdsPage() {
                 </div>
               ))}
               {isChatLoading && (
-                <div className="flex items-center gap-2 text-rose-600 font-semibold text-xs p-2">
+                <div className="flex items-center gap-2 text-blue-600 font-semibold text-xs p-2">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                   <span>Analyzing Meta Ads Context...</span>
                 </div>
@@ -1455,12 +1405,12 @@ export default function MetaAdsPage() {
                 placeholder="Ask Meta Ads Copilot..."
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
-                className="flex-1 p-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none text-slate-900 bg-white"
+                className="flex-1 p-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-slate-900 bg-white transition-all duration-200"
               />
               <button
                 type="submit"
                 disabled={isChatLoading || !chatInput.trim()}
-                className="p-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-40 text-white font-bold transition-all cursor-pointer shadow-xs"
+                className="p-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-semibold transition-all duration-200 cursor-pointer shadow-xs"
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -1471,170 +1421,41 @@ export default function MetaAdsPage() {
         {/* RIGHT WORKSPACE PANEL: TABS & CONTENT */}
         <div className="flex-1 w-full space-y-6 min-w-0">
 
-      {/* 3. 🌹 ELEGANT ROSE ACCENT TAB NAVIGATION BUTTONS (NO BLACK, NO AI ICONS) */}
-      <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto pb-2 pt-1 custom-scrollbar">
-        {/* Tab 1: Ad Campaigns */}
-        <button
-          onClick={() => setActiveTab("campaigns")}
-          className={`group px-4 py-2.5 rounded-2xl font-extrabold text-xs transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
-            activeTab === "campaigns"
-              ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 ring-2 ring-rose-400/50 scale-[1.01]"
-              : "bg-white text-slate-700 border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50"
-          }`}
-        >
-          <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
-            activeTab === "campaigns" ? "bg-white text-rose-600 font-bold" : "bg-rose-50 text-rose-600 group-hover:bg-rose-100"
-          }`}>
-            <Target className="w-4 h-4" />
-          </div>
-          <span>Ad Campaigns</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-            activeTab === "campaigns" ? "bg-rose-800 text-white" : "bg-slate-100 text-slate-700"
-          }`}>
-            {currentCampaignsList.length}
-          </span>
-        </button>
-
-        {/* Tab 2: 1-Click Post Booster */}
-        <button
-          onClick={() => setActiveTab("booster")}
-          className={`group px-4 py-2.5 rounded-2xl font-extrabold text-xs transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
-            activeTab === "booster"
-              ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 ring-2 ring-amber-400/50 scale-[1.01]"
-              : "bg-white text-slate-700 border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50"
-          }`}
-        >
-          <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
-            activeTab === "booster" ? "bg-amber-400 text-slate-950 font-bold" : "bg-amber-50 text-amber-600 group-hover:bg-amber-100"
-          }`}>
-            <Zap className="w-4 h-4 fill-current" />
-          </div>
-          <span>1-Click Post Booster</span>
-        </button>
-
-        {/* Tab 3: AI Campaign Copilot & ROAS Strategist */}
-        <button
-          onClick={() => setActiveTab("ai-copilot")}
-          className={`group px-4 py-2.5 rounded-2xl font-extrabold text-xs transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
-            activeTab === "ai-copilot"
-              ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 ring-2 ring-rose-400/50 scale-[1.01]"
-              : "bg-white text-slate-700 border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50"
-          }`}
-        >
-          <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
-            activeTab === "ai-copilot" ? "bg-white text-rose-600 font-bold" : "bg-rose-50 text-rose-600 group-hover:bg-rose-100"
-          }`}>
-            <Compass className="w-4 h-4" />
-          </div>
-          <span>AI Campaign Copilot</span>
-        </button>
-
-        {/* Tab 4: AI Audience Targeting Generator */}
-        <button
-          onClick={() => setActiveTab("ai-audience")}
-          className={`group px-4 py-2.5 rounded-2xl font-extrabold text-xs transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
-            activeTab === "ai-audience"
-              ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 ring-2 ring-rose-400/50 scale-[1.01]"
-              : "bg-white text-slate-700 border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50"
-          }`}
-        >
-          <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
-            activeTab === "ai-audience" ? "bg-white text-rose-600 font-bold" : "bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100"
-          }`}>
-            <Users className="w-4 h-4" />
-          </div>
-          <span>AI Audience Generator</span>
-        </button>
-
-        {/* Tab 5: Smart Ad Copy Studio */}
-        <button
-          onClick={() => setActiveTab("ai-studio")}
-          className={`group px-4 py-2.5 rounded-2xl font-extrabold text-xs transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
-            activeTab === "ai-studio"
-              ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 ring-2 ring-rose-400/50 scale-[1.01]"
-              : "bg-white text-slate-700 border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50"
-          }`}
-        >
-          <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
-            activeTab === "ai-studio" ? "bg-white text-rose-600 font-bold" : "bg-rose-50 text-rose-600 group-hover:bg-rose-100"
-          }`}>
-            <FileText className="w-4 h-4" />
-          </div>
-          <span>Smart Ad Copy Studio</span>
-        </button>
-
-        {/* Tab 6: Placement & Device Analytics */}
-        <button
-          onClick={() => setActiveTab("analytics")}
-          className={`group px-4 py-2.5 rounded-2xl font-extrabold text-xs transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
-            activeTab === "analytics"
-              ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 ring-2 ring-emerald-400/50 scale-[1.01]"
-              : "bg-white text-slate-700 border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50"
-          }`}
-        >
-          <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
-            activeTab === "analytics" ? "bg-white text-emerald-600 font-bold" : "bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100"
-          }`}>
-            <PieChart className="w-4 h-4" />
-          </div>
-          <span>Placement & Analytics</span>
-        </button>
-
-        {/* Tab 7: Ad Account Settings */}
-        <button
-          onClick={() => setActiveTab("settings")}
-          className={`group px-4 py-2.5 rounded-2xl font-extrabold text-xs transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
-            activeTab === "settings"
-              ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 ring-2 ring-slate-400/50 scale-[1.01]"
-              : "bg-white text-slate-700 border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50"
-          }`}
-        >
-          <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
-            activeTab === "settings" ? "bg-white text-slate-700 font-bold" : "bg-slate-100 text-slate-700 group-hover:bg-slate-200"
-          }`}>
-            <SlidersHorizontal className="w-4 h-4" />
-          </div>
-          <span>Ad Account Settings</span>
-        </button>
-
-        {/* Tab 8: Meta Live Logs & Sync */}
-        <button
-          onClick={() => setActiveTab("logs")}
-          className={`group px-4 py-2.5 rounded-2xl font-extrabold text-xs transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
-            activeTab === "logs"
-              ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 ring-2 ring-rose-400/50 scale-[1.01]"
-              : "bg-white text-slate-700 border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50"
-          }`}
-        >
-          <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
-            activeTab === "logs" ? "bg-white text-rose-600 font-bold" : "bg-rose-50 text-rose-600 group-hover:bg-rose-100"
-          }`}>
-            <FileText className="w-4 h-4" />
-          </div>
-          <span>Meta Live Logs</span>
-        </button>
-
-        {/* Tab 9: Agent Skills */}
-        <button
-          onClick={() => setActiveTab("agent-skills")}
-          className={`group px-4 py-2.5 rounded-2xl font-extrabold text-xs transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
-            activeTab === "agent-skills"
-              ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 ring-2 ring-violet-400/50 scale-[1.01]"
-              : "bg-white text-slate-700 border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50"
-          }`}
-        >
-          <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
-            activeTab === "agent-skills" ? "bg-white text-violet-600 font-bold" : "bg-violet-50 text-violet-600 group-hover:bg-violet-100"
-          }`}>
-            <Cpu className="w-4 h-4" />
-          </div>
-          <span>Agent Skills</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-            activeTab === "agent-skills" ? "bg-rose-800 text-white" : "bg-slate-100 text-slate-700"
-          }`}>
-            22
-          </span>
-        </button>
+      {/* 3. SAAS UNIFIED TAB NAVIGATION BUTTONS */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-1 border-b border-slate-200">
+        {[
+          { id: "campaigns", label: "Ad Campaigns", icon: Target, count: currentCampaignsList.length },
+          { id: "booster", label: "1-Click Post Booster", icon: Zap },
+          { id: "ai-copilot", label: "AI Campaign Copilot", icon: Compass },
+          { id: "ai-audience", label: "AI Audience Generator", icon: Users },
+          { id: "ai-studio", label: "Smart Ad Copy Studio", icon: FileText },
+          { id: "analytics", label: "Placement & Analytics", icon: PieChart },
+          { id: "settings", label: "Ad Account Settings", icon: SlidersHorizontal },
+          { id: "logs", label: "Meta Live Logs", icon: FileText },
+          { id: "agent-skills", label: "Agent Skills", icon: Cpu, count: 22 },
+        ].map((tab) => {
+          const TabIcon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-200 cursor-pointer border whitespace-nowrap ${
+                isActive
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+              }`}
+            >
+              <TabIcon className="w-4 h-4" />
+              <span>{tab.label}</span>
+              {tab.count !== undefined && (
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* 4. TAB 1: CAMPAIGNS MANAGER TABLE WITH READ/INSPECT, UPDATE & DELETE */}

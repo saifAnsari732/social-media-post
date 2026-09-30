@@ -4,6 +4,24 @@ import { serverCache } from "@/lib/cache";
 
 async function exchangeToken(provider, code) {
   switch (provider) {
+    case "gmb":
+    case "google": {
+      const clientId = process.env.GOOGLE_CLIENT_ID || process.env.YOUTUBE_CLIENT_ID;
+      const clientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.YOUTUBE_CLIENT_SECRET;
+      const redirectUri = process.env.GMB_REDIRECT_URI || "https://social-media-post-eta.vercel.app/api/auth/callback/gmb";
+      const res = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          code,
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: redirectUri,
+          grant_type: "authorization_code"
+        })
+      });
+      return res.json();
+    }
     case "youtube": {
       const res = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
@@ -557,6 +575,35 @@ export async function GET(req, { params }) {
         return NextResponse.redirect(
           new URL("/ads?error=" + encodeURIComponent(adErr.message || "Failed to sync Meta Ad Accounts"), req.url)
         );
+      }
+    }
+
+    // ── GMB (Google Business Profile) OAuth ──────────────────────────────────
+    if ((provider === "gmb" || provider === "google" || originalProvider === "gmb") && tokenData.access_token) {
+      try {
+        let accountEmail = "google.business@gmail.com";
+        try {
+          const userRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` }
+          });
+          const userData = await userRes.json();
+          if (userData.email) accountEmail = userData.email;
+        } catch (e) {}
+
+        await upsertAccount({
+          platform: "gmb",
+          providerAccountId: accountEmail,
+          userId,
+          accessToken: tokenData.access_token,
+          refreshToken: tokenData.refresh_token || null,
+          name: accountEmail,
+          connectedAt: new Date().toISOString(),
+          raw: tokenData
+        });
+
+        return NextResponse.redirect(new URL("/gmb?connected=true&email=" + encodeURIComponent(accountEmail), req.url));
+      } catch (gmbErr) {
+        return NextResponse.redirect(new URL("/gmb?error=" + encodeURIComponent(gmbErr.message || "Failed to link Google account"), req.url));
       }
     }
 
