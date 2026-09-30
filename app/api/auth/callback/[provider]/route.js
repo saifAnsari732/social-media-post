@@ -8,7 +8,7 @@ async function exchangeToken(provider, code) {
     case "google": {
       const clientId = process.env.GOOGLE_CLIENT_ID || process.env.YOUTUBE_CLIENT_ID;
       const clientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.YOUTUBE_CLIENT_SECRET;
-      const redirectUri = process.env.GMB_REDIRECT_URI || "https://social-media-post-eta.vercel.app/api/auth/callback/gmb";
+      const redirectUri = process.env.GMB_REDIRECT_URI || process.env.YOUTUBE_REDIRECT_URI || "https://social-media-post-eta.vercel.app/api/auth/callback/gmb";
       const res = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },

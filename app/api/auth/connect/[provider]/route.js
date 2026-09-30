@@ -11,18 +11,19 @@ export async function GET(req, { params }) {
   const metaRedirectUri = process.env.META_REDIRECT_URI || "https://social-media-post-eta.vercel.app/api/auth/callback/facebook";
   const threadsRedirectUri = process.env.THREADS_REDIRECT_URI || "https://social-media-post-eta.vercel.app/api/auth/callback/threads";
 
+  const origin = req.nextUrl.origin;
+  const googleRedirectUri = process.env.GMB_REDIRECT_URI || process.env.YOUTUBE_REDIRECT_URI || `${origin}/api/auth/callback/gmb`;
+
   const AUTH_URLS = {
     gmb: () => {
       const clientId = process.env.GOOGLE_CLIENT_ID || process.env.YOUTUBE_CLIENT_ID || "";
-      const redirectUri = process.env.GMB_REDIRECT_URI || "https://social-media-post-eta.vercel.app/api/auth/callback/gmb";
       const scopes = encodeURIComponent("https://www.googleapis.com/auth/business.manage openid profile email");
-      return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&access_type=offline&prompt=consent&state=${state}&scope=${scopes}`;
+      return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(googleRedirectUri)}&response_type=code&access_type=offline&prompt=consent&state=${state}&scope=${scopes}`;
     },
     google: () => {
       const clientId = process.env.GOOGLE_CLIENT_ID || process.env.YOUTUBE_CLIENT_ID || "";
-      const redirectUri = process.env.GMB_REDIRECT_URI || "https://social-media-post-eta.vercel.app/api/auth/callback/gmb";
       const scopes = encodeURIComponent("https://www.googleapis.com/auth/business.manage openid profile email");
-      return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&access_type=offline&prompt=consent&state=${state}&scope=${scopes}`;
+      return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(googleRedirectUri)}&response_type=code&access_type=offline&prompt=consent&state=${state}&scope=${scopes}`;
     },
     youtube: () =>
       `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.YOUTUBE_CLIENT_ID}&redirect_uri=${process.env.YOUTUBE_REDIRECT_URI}&response_type=code&access_type=offline&prompt=consent&state=${state}&scope=${encodeURIComponent(
