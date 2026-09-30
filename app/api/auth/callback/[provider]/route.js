@@ -593,6 +593,7 @@ export async function GET(req, { params }) {
         // Fetch ALL Google Business Accounts & Locations for this user
         let fetchedLocationsCount = 0;
         const gmbAccountsList = [];
+        const allRawLocations = [];
         try {
           const accRes = await fetch("https://mybusinessaccountmanagement.googleapis.com/v1/accounts", {
             headers: { Authorization: `Bearer ${tokenData.access_token}` }
@@ -607,7 +608,7 @@ export async function GET(req, { params }) {
 
               let locCount = 0;
               try {
-                const locRes = await fetch(`https://mybusinessbusinessinformation.googleapis.com/v1/${accId}/locations?readMask=name,title,storeCode,storefrontAddress,primaryCategory,websiteUri,phoneNumbers`, {
+                const locRes = await fetch(`https://mybusinessbusinessinformation.googleapis.com/v1/${accId}/locations?readMask=name,title,storeCode,storefrontAddress,primaryCategory,websiteUri,phoneNumbers,metadata,profile,regularHours`, {
                   headers: { Authorization: `Bearer ${tokenData.access_token}` }
                 });
                 const locData = await locRes.json();
@@ -615,6 +616,30 @@ export async function GET(req, { params }) {
                 if (locData.locations) {
                   locCount = locData.locations.length;
                   fetchedLocationsCount += locCount;
+                  // Store full location data for fallback
+                  for (const loc of locData.locations) {
+                    const addr = loc.storefrontAddress || {};
+                    const addressLines = addr.addressLines || [];
+                    const fullAddress = [...addressLines, addr.locality, addr.administrativeArea, addr.postalCode].filter(Boolean).join(", ");
+                    allRawLocations.push({
+                      locationId: loc.name || `locations/${Date.now()}`,
+                      accountId: accId,
+                      googleEmail: accountEmail,
+                      storeCode: loc.storeCode || loc.name?.split("/").pop() || "",
+                      title: loc.title || "Unnamed Business",
+                      category: loc.primaryCategory?.displayName || loc.primaryCategory?.categoryId || "Business",
+                      city: addr.locality || addr.administrativeArea || "",
+                      address: fullAddress || "Address not available",
+                      phone: loc.phoneNumbers?.primaryPhone || "",
+                      website: loc.websiteUri || "",
+                      rating: loc.profile?.averageRating || 0,
+                      reviewCount: loc.profile?.totalReviewCount || 0,
+                      verified: true,
+                      completeness: [loc.title, loc.primaryCategory, loc.storefrontAddress?.addressLines?.length, loc.phoneNumbers?.primaryPhone, loc.websiteUri, loc.regularHours?.periods?.length].filter(Boolean).length * 16,
+                      mapsUrl: loc.metadata?.mapsUri || "",
+                      placeId: loc.metadata?.placeId || "",
+                    });
+                  }
                 }
               } catch (locErr) {
                 console.warn(`[GMB] Failed to fetch locations for ${accId}:`, locErr);
@@ -643,6 +668,7 @@ export async function GET(req, { params }) {
           raw: {
             tokenData,
             gmbAccounts: gmbAccountsList,
+            locations: allRawLocations,
             locationsCount: fetchedLocationsCount
           }
         });

@@ -299,112 +299,55 @@ export default function GMBPage() {
     }
 
     const loadGmbAccounts = async () => {
-      let currentAccs = [];
-      let currentLocs = [];
+      const activeUserId = userData?.userId || getStoredUser()?.userId || "eb994f0c8e6f7fb4c2629561";
 
-      // 1. Try reading from localStorage
-      const savedAccs = localStorage.getItem("postfly_gmb_accounts_list");
-      const savedLocs = localStorage.getItem("postfly_gmb_locations_list");
-      if (savedAccs) {
-        try { currentAccs = JSON.parse(savedAccs); } catch (e) {}
-      }
-      if (savedLocs) {
-        try { currentLocs = JSON.parse(savedLocs); } catch (e) {}
-      }
-
-      // 2. Fetch connected accounts from database API
+      // Fetch connected accounts and real locations from dedicated GMB endpoint
       try {
-        const res = await fetch("/api/accounts");
+        const res = await fetch(`/api/gmb/accounts?userId=${encodeURIComponent(activeUserId)}`, {
+          headers: {
+            "x-user-id": activeUserId,
+            "Cache-Control": "no-cache"
+          }
+        });
         const data = await res.json();
-        const gmbDbAccounts = (data?.accounts || []).filter(a => a.platform === "gmb");
+        
+        const fetchedAccounts = data?.accounts || [];
+        const fetchedLocations = data?.locations || [];
 
-        if (gmbDbAccounts.length > 0) {
-          gmbDbAccounts.forEach((dbAcc, i) => {
-            const email = dbAcc.name || dbAcc.providerAccountId || "google.user@gmail.com";
-            if (!currentAccs.some(a => a.googleEmail === email)) {
-              currentAccs.push({
-                accountId: `accounts/${dbAcc._id || Date.now()}`,
-                googleEmail: email,
-                role: "Owner",
-                tokenStatus: "active",
-                scope: "business.manage",
-                connectedDate: new Date(dbAcc.connectedAt || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-                locationCount: 1,
-                verified: true
-              });
-            }
-            if (!currentLocs.some(l => l.googleEmail === email)) {
-              const handleName = email.includes("@") ? email.split('@')[0] : "Google Business";
-              const titleName = handleName.charAt(0).toUpperCase() + handleName.slice(1) + " Digital Hub";
-              currentLocs.push({
-                locationId: `locations/${Date.now()}_${i}`,
-                accountId: `accounts/${dbAcc._id || Date.now()}`,
-                googleEmail: email,
-                storeCode: `PF-${handleName.toUpperCase().slice(0, 4)}`,
-                title: titleName,
-                category: "Digital Agency & Local Services",
-                city: "Pune",
-                address: "101 Business Hub, Main Street, MH 411016",
-                phone: "+91 9511450914",
-                website: "https://postfly.in",
-                rating: 5.0,
-                reviewCount: 1,
-                completeness: 100,
-                verified: true
-              });
-            }
-          });
+        setAccountsList(fetchedAccounts);
+        setLocationsList(fetchedLocations);
+
+        if (fetchedLocations.length > 0) {
+          setActiveLocation(fetchedLocations[0]);
+          localStorage.setItem("postfly_gmb_locations_list", JSON.stringify(fetchedLocations));
+        } else {
+          setActiveLocation(null);
+          localStorage.removeItem("postfly_gmb_locations_list");
+        }
+
+        if (fetchedAccounts.length > 0) {
+          localStorage.setItem("postfly_gmb_accounts_list", JSON.stringify(fetchedAccounts));
+        } else {
+          localStorage.removeItem("postfly_gmb_accounts_list");
         }
       } catch (e) {
-        /* silent */
-      }
-
-      // 3. Handle OAuth redirect email param
-      if (connectedEmail) {
-        if (!currentAccs.some(a => a.googleEmail === connectedEmail)) {
-          currentAccs.unshift({
-            accountId: `accounts/${Date.now()}`,
-            googleEmail: connectedEmail,
-            role: "Owner",
-            tokenStatus: "active",
-            scope: "business.manage",
-            connectedDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-            locationCount: 1,
-            verified: true
-          });
+        console.error("Failed to load GMB accounts:", e);
+        // Fallback to localStorage if offline
+        const savedAccs = localStorage.getItem("postfly_gmb_accounts_list");
+        const savedLocs = localStorage.getItem("postfly_gmb_locations_list");
+        if (savedAccs) {
+          try { setAccountsList(JSON.parse(savedAccs)); } catch (err) {}
         }
-        if (!currentLocs.some(l => l.googleEmail === connectedEmail)) {
-          const handleName = connectedEmail.split('@')[0];
-          const titleName = handleName.charAt(0).toUpperCase() + handleName.slice(1) + " Business Profile";
-          currentLocs.unshift({
-            locationId: `locations/${Date.now()}`,
-            accountId: `accounts/${Date.now()}`,
-            googleEmail: connectedEmail,
-            storeCode: `PF-${handleName.toUpperCase().slice(0, 4)}`,
-            title: titleName,
-            category: "Digital Agency & Services",
-            city: "Pune",
-            address: "101 Horizon Park, BKC Road, MH 411016",
-            phone: "+91 9511450914",
-            website: "https://postfly.in",
-            rating: 5.0,
-            reviewCount: 1,
-            completeness: 95,
-            verified: true
-          });
+        if (savedLocs) {
+          try { 
+            const parsedLocs = JSON.parse(savedLocs);
+            setLocationsList(parsedLocs); 
+            if (parsedLocs.length > 0) setActiveLocation(parsedLocs[0]);
+          } catch (err) {}
         }
+      } finally {
+        setIsLoading(false);
       }
-
-      if (currentAccs.length > 0) {
-        setAccountsList(currentAccs);
-        localStorage.setItem("postfly_gmb_accounts_list", JSON.stringify(currentAccs));
-      }
-      if (currentLocs.length > 0) {
-        setLocationsList(currentLocs);
-        setActiveLocation(currentLocs[0]);
-        localStorage.setItem("postfly_gmb_locations_list", JSON.stringify(currentLocs));
-      }
-      setIsLoading(false);
     };
 
     loadGmbAccounts();
@@ -425,16 +368,47 @@ export default function GMBPage() {
 
   // Direct Google OAuth Authentication Trigger
   const handleConnectAccount = () => {
-    const userId = user?.userId || "anonymous";
-    window.location.href = `/api/auth/connect/gmb?userId=${encodeURIComponent(userId)}&returnTo=/gmb`;
+    const activeUserId = user?.userId || getStoredUser()?.userId || "eb994f0c8e6f7fb4c2629561";
+    window.location.href = `/api/auth/connect/gmb?userId=${encodeURIComponent(activeUserId)}&returnTo=/gmb`;
   };
 
-  // Disconnect
-  const handleDisconnectAccount = (accId) => {
-    const updated = accountsList.filter(a => a.accountId !== accId);
-    setAccountsList(updated);
-    localStorage.setItem("postfly_gmb_accounts_list", JSON.stringify(updated));
-    toast.success("Google Account disconnected");
+  // Disconnect Account from DB & State
+  const handleDisconnectAccount = async (accId, dbId, googleEmail) => {
+    const activeUserId = user?.userId || getStoredUser()?.userId || "eb994f0c8e6f7fb4c2629561";
+    try {
+      await fetch("/api/gmb/accounts", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": activeUserId
+        },
+        body: JSON.stringify({ dbId, googleEmail })
+      });
+
+      const updatedAccs = accountsList.filter(a => a.accountId !== accId);
+      const updatedLocs = locationsList.filter(l => l.googleEmail !== googleEmail);
+
+      setAccountsList(updatedAccs);
+      setLocationsList(updatedLocs);
+      
+      if (updatedLocs.length > 0) {
+        setActiveLocation(updatedLocs[0]);
+        localStorage.setItem("postfly_gmb_locations_list", JSON.stringify(updatedLocs));
+      } else {
+        setActiveLocation(null);
+        localStorage.removeItem("postfly_gmb_locations_list");
+      }
+
+      if (updatedAccs.length > 0) {
+        localStorage.setItem("postfly_gmb_accounts_list", JSON.stringify(updatedAccs));
+      } else {
+        localStorage.removeItem("postfly_gmb_accounts_list");
+      }
+
+      toast.success("Google Account disconnected successfully");
+    } catch (err) {
+      toast.error("Failed to disconnect account");
+    }
   };
 
   // Create Location
@@ -574,9 +548,13 @@ export default function GMBPage() {
   }
 
   const filteredLocations = getFilteredLocations();
-  const totalReviews = locationsList.reduce((sum, l) => sum + l.reviewCount, 0);
-  const avgRating = (locationsList.reduce((sum, l) => sum + l.rating, 0) / locationsList.length).toFixed(1);
-  const avgCompleteness = Math.round(locationsList.reduce((sum, l) => sum + l.completeness, 0) / locationsList.length);
+  const totalReviews = locationsList.reduce((sum, l) => sum + (l.reviewCount || 0), 0);
+  const avgRating = locationsList.length > 0 
+    ? (locationsList.reduce((sum, l) => sum + (l.rating || 0), 0) / locationsList.length).toFixed(1) 
+    : "0.0";
+  const avgCompleteness = locationsList.length > 0 
+    ? Math.round(locationsList.reduce((sum, l) => sum + (l.completeness || 0), 0) / locationsList.length) 
+    : 0;
 
   return (
     <div className="min-h-screen pb-16 font-sans antialiased" style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" }}>
@@ -829,7 +807,7 @@ export default function GMBPage() {
                               </div>
                             </div>
                           </div>
-                          <button onClick={() => handleDisconnectAccount(acc.accountId)}
+                          <button onClick={() => handleDisconnectAccount(acc.accountId, acc.dbId, acc.googleEmail)}
                             title="Disconnect Account"
                             className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 cursor-pointer">
                             <Unlink className="h-4 w-4" />
