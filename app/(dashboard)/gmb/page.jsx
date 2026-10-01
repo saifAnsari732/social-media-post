@@ -416,10 +416,14 @@ export default function GMBPage() {
     e.preventDefault();
     if (!createLocForm.title || !createLocForm.category) return toast.error("Title and Category are required");
     setCreatingLoc(true);
+    const activeUserId = user?.userId || getStoredUser()?.userId || "eb994f0c8e6f7fb4c2629561";
     try {
       const res = await fetch("/api/gmb", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": activeUserId
+        },
         body: JSON.stringify({ action: "create_business_location", ...createLocForm })
       });
       const data = await res.json();
@@ -429,8 +433,9 @@ export default function GMBPage() {
       setLocationsList(updatedLocs);
       setActiveLocation(newLoc);
       setShowCreateModal(false);
-      setAccountsList(prev => prev.map(a => a.googleEmail === newLoc.googleEmail ? { ...a, locationCount: a.locationCount + 1 } : a));
-      toast.success(`Location "${newLoc.title}" created successfully!`);
+      setAccountsList(prev => prev.map(a => a.googleEmail === newLoc.googleEmail ? { ...a, locationCount: (a.locationCount || 0) + 1 } : a));
+      localStorage.setItem("postfly_gmb_locations_list", JSON.stringify(updatedLocs));
+      toast.success(`Business Profile "${newLoc.title}" created successfully!`);
       fetchAuditLogs();
     } catch (err) {
       toast.error(err.message || "Location creation failed");
@@ -832,10 +837,10 @@ export default function GMBPage() {
                           </div>
                         </div>
 
-                        {/* Locations */}
-                        {accLocations.length > 0 && (
+                        {/* Locations List or Zero State CTA */}
+                        {accLocations.length > 0 ? (
                           <div className="space-y-1.5 pt-3 border-t border-slate-100">
-                            <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-2">Managed Locations</p>
+                            <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-2">Managed Locations ({accLocations.length})</p>
                             {accLocations.map(l => (
                               <button key={l.locationId}
                                 onClick={() => { setActiveLocation(l); setActiveTab("locations"); }}
@@ -848,6 +853,28 @@ export default function GMBPage() {
                                 <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all duration-200" />
                               </button>
                             ))}
+                          </div>
+                        ) : (
+                          <div className="pt-3 border-t border-slate-100 space-y-2.5">
+                            <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 flex items-start gap-2.5">
+                              <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                              <div>
+                                <p className="text-xs font-semibold text-amber-900">No Business Profiles Found</p>
+                                <p className="text-[11px] text-amber-700 mt-0.5 leading-relaxed">
+                                  Is Google Account me koi existing location nahi mila. Aap yahan se naya Business Profile create kar sakte hain.
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setCreateLocForm(f => ({ ...f, googleEmail: acc.googleEmail }));
+                                setShowCreateModal(true);
+                              }}
+                              className="w-full py-2.5 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                            >
+                              <PlusCircle className="w-3.5 h-3.5 text-blue-400" />
+                              <span>Create Business Profile</span>
+                            </button>
                           </div>
                         )}
                       </div>
