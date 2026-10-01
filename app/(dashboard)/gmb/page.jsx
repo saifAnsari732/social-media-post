@@ -474,6 +474,7 @@ export default function GMBPage() {
 
   // Agent handler
   const handleRunAgent = async (userConfirmed = false) => {
+    if (!activeLocation) return toast.error("Please select or create a location first");
     if (!agentQuery.trim() && !userConfirmed) return;
     setAgentLoading(true);
     setConfirmationPending(null);
@@ -508,6 +509,7 @@ export default function GMBPage() {
 
   // Direct tool execution
   const handleRunDirectTool = async (toolName) => {
+    if (!activeLocation) return toast.error("Please select or create a location first");
     setToolExecuting(true);
     setToolResult(null);
     try {
@@ -938,7 +940,7 @@ export default function GMBPage() {
               <div className="divide-y divide-slate-100">
                 {filteredLocations.map(loc => {
                   const isSelected = selectedLocationIds.includes(loc.locationId);
-                  const isActive = activeLocation.locationId === loc.locationId;
+                  const isActive = activeLocation?.locationId === loc.locationId;
                   return (
                     <div key={loc.locationId}
                       className={`px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all duration-200 ${
@@ -1175,7 +1177,7 @@ export default function GMBPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-slate-900">Tool Registry</h2>
-                <p className="text-sm text-slate-500 mt-0.5">38 registered tools across 8 categories &middot; Target: <span className="font-medium text-slate-700">{activeLocation.title}</span></p>
+                <p className="text-sm text-slate-500 mt-0.5">38 registered tools across 8 categories &middot; Target: <span className="font-medium text-slate-700">{activeLocation?.title || "No Location Selected"}</span></p>
               </div>
             </div>
 
