@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { upsertAccount, upsertAdAccount } from "@/lib/db";
 import { serverCache } from "@/lib/cache";
 
-async function exchangeToken(provider, code) {
+async function exchangeToken(provider, code, req) {
+  const requestOrigin = req?.nextUrl?.origin || "https://social-media-post-eta.vercel.app";
   switch (provider) {
     case "gmb":
     case "google": {
       const clientId = process.env.GOOGLE_CLIENT_ID || process.env.YOUTUBE_CLIENT_ID;
       const clientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.YOUTUBE_CLIENT_SECRET;
-      const redirectUri = process.env.GMB_REDIRECT_URI || process.env.YOUTUBE_REDIRECT_URI || "https://social-media-post-eta.vercel.app/api/auth/callback/gmb";
+      const redirectUri = process.env.GMB_REDIRECT_URI || process.env.YOUTUBE_REDIRECT_URI || `${requestOrigin}/api/auth/callback/gmb`;
       const res = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -30,7 +31,7 @@ async function exchangeToken(provider, code) {
           code,
           client_id: process.env.YOUTUBE_CLIENT_ID,
           client_secret: process.env.YOUTUBE_CLIENT_SECRET,
-          redirect_uri: process.env.YOUTUBE_REDIRECT_URI,
+          redirect_uri: process.env.YOUTUBE_REDIRECT_URI || `${requestOrigin}/api/auth/callback/youtube`,
           grant_type: "authorization_code"
         })
       });
@@ -45,7 +46,7 @@ async function exchangeToken(provider, code) {
       // Both facebook and instagram use the facebook redirect URI
       const redirectUri =
         process.env.META_REDIRECT_URI ||
-        "https://social-media-post-eta.vercel.app/api/auth/callback/facebook";
+        `${requestOrigin}/api/auth/callback/facebook`;
 
       // Step 1: Get short-lived user access token
       const shortTokenRes = await fetch(
@@ -515,7 +516,7 @@ export async function GET(req, { params }) {
   }
 
   try {
-    const tokenData = await exchangeToken(provider, code);
+    const tokenData = await exchangeToken(provider, code, req);
 
     if (tokenData.error) {
       throw new Error(

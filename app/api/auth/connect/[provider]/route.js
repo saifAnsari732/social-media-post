@@ -6,12 +6,11 @@ export async function GET(req, { params }) {
   const returnTo = req.nextUrl.searchParams.get("returnTo") || null;
   const state = Buffer.from(JSON.stringify({ userId, provider, returnTo })).toString("base64url");
 
+  const origin = req.nextUrl.origin;
   const metaAppId = process.env.META_APP_ID || "1401279338528045";
   const threadsAppId = process.env.THREADS_APP_ID || process.env.NEXT_PUBLIC_THREADS_APP_ID || process.env.META_APP_ID || "1401279338528045";
-  const metaRedirectUri = process.env.META_REDIRECT_URI || "https://social-media-post-eta.vercel.app/api/auth/callback/facebook";
-  const threadsRedirectUri = process.env.THREADS_REDIRECT_URI || "https://social-media-post-eta.vercel.app/api/auth/callback/threads";
-
-  const origin = req.nextUrl.origin;
+  const metaRedirectUri = process.env.META_REDIRECT_URI || `${origin}/api/auth/callback/facebook`;
+  const threadsRedirectUri = process.env.THREADS_REDIRECT_URI || `${origin}/api/auth/callback/threads`;
   const googleRedirectUri = process.env.GMB_REDIRECT_URI || process.env.YOUTUBE_REDIRECT_URI || `${origin}/api/auth/callback/gmb`;
 
   const AUTH_URLS = {
@@ -63,10 +62,12 @@ export async function GET(req, { params }) {
       )}&state=${state}&scope=${encodeURIComponent(linkedinScope)}`;
     },
     threads: () => {
-      // Official Threads OAuth 2.0 Authorization Dialog
-      return `https://threads.net/oauth/authorize?client_id=${threadsAppId}&redirect_uri=${encodeURIComponent(
-        threadsRedirectUri
-      )}&scope=${encodeURIComponent("threads_basic,threads_content_publish")}&response_type=code&state=${state}`;
+      // Official Meta OAuth Dialog for Threads & Instagram
+      return `https://www.facebook.com/v20.0/dialog/oauth?client_id=${metaAppId}&redirect_uri=${encodeURIComponent(
+        metaRedirectUri
+      )}&state=${state}&auth_type=rerequest&scope=${encodeURIComponent(
+        "pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,threads_basic,threads_content_publish"
+      )}`;
     },
     pinterest: () =>
       `https://www.pinterest.com/oauth/?client_id=${process.env.PINTEREST_CLIENT_ID}&redirect_uri=${encodeURIComponent(
