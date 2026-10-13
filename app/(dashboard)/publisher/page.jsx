@@ -498,27 +498,34 @@ export default function PublisherPage() {
   const [enhanceCount, setEnhanceCount] = useState(0);
 
   function smartEnhanceKeywords(input, tone = "viral", iteration = 0) {
-    const clean = input.replace(/^(The ultimate viral breakdown on|Exclusive launch and special discount breakdown for|5 Actionable step-by-step master tactics for|The untold behind-the-scenes journey of|Executive analysis and strategic roadmap on|Stop guessing with|The complete roadmap to)\s*:?\s*/i, "").trim();
+    const clean = input.replace(/^(The ultimate viral breakdown on|Exclusive launch and special discount breakdown for|5 Actionable step-by-step master tactics for|The untold behind-the-scenes journey of|Executive analysis and strategic roadmap on|Stop guessing with|The complete roadmap to|Actionable Implementation Playbook:|Strategic Growth Framework:|High-Converting Campaign:|Behind-The-Scenes Case Study:|Executive Strategic Briefing:)\s*:?\s*/i, "").trim();
+    if (!clean) return "Strategic Growth Framework: 5 Proven Tactics Top 1% Leaders Use to Multiply Engagement and Conversions in 2026";
     
+    const formatted = clean.charAt(0).toUpperCase() + clean.slice(1);
+    const lower = clean.toLowerCase();
+
+    let context = "high-performance execution and scalable workflow";
+    if (lower.includes("kisan") || lower.includes("agri") || lower.includes("fertilizer") || lower.includes("crop") || lower.includes("farm")) {
+      context = "maximizing crop yield efficiency, organic nutrition, and farmer profitability";
+    } else if (lower.includes("ai") || lower.includes("software") || lower.includes("tech") || lower.includes("tool")) {
+      context = "leveraging modern automation and scalable digital workflows";
+    } else if (lower.includes("business") || lower.includes("brand") || lower.includes("sales") || lower.includes("client")) {
+      context = "accelerating customer acquisition, retention, and market authority";
+    }
+
     if (tone === "promo" || tone === "sales") {
-      return `Exclusive launch and special offer breakdown for ${clean}: Limited-time incentives, high-value bonuses, and immediate customer call-to-action`;
+      return `High-Converting Campaign: Unveiling the game-changing value proposition of ${formatted} — featuring key competitive advantages, real-world ROI, and an irresistible call to action`;
     }
     if (tone === "educational" || tone === "actionable") {
-      return `5 Actionable step-by-step master tactics for ${clean}: Beginner-friendly implementation, key metrics to track, and proven workflow cheatsheet`;
+      return `Actionable Implementation Playbook: Step-by-step masterclass on ${formatted} (${context}) with 3 critical execution secrets and immediate beginner-to-pro milestones`;
     }
     if (tone === "story") {
-      return `The untold behind-the-scenes journey of ${clean}: The biggest obstacle faced, how it was solved, and 3 lessons every creator must know`;
+      return `Behind-The-Scenes Case Study: The untold evolution of ${formatted} — the defining crisis overcome, transformative breakthroughs achieved, and universal takeaways for ambitious creators`;
     }
     if (tone === "professional" || tone === "authority") {
-      return `Executive analysis and strategic roadmap on ${clean}: Industry data trends, competitive advantage, and future-proof scaling techniques`;
+      return `Executive Strategic Briefing: In-depth analysis of ${formatted} exploring macro market shifts, structural barriers, and a future-proof roadmap for sustained industry leadership`;
     }
-    const viralTemplates = [
-      `The ultimate viral breakdown on ${clean}: Proven high-retention hook, 3 critical secrets most people overlook, and maximum audience impact in 2026`,
-      `Stop guessing with ${clean}: The battle-tested 3-step formula to skyrocket viewer retention and drive massive organic engagement`,
-      `5 Game-changing secrets of ${clean} that industry leaders never share: Actionable tactics and high-converting framework`,
-      `The complete roadmap to ${clean}: How to achieve 10x better results with zero fluff, actionable insights, and community call-to-action`
-    ];
-    return viralTemplates[iteration % viralTemplates.length];
+    return `Strategic Growth Framework: Why ${formatted} is transforming the industry — 3 counterintuitive secrets, high-retention frameworks, and actionable steps to achieve 10x impact in 2026`;
   }
 
   async function handleEnhancePrompt() {
