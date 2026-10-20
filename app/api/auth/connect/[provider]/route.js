@@ -50,15 +50,16 @@ export async function GET(req, { params }) {
       )}&state=${state}&code_challenge=yDiyogOBAhICYCLz2kezunB7Mo0MdVRIQMs7tRbJmLE&code_challenge_method=S256`;
     },
     linkedin: () => {
-      // By default use approved personal scopes (openid, profile, email, w_member_social)
-      // If organization approval is active, set LINKEDIN_SCOPES or LINKEDIN_ENABLE_ORG_SCOPES=true in env
+      // By default use approved scopes (openid, profile, email, w_member_social)
       const defaultScopes = process.env.LINKEDIN_ENABLE_ORG_SCOPES === "true"
         ? "openid profile email w_member_social w_organization_social rw_organization_admin"
         : "openid profile email w_member_social";
       const customScopes = process.env.LINKEDIN_SCOPES || process.env.LINKEDIN_SCOPE;
       const linkedinScope = customScopes || defaultScopes;
-      return `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${process.env.LINKEDIN_CLIENT_ID}&redirect_uri=${encodeURIComponent(
-        process.env.LINKEDIN_REDIRECT_URI || "https://social-media-post-eta.vercel.app/api/auth/callback/linkedin"
+      const clientId = process.env.LINKEDIN_CLIENT_ID || "863is7g8ououwg";
+      const redirectUri = process.env.LINKEDIN_REDIRECT_URI || `${origin}/api/auth/callback/linkedin`;
+      return `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
+        redirectUri
       )}&state=${state}&scope=${encodeURIComponent(linkedinScope)}`;
     },
     threads: () => {

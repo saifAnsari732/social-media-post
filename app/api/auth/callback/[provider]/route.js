@@ -93,15 +93,18 @@ async function exchangeToken(provider, code, req) {
       return res.json();
     }
     case "linkedin": {
+      const clientId = process.env.LINKEDIN_CLIENT_ID || "863is7g8ououwg";
+      const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
+      const redirectUri = process.env.LINKEDIN_REDIRECT_URI || `${requestOrigin}/api/auth/callback/linkedin`;
       const res = await fetch("https://www.linkedin.com/oauth/v2/accessToken", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
           grant_type: "authorization_code",
           code,
-          client_id: process.env.LINKEDIN_CLIENT_ID,
-          client_secret: process.env.LINKEDIN_CLIENT_SECRET,
-          redirect_uri: process.env.LINKEDIN_REDIRECT_URI
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: redirectUri
         })
       });
       return res.json();
@@ -333,7 +336,7 @@ async function fetchAllMetaPages(userAccessToken) {
 }
 
 // ─── Fetch ALL LinkedIn Organization / Company Pages ────────────────────────
-async function fetchAllLinkedInOrganizations(accessToken) {
+async function fetchAllLinkedInOrganizations(accessToken, personalSub = null) {
   const organizations = [];
   try {
     console.log("[LinkedIn] Fetching organization ACLs...");
@@ -349,6 +352,29 @@ async function fetchAllLinkedInOrganizations(accessToken) {
     console.log("[LinkedIn] organizationalEntityAcls (state=APPROVED):", JSON.stringify(aclsData));
 
     let elements = aclsData.elements || [];
+
+    // Check with explicit roleAssignee if personalSub provided
+    if ((!elements || elements.length === 0) && personalSub) {
+      try {
+        console.log(`[LinkedIn] Trying ACLs query with explicit roleAssignee urn:li:person:${personalSub}...`);
+        const explicitRes = await fetch(
+          `https://api.linkedin.com/v2/organizationalEntityAcls?q=roleAssignee&roleAssignee=urn:li:person:${personalSub}&state=APPROVED`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "X-Restli-Protocol-Version": "2.0.0"
+            }
+          }
+        );
+        const explicitData = await explicitRes.json();
+        console.log("[LinkedIn] organizationalEntityAcls (explicit roleAssignee):", JSON.stringify(explicitData));
+        if (explicitData.elements && explicitData.elements.length > 0) {
+          elements = explicitData.elements;
+        }
+      } catch (errExplicit) {
+        console.error("[LinkedIn] Explicit roleAssignee error:", errExplicit);
+      }
+    }
 
     // Fallback: If no elements with state=APPROVED, try without state parameter
     if (!elements || elements.length === 0) {
@@ -1104,7 +1130,7 @@ export async function GET(req, { params }) {
 
       // 2. Fetch and Save ALL LinkedIn Company Pages (Organizations)
       try {
-        const organizations = await fetchAllLinkedInOrganizations(tokenData.access_token);
+        const organizations = await fetchAllLinkedInOrganizations(tokenData.access_token, personalSub);
         console.log(`[LinkedIn] Total organizations fetched: ${organizations.length}`);
 
         for (const org of organizations) {
