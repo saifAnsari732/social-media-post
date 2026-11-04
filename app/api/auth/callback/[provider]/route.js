@@ -73,8 +73,11 @@ async function exchangeToken(provider, code, req) {
       return { ...longToken, short_token: shortToken.access_token };
     }
     case "twitter": {
+      const clientId = process.env.TWITTER_CLIENT_ID || "VTlKbUkwVjU4emwzaFZ0S3BnUWM6MTpjaQ";
+      const clientSecret = process.env.TWITTER_CLIENT_SECRET || "Hmr7zZwoC5Ak9B4NBUIxVtkAhy2ARb6_n_OpX_9CIPcDLc08_H";
+      const redirectUri = process.env.TWITTER_REDIRECT_URI || `${requestOrigin}/api/auth/callback/twitter`;
       const basicAuth = Buffer.from(
-        `${process.env.TWITTER_CLIENT_ID}:${process.env.TWITTER_CLIENT_SECRET}`
+        `${clientId}:${clientSecret}`
       ).toString("base64");
       const res = await fetch("https://api.twitter.com/2/oauth2/token", {
         method: "POST",
@@ -85,8 +88,8 @@ async function exchangeToken(provider, code, req) {
         body: new URLSearchParams({
           code,
           grant_type: "authorization_code",
-          client_id: process.env.TWITTER_CLIENT_ID,
-          redirect_uri: process.env.TWITTER_REDIRECT_URI,
+          client_id: clientId,
+          redirect_uri: redirectUri,
           code_verifier: "challenge_challenge_challenge_challenge_challenge"
         })
       });
@@ -114,7 +117,7 @@ async function exchangeToken(provider, code, req) {
       const appSecret = process.env.THREADS_APP_SECRET || process.env.META_APP_SECRET;
       const redirectUri =
         process.env.THREADS_REDIRECT_URI ||
-        "https://social-media-post-eta.vercel.app/api/auth/callback/threads";
+        `${requestOrigin}/api/auth/callback/threads`;
 
       // Step 1: Exchange code for short-lived token
       const res = await fetch("https://graph.threads.net/oauth/access_token", {

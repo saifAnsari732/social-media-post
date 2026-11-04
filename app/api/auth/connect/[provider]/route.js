@@ -45,7 +45,11 @@ export async function GET(req, { params }) {
         "pages_show_list,pages_read_engagement,pages_manage_posts,pages_manage_metadata,instagram_basic,instagram_content_publish,instagram_manage_messages,instagram_manage_comments,instagram_manage_insights,business_management"
       )}`,
     twitter: () => {
-      return `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${process.env.TWITTER_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.TWITTER_REDIRECT_URI)}&scope=${encodeURIComponent(
+      const clientId = process.env.TWITTER_CLIENT_ID || "VTlKbUkwVjU4emwzaFZ0S3BnUWM6MTpjaQ";
+      const redirectUri = process.env.TWITTER_REDIRECT_URI || `${origin}/api/auth/callback/twitter`;
+      return `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
+        redirectUri
+      )}&scope=${encodeURIComponent(
         "tweet.read tweet.write users.read offline.access"
       )}&state=${state}&code_challenge=yDiyogOBAhICYCLz2kezunB7Mo0MdVRIQMs7tRbJmLE&code_challenge_method=S256`;
     },
@@ -63,19 +67,25 @@ export async function GET(req, { params }) {
       )}&state=${state}&scope=${encodeURIComponent(linkedinScope)}`;
     },
     threads: () => {
-      // Official Meta OAuth Dialog for Threads & Instagram
-      return `https://www.facebook.com/v20.0/dialog/oauth?client_id=${metaAppId}&redirect_uri=${encodeURIComponent(
-        metaRedirectUri
-      )}&state=${state}&auth_type=rerequest&scope=${encodeURIComponent(
-        "pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,threads_basic,threads_content_publish"
-      )}`;
+      // Official Meta OAuth Dialog for Threads API
+      const clientId = process.env.THREADS_APP_ID || process.env.NEXT_PUBLIC_THREADS_APP_ID || process.env.META_APP_ID || "1401279338528045";
+      const redirectUri = process.env.THREADS_REDIRECT_URI || `${origin}/api/auth/callback/threads`;
+      return `https://threads.net/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
+        redirectUri
+      )}&scope=threads_basic,threads_content_publish&response_type=code&state=${state}`;
     },
-    pinterest: () =>
-      `https://www.pinterest.com/oauth/?client_id=${process.env.PINTEREST_CLIENT_ID}&redirect_uri=${encodeURIComponent(
-        process.env.PINTEREST_REDIRECT_URI
+    pinterest: () => {
+      const clientId = process.env.PINTEREST_CLIENT_ID;
+      const redirectUri = process.env.PINTEREST_REDIRECT_URI || `${origin}/api/auth/callback/pinterest`;
+      if (!clientId) {
+        return `${origin}/accounts?error=${encodeURIComponent("Pinterest Client ID is not configured. Please add PINTEREST_CLIENT_ID in settings.")}`;
+      }
+      return `https://www.pinterest.com/oauth/?client_id=${clientId}&redirect_uri=${encodeURIComponent(
+        redirectUri
       )}&response_type=code&scope=${encodeURIComponent(
         "boards:read,boards:write,pins:read,pins:write,user_accounts:read"
-      )}&state=${state}`,
+      )}&state=${state}`;
+    },
     tiktok: () =>
       `https://www.tiktok.com/v2/auth/authorize?client_key=${process.env.TIKTOK_CLIENT_KEY}&redirect_uri=${process.env.TIKTOK_REDIRECT_URI}&response_type=code&state=${state}&scope=video.publish`,
   };
