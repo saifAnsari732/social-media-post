@@ -70,6 +70,7 @@ import { PlatformIcon } from "@/components/ui/SocialIcons";
 import { getStoredUser, checkPlanAccess } from "@/lib/user";
 import MediaPreviewModal from "@/components/modals/MediaPreviewModal";
 import { formatImageKitUrl } from "@/lib/imagekit";
+import { sanitizeForStandardTweetTier } from "@/lib/twitterCostOptimizer";
 
 function convertToUnicodeBold(str) {
   const map = {
@@ -3407,34 +3408,56 @@ Date: ${new Date().toLocaleDateString('en-GB')}`;
             )}
 
             {/* TWITTER / X PREVIEW */}
-            {previewTab === "twitter" && (
-              <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs space-y-2.5">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                    {user?.name ? user.name.slice(0, 2).toUpperCase() : "X"}
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">{user?.name || "Creator"}</h4>
-                    <p className="text-[10px] text-slate-400">@{user?.name ? user.name.toLowerCase().replace(/\s+/g, '') : "creator"} • Just Now</p>
-                  </div>
-                </div>
+            {previewTab === "twitter" && (() => {
+              const rawCombined = `${title ? title + "\n\n" : ""}${description || ""}`;
+              const sanitizedTweet = sanitizeForStandardTweetTier(rawCombined, title);
+              const hasExternalLink = /(https?:\/\/|www\.)/i.test(rawCombined);
 
-                <div className="text-xs text-slate-900 leading-relaxed whitespace-pre-wrap">
-                  {title && <p className="font-bold mb-1">{title}</p>}
-                  {description ? renderFormattedHashtags(description, "text-sky-500 font-semibold hover:underline cursor-pointer") : <span className="text-slate-400 italic">Tweet body text will render here...</span>}
-                </div>
-
-                {filePreview && (
-                  <div className="rounded-xl overflow-hidden bg-slate-950 max-h-56 flex items-center justify-center">
-                    {isVideo ? (
-                      <video src={filePreview} controls className="w-full max-h-52 object-contain" />
-                    ) : (
-                      <img src={filePreview} alt="Tweet Media" className="w-full max-h-52 object-cover" />
-                    )}
+              return (
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs space-y-2.5">
+                  <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px]">
+                    <div className="flex items-center gap-1.5 font-medium">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span>X Cost Optimizer: <strong>$0.015 Standard Tier (~₹1.25)</strong></span>
+                    </div>
+                    <span className="text-[10px] bg-emerald-200/60 text-emerald-900 font-semibold px-1.5 py-0.5 rounded">
+                      URLs Auto-Protected
+                    </span>
                   </div>
-                )}
-              </div>
-            )}
+
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                      {user?.name ? user.name.slice(0, 2).toUpperCase() : "X"}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900">{user?.name || "Creator"}</h4>
+                      <p className="text-[10px] text-slate-400">@{user?.name ? user.name.toLowerCase().replace(/\s+/g, '') : "creator"} • Just Now</p>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-slate-900 leading-relaxed whitespace-pre-wrap">
+                    {sanitizedTweet ? renderFormattedHashtags(sanitizedTweet, "text-sky-500 font-semibold hover:underline cursor-pointer") : <span className="text-slate-400 italic">Tweet body text will render here...</span>}
+                  </div>
+
+                  {hasExternalLink && (
+                    <div className="text-[10px] text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200/80 flex items-start gap-1.5">
+                      <span className="shrink-0 text-amber-600">🛡️</span>
+                      <span><strong>$0.015 Guarantee Active:</strong> External web link removed from X payload to avoid Twitter&apos;s $0.20 surcharge ($0.185 saved). Facebook, Instagram & LinkedIn keep full links.</span>
+                    </div>
+                  )}
+
+                  {filePreview && (
+                    <div className="rounded-xl overflow-hidden bg-slate-950 max-h-56 flex items-center justify-center">
+                      {isVideo ? (
+                        <video src={filePreview} controls className="w-full max-h-52 object-contain" />
+                      ) : (
+                        <img src={filePreview} alt="Tweet Media" className="w-full max-h-52 object-cover" />
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* TIKTOK / PINTEREST FALLBACK PREVIEW */}
             {(previewTab === "tiktok" || previewTab === "pinterest") && (
